@@ -7,66 +7,91 @@
 <meta name="description" content="Where EA, ACX, LessWrong and AI safety people in Munich announce their events.">
 <link rel="icon" href="data:,">
 <style>
-:root { --bg: #faf8f3; --text: #1d1d1b; --muted: #6b6a66; --line: #e2dfd6; --hover: #f0ede4; color-scheme: light dark; }
-@media (prefers-color-scheme: dark) { :root { --bg: #131412; --text: #ecebe6; --muted: #9a9993; --line: #2c2d2a; --hover: #1c1d1a; } }
+:root { --bg: #faf8f3; --text: #1d1d1b; --muted: #6b6a66; --line: #e2dfd6; --chip: #efece3; --chip-hover: #e5e1d5; color-scheme: light dark; }
+@media (prefers-color-scheme: dark) { :root { --bg: #131412; --text: #ecebe6; --muted: #9a9993; --line: #2c2d2a; --chip: #22231f; --chip-hover: #2e302a; } }
 html, body { margin: 0; background: var(--bg); color: var(--text); }
-body { font: 18px/1.5 ui-sans-serif, system-ui, sans-serif; padding: 0 16px; }
-main { max-width: 560px; margin: 0 auto; padding: 12vh 0 64px; }
+body { font: 17px/1.55 ui-sans-serif, system-ui, sans-serif; padding: 0 16px; }
+main { max-width: 600px; margin: 0 auto; padding: 10vh 0 64px; }
 h1 { font-size: clamp(28px, 7vw, 48px); font-weight: 600; margin: 0 0 8px; letter-spacing: -.01em; }
-.lede { margin: 0 0 40px; color: var(--muted); font-size: clamp(17px, 4.2vw, 20px); }
-h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 32px 0 8px; }
-ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-li { border-bottom: 1px solid var(--line); }
-a { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 12px 8px; color: inherit; text-decoration: none; }
-a:hover, a:focus-visible { background: var(--hover); }
-a span { color: var(--muted); font-size: 15px; white-space: nowrap; }
+.lede { margin: 0 0 36px; color: var(--muted); font-size: clamp(17px, 4.2vw, 20px); }
+h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 40px 0 12px; }
+a { color: inherit; }
+
+/* The two things most people came for. */
+.actions { display: grid; gap: 12px; }
+.action { display: block; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; }
+.action:hover, .action:focus-visible { border-color: var(--muted); }
+.action b { display: block; font-size: 19px; font-weight: 600; }
+.action span { color: var(--muted); font-size: 15px; }
+
+/* One block per group: the name once, then everywhere it posts. */
+.group { padding: 20px 0; border-bottom: 1px solid var(--line); }
+.group:first-of-type { border-top: 1px solid var(--line); }
+h3 { font-size: 18px; font-weight: 600; margin: 0; }
+.what { margin: 2px 0 10px; color: var(--muted); font-size: 15px; }
+.links { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.links a { display: inline-block; padding: 5px 12px; border-radius: 999px; background: var(--chip); font-size: 14px; text-decoration: none; }
+.links a:hover, .links a:focus-visible { background: var(--chip-hover); }
+
 .note { margin: 12px 0 0; color: var(--muted); font-size: 15px; }
-footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 15px; }
+.note a, footer a { color: var(--text); text-underline-offset: 3px; }
+footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 15px; }
 footer p { margin: 0 0 4px; }
-footer a, a.inline { display: inline; padding: 0; color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
-footer a:hover, footer a:focus-visible, a.inline:hover, a.inline:focus-visible { background: none; }
 </style>
 </head>
 <body>
 <main>
 <h1>Rationality Munich</h1>
-<p class="lede">A hub for EA, ACX, LessWrong, AI safety and adjacent people in Munich. Events get announced in these places:</p>
+<p class="lede">A hub for EA, ACX, LessWrong, AI safety and adjacent people in Munich.</p>
 
-<h2>Calendar</h2>
-<ul>
-<li><a href="/calendar">All upcoming events in one list <span>Calendar</span></a></li>
-</ul>
+<div class="actions">
+<a class="action" href="/calendar"><b>Calendar →</b><span>Every upcoming event from every group, in one list</span></a>
+<a class="action" href="https://lists.rationality-munich.com/subscription/form"><b>Event invites by email →</b><span>Pick EA events, rationality events, other events, or all of them</span></a>
+</div>
+<p class="note">No tracking, and you can unsubscribe or delete your data from any email. <a href="privacy.html">Privacy</a></p>
 
-<h2>Mailing list</h2>
-<ul>
-<li><a href="https://lists.rationality-munich.com/subscription/form">Get event invites by email <span>Subscribe</span></a></li>
-</ul>
-<p class="note">Pick EA events, rationality events, other events, or all of them. No tracking, and you can unsubscribe or delete your data from any email. <a class="inline" href="privacy.html">Privacy</a></p>
+<h2>The groups</h2>
 
-<h2>LessWrong / ACX</h2>
-<ul>
-<li><a href="https://www.lesswrong.com/groups/EBvaNj4oAn5nkkzbJ">LW/ACX Munich <span>LessWrong</span></a></li>
-<li><a href="https://chat.whatsapp.com/JekHeDBFokxLlmceXsYhLv">LW/ACX Munich <span>WhatsApp</span></a></li>
+<section class="group">
+<h3>LW/ACX Munich</h3>
+<p class="what">LessWrong and Astral Codex Ten meetups.</p>
+<ul class="links">
+<li><a href="https://www.lesswrong.com/groups/EBvaNj4oAn5nkkzbJ">LessWrong</a></li>
+<li><a href="https://chat.whatsapp.com/JekHeDBFokxLlmceXsYhLv">WhatsApp</a></li>
 </ul>
+</section>
 
-<h2>Effective Altruism</h2>
-<ul>
-<li><a href="https://www.eamuenchen.de/">EA Munich <span>Website</span></a></li>
-<li><a href="https://forum.effectivealtruism.org/groups/E8ruG2KzaNpynpGXK">EA Munich <span>EA Forum</span></a></li>
-<li><a href="https://luma.com/eamunich">EA Munich <span>Luma</span></a></li>
-<li><a href="https://www.meetup.com/effective-altruism-munich/">EA Munich <span>Meetup</span></a></li>
-<li><a href="https://www.lesswrong.com/groups/cavvnnKLnWeqHPAsR">EA Munich <span>LessWrong</span></a></li>
-<li><a href="https://chat.whatsapp.com/FsQAbDcpz2D1FuNydYsw13">EA Munich <span>WhatsApp</span></a></li>
+<section class="group">
+<h3>EA Munich</h3>
+<p class="what">Socials, intro programmes, workshops and talks.</p>
+<ul class="links">
+<li><a href="https://www.eamuenchen.de/">Website</a></li>
+<li><a href="https://forum.effectivealtruism.org/groups/E8ruG2KzaNpynpGXK">EA Forum</a></li>
+<li><a href="https://luma.com/eamunich">Luma</a></li>
+<li><a href="https://www.meetup.com/effective-altruism-munich/">Meetup</a></li>
+<li><a href="https://www.lesswrong.com/groups/cavvnnKLnWeqHPAsR">LessWrong</a></li>
+<li><a href="https://chat.whatsapp.com/FsQAbDcpz2D1FuNydYsw13">WhatsApp</a></li>
 </ul>
+</section>
 
-<h2>AI Safety</h2>
-<ul>
-<li><a href="https://www.pause-ai.de/lokalgruppen#:~:text=M%C3%BCnchen">PauseAI Munich <span>Website</span></a></li>
-<li><a href="https://chat.whatsapp.com/DJh8ulxyBshLCkypMte7HR">PauseAI Munich <span>WhatsApp</span></a></li>
-<li><a href="mailto:germany+munich@pauseai.info">PauseAI Munich <span>Email</span></a></li>
-<li><a href="https://docs.google.com/document/d/1jAWHNtcdX87Iaf55VynOcs-AEjwv_GOEkOO8V_Cef_U/view">AI Safety Munich Student Club <span>Info doc</span></a></li>
-<li><a href="https://chat.whatsapp.com/CpL5c6Ov7PS2OKr18Kvd2m">AI Safety Munich Student Club <span>WhatsApp</span></a></li>
+<section class="group">
+<h3>PauseAI Munich</h3>
+<p class="what">The Munich chapter of PauseAI.</p>
+<ul class="links">
+<li><a href="https://www.pause-ai.de/lokalgruppen#:~:text=M%C3%BCnchen">Website</a></li>
+<li><a href="https://chat.whatsapp.com/DJh8ulxyBshLCkypMte7HR">WhatsApp</a></li>
+<li><a href="mailto:germany+munich@pauseai.info">Email</a></li>
 </ul>
+</section>
+
+<section class="group">
+<h3>AI Safety Munich Student Club</h3>
+<p class="what">A student club for AI safety in Munich.</p>
+<ul class="links">
+<li><a href="https://docs.google.com/document/d/1jAWHNtcdX87Iaf55VynOcs-AEjwv_GOEkOO8V_Cef_U/view">Info doc</a></li>
+<li><a href="https://chat.whatsapp.com/CpL5c6Ov7PS2OKr18Kvd2m">WhatsApp</a></li>
+</ul>
+</section>
 
 <footer>
 <p>This page is a work in progress. Contact: <a href="mailto:rationality@hilll.dev">rationality@hilll.dev</a></p>
