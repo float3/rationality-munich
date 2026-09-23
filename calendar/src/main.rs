@@ -23,6 +23,7 @@ mod ics;
 mod render;
 mod sources;
 mod stats;
+mod turnout;
 
 use std::collections::HashMap;
 use std::fs;
@@ -245,6 +246,7 @@ fn main() -> Res<()> {
     sources::apply_polls(&mut events);
 
     attach_attendance(&mut events);
+    turnout::estimate(&mut events, now);
     let past: Vec<&Event> = events.iter().filter(|e| e.end_or_default() < now).collect();
     // Which events the attendance service accepts reports for.
     let ids: Vec<&str> = past.iter().map(|e| e.id.as_str()).collect();

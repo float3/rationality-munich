@@ -13,6 +13,7 @@ use chrono_tz::Europe::Berlin;
 
 use crate::event::{DEFAULT_GROUPS, Event, GROUPS};
 use crate::render::html_escape;
+use crate::turnout;
 
 const MONTHS: [&str; 12] = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
@@ -199,6 +200,14 @@ pub fn render(events: &[&Event]) -> String {
         .expect("serialisable")
         .replace("</", "<\\/");
 
+    // Only once enough reports back it up.
+    let per_signup = match turnout::came_per_signup(events.iter().copied()) {
+        (ratio, n) if n >= 3 => format!(
+            r#"<p class="caveat">About {ratio:.1} came per sign-up at the {n} events with both. Expected turnout on the upcoming page uses this.</p>"#
+        ),
+        _ => String::new(),
+    };
+
     format!(
         r#"<p class="summary" id="summary">{summary}</p>
 <p class="caveat">Some events were never posted anywhere, so the real numbers are higher. Events arranged only in the group chats are included since November 2025; casual meetups like lunch and coworking are not.</p>
@@ -209,6 +218,7 @@ pub fn render(events: &[&Event]) -> String {
 <h2>Attendance</h2>
 <div class="tiles" id="att-tiles"></div>
 <figure class="chart" id="att-chart"><figcaption class="caveat">Attendance per event as reported, else sign-ups, with the average of the last five. Report one on the <a href="/calendar/past/">past events</a> page.</figcaption></figure>
+{per_signup}
 <noscript><p class="caveat">The charts need JavaScript; the tables below have the same event counts.</p></noscript>
 <h2>Per year</h2>
 {by_year}

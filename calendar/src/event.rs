@@ -72,6 +72,9 @@ pub struct Event {
     /// largest, since the same people often sign up on several sites.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub signups: u32,
+    /// Upcoming events only: how many will probably come. See `turnout`.
+    #[serde(skip)]
+    pub expected: Option<u32>,
 }
 
 fn is_zero(n: &u32) -> bool {
@@ -106,6 +109,7 @@ impl Event {
             chat: false,
             attended: None,
             signups: 0,
+            expected: None,
         }
     }
 
@@ -217,7 +221,7 @@ const STOPWORDS: &[&str] = &[
     "ea", "acx", "lw", "meetup", "meetups", "event", "events",
 ];
 
-fn title_words(title: &str) -> HashSet<String> {
+pub fn title_words(title: &str) -> HashSet<String> {
     title
         .to_lowercase()
         .split(|c: char| !c.is_alphanumeric())
