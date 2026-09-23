@@ -1,0 +1,180 @@
+[
+  {
+    "title": "ACX/LessWrong meetup",
+    "start": "2023-06-01T19:00:00+02:00",
+    "location": "Marsstraße 13",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/acx-meetup-this-thursday"
+  },
+  {
+    "title": "Meetup at the Isar, with EA Munich",
+    "start": "2023-07-06T19:00:00+02:00",
+    "location": "Wittelsbacherbrücke, near Kolumbusplatz",
+    "excerpt": "An evening by the river, joined by the local EA meetup. Bring your own drinks.",
+    "groups": ["acx", "ea"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/meetup-at-the-isar-ea-community-will"
+  },
+  {
+    "title": "ACX Meetups Everywhere",
+    "start": "2023-09-05T19:00:00+02:00",
+    "location": "Sandstraße, Maxvorstadt",
+    "excerpt": "Munich's part of the worldwide Astral Codex Ten Meetups Everywhere.",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/meetup-munich-2023"
+  },
+  {
+    "title": "ACX at the Christmas market",
+    "start": "2023-12-20T19:00:00+01:00",
+    "location": "Christkindlmarkt am Sendlinger Tor",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/acx-goes-weihnachtsmarkt-munchen"
+  },
+  {
+    "title": "ACX Soirée",
+    "start": "2024-06-05T17:00:00+02:00",
+    "location": "Near Gauting station",
+    "excerpt": "A smaller evening in a house with a large garden. The exact address went out on the day.",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/0506-acx-soiree"
+  },
+  {
+    "title": "ACX Soirée II",
+    "start": "2024-06-15T15:00:00+02:00",
+    "location": "Near Gauting station",
+    "excerpt": "A second soirée for those who couldn't make the first one on a Wednesday.",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/1506-acx-soiree-ii"
+  },
+  {
+    "title": "ACX meetup in the Englischer Garten",
+    "start": "2024-07-27T16:00:00+02:00",
+    "end": "2024-07-27T19:00:00+02:00",
+    "location": "Berlin Wall memorial, Englischer Garten (Königinstraße entrance)",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/upcoming-acx-meetup"
+  },
+  {
+    "title": "ACX meetup",
+    "start": "2024-10-20T15:00:00+02:00",
+    "location": "EA coworking space, Müllerstraße 35",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/upcoming-acx-meetup-56d"
+  },
+  {
+    "title": "ACX meetup",
+    "start": "2024-11-22T18:30:00+01:00",
+    "end": "2024-11-22T22:00:00+01:00",
+    "location": "EA coworking space, Müllerstraße 35",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/upcoming-acx-meetup-f23"
+  },
+  {
+    "title": "ACX meetup",
+    "start": "2024-12-13T18:00:00+01:00",
+    "end": "2024-12-13T21:00:00+01:00",
+    "location": "EA coworking space, Müllerstraße 35",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/acx-meetup-upcoming"
+  },
+  {
+    "title": "ACX meetup",
+    "start": "2025-01-22T18:00:00+01:00",
+    "end": "2025-01-22T22:00:00+01:00",
+    "location": "EA coworking space, Müllerstraße 35",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/upcoming-acx-meetup-408"
+  },
+  {
+    "title": "ACX meetup",
+    "start": "2025-02-07T18:00:00+01:00",
+    "end": "2025-02-07T22:00:00+01:00",
+    "location": "EA coworking space, Müllerstraße 35",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/upcoming-acx-meetup-in-munich"
+  },
+  {
+    "title": "Reading group: the DeepSeek R1 paper",
+    "start": "2025-02-23T10:00:00+01:00",
+    "end": "2025-02-23T12:00:00+01:00",
+    "excerpt": "A book club for AI research: the R1 paper, with a visual guide to reasoning LLMs as background.",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/lets-meet-to-discuss-the-r1-paper"
+  },
+  {
+    "title": "ACX spring meetup",
+    "start": "2025-04-10T16:00:00+02:00",
+    "location": "TeamWork coworking space, Müllerstraße 35",
+    "excerpt": "The official Astral Codex Ten spring meetup.",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/official-acx-spring-meetup-very-soon"
+  },
+  {
+    "title": "ACX meetup",
+    "start": "2025-04-29T18:00:00+02:00",
+    "end": "2025-04-29T22:00:00+02:00",
+    "location": "TeamWork coworking space, Müllerstraße 35",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/upcoming-acx-meetup-2b1"
+  },
+  {
+    "title": "ACX meetup",
+    "start": "2025-05-21T18:00:00+02:00",
+    "end": "2025-05-21T22:00:00+02:00",
+    "location": "TeamWork coworking space, Müllerstraße 35",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/upcoming-acx-meetup-e96"
+  },
+  {
+    "title": "ACX meetup",
+    "start": "2025-07-02T19:00:00+02:00",
+    "end": "2025-07-02T22:00:00+02:00",
+    "location": "TeamWork coworking space, Müllerstraße 35",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/upcoming-meetup"
+  },
+  {
+    "title": "ACX meetup",
+    "start": "2025-08-08T19:00:00+02:00",
+    "end": "2025-08-08T22:00:00+02:00",
+    "location": "TeamWork coworking space, Müllerstraße 35",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/upcoming-acx-meetup-in-your-area"
+  },
+  {
+    "title": "Quarterly ACX/LW meetup",
+    "start": "2025-09-12T17:00:00+02:00",
+    "end": "2025-09-12T22:00:00+02:00",
+    "location": "TeamWork coworking space, Müllerstraße 35",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/quarterly-acxlw-meetup"
+  },
+  {
+    "title": "ACX Munich weekend",
+    "start": "2025-12-12T16:00:00+01:00",
+    "end": "2025-12-14T18:00:00+01:00",
+    "location": "Several places in Munich",
+    "excerpt": "A social meetup and lightning talks on Friday; discussions of functional decision theory, coup dynamics and elite coordination on Saturday; the Museum Mensch und Natur on Sunday.",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://acxmeetup.substack.com/p/acx-meetups-this-weekend-12-1412"
+  }
+]

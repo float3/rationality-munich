@@ -1,24 +1,47 @@
 # rationality-munich.com
 
 The pages behind [rationality-munich.com](https://rationality-munich.com): a hub
-for the EA, ACX, LessWrong and AI safety groups in Munich.
+for the EA, ACX, LessWrong, AI safety and philosophy groups in Munich, and the
+program that builds its calendar.
 
-Everything under `www/` is served as-is. Push to `master` and the server picks
-the change up within five minutes — no NixOS rebuild.
+| Path | What it is | How it goes live |
+| --- | --- | --- |
+| `www/` | the hub, privacy page and Impressum | push to `master`; the server pulls within five minutes |
+| `calendar/` | the Rust program behind `/calendar` | bump this flake in float3/nixos and rebuild the server |
 
-| Path | Page |
+## The calendar
+
+`calendar/` fetches past and upcoming events from LessWrong, the EA Forum,
+Meetup, Luma and Philosophia's Google Calendar every hour, merges events that
+were posted in several places, and writes static files:
+
+| URL | What |
 | --- | --- |
-| `www/index.html` | the hub: where each group announces its events |
-| `www/privacy.html` | what the site and the mailing list store |
-| `www/impressum.html` | legal notice |
+| `/calendar` | upcoming events |
+| `/calendar/past/` | every past event we know of |
+| `/calendar/stats/` | events per year, month and weekday |
+| `/calendar#<id>` | one event, e.g. `#2026-09-26-petrov-day-ritual-munich-multiplayer-petrov` |
+| `/calendar/e/<id>.ics` | one event, for "Add to calendar" |
+| `/calendar/feeds/all.ics` | subscription feed of everything (also `/calendar.ics`) |
+| `/calendar/feeds/acx+ea.ics` | a feed per combination of groups: `acx`, `ea`, `philosophia` |
 
-Two parts of the site live elsewhere, because a server builds them:
+The pages filter by group in the browser (`?g=acx,ea`), and the subscribe link
+follows the filter. Visitors' browsers only ever talk to rationality-munich.com.
 
-- `/calendar` and `/calendar.ics` are generated hourly from the groups' event
-  feeds by `rationality-calendar` in [float3/nixos](https://github.com/float3/nixos).
-- `lists.rationality-munich.com` is a listmonk install for event invitations.
+Older ACX meetups, announced on a substack in prose only, are transcribed in
+`calendar/data/`. Past events are also remembered in an archive on the
+server, so events that drop out of a feed once they happen stay listed.
 
-## Editing
+To add a group: a key in `GROUPS` (`src/event.rs`) and a source in
+`src/sources.rs`. Group keys are part of feed URLs, so don't rename them.
 
-Plain HTML, no build step. Each page carries its own CSS, and a dark mode via
+```sh
+cd calendar
+cargo test
+cargo run      # writes out/site/ from the live feeds
+```
+
+## Editing the pages
+
+Plain HTML, no build step. Each page carries its own CSS and a dark mode via
 `prefers-color-scheme`. Open the file in a browser to check a change.

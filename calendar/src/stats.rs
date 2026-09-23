@@ -1,0 +1,209 @@
+//! How many events the groups have held: per year, per month and per weekday.
+//!
+//! The tables are rendered here for every group, so the page works without
+//! JavaScript. Each cell names what it counts (`data-y`, `data-m`, `data-g`,
+//! `data-wd`), and the page embeds one small row per event, so switching a
+//! group off recounts the same cells in the browser. `recount` in page.html
+//! mirrors `shade`, `bar` and `summary` below.
+
+use std::collections::BTreeMap;
+
+use chrono::{Datelike, Weekday};
+use chrono_tz::Europe::Berlin;
+
+use crate::event::{Event, GROUPS};
+
+const MONTHS: [&str; 12] = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+const DAYS: [Weekday; 7] = [
+    Weekday::Mon,
+    Weekday::Tue,
+    Weekday::Wed,
+    Weekday::Thu,
+    Weekday::Fri,
+    Weekday::Sat,
+    Weekday::Sun,
+];
+
+/// A cell shaded by how its count compares with the busiest one.
+fn shade(attrs: &str, n: usize, max: usize) -> String {
+    if n == 0 {
+        return format!(r#"<td {attrs} class="zero">·</td>"#);
+    }
+    let pct = 12 + n * 58 / max.max(1);
+    let dark = if pct > 40 { " dark" } else { "" };
+    format!(
+        r#"<td {attrs} class="heat{dark}" style="background: color-mix(in srgb, var(--text) {pct}%, transparent)">{n}</td>"#
+    )
+}
+
+fn bar(n: usize, max: usize) -> String {
+    format!(
+        r#"<span class="bar"><span style="width: {}%"></span></span>"#,
+        n * 100 / max.max(1)
+    )
+}
+
+fn summary(total: usize, first: Option<i32>, busiest: Option<(usize, i32, usize)>) -> String {
+    let mut s = format!(
+        "<b>{total}</b> events since {}.",
+        first.map_or("the start".into(), |y| y.to_string())
+    );
+    if let Some((n, y, m)) = busiest.filter(|(n, _, _)| *n > 0) {
+        s += &format!(" The busiest month so far was {} {y}, with {n}.", MONTHS[m]);
+    }
+    s
+}
+
+/// `events` are the ones that already happened.
+pub fn render(events: &[&Event]) -> String {
+    let local = |e: &Event| e.start.with_timezone(&Berlin);
+
+    // Per year and group. An event several groups held counts for each of
+    // them, but once in the total.
+    let mut years: BTreeMap<i32, (Vec<usize>, usize)> = BTreeMap::new();
+    for e in events {
+        let row = years
+            .entry(local(e).year())
+            .or_insert_with(|| (vec![0; GROUPS.len()], 0));
+        for (i, (key, _)) in GROUPS.iter().enumerate() {
+            if e.in_any(&[key]) {
+                row.0[i] += 1;
+            }
+        }
+        row.1 += 1;
+    }
+    let max_year = years.values().map(|r| r.1).max().unwrap_or(0);
+    let head: String = GROUPS
+        .iter()
+        .map(|(key, name)| format!(r#"<th data-g="{key}">{name}</th>"#))
+        .collect();
+    let rows: String = years
+        .iter()
+        .rev()
+        .map(|(year, (per_group, total))| {
+            let cells: String = GROUPS
+                .iter()
+                .zip(per_group)
+                .map(|((key, _), n)| format!(r#"<td data-g="{key}">{n}</td>"#))
+                .collect();
+            format!(
+                r#"<tr data-y="{year}"><th scope="row">{year}</th>{cells}<td class="total">{total}</td><td class="wide">{}</td></tr>"#,
+                bar(*total, max_year)
+            )
+        })
+        .collect();
+    let total_cells: String = GROUPS
+        .iter()
+        .enumerate()
+        .map(|(i, (key, _))| {
+            let n: usize = years.values().map(|r| r.0[i]).sum();
+            format!(r#"<td data-g="{key}">{n}</td>"#)
+        })
+        .collect();
+    let by_year = format!(
+        r#"<table class="years"><thead><tr><th></th>{head}<th>Total</th><th class="wide"></th></tr></thead><tbody>{rows}</tbody><tfoot><tr data-y="all"><th scope="row">All</th>{total_cells}<td class="total">{}</td><td class="wide"></td></tr></tfoot></table>"#,
+        events.len()
+    );
+
+    // Year by month.
+    let mut grid: BTreeMap<i32, [usize; 12]> = BTreeMap::new();
+    for e in events {
+        let t = local(e);
+        grid.entry(t.year()).or_insert([0; 12])[t.month0() as usize] += 1;
+    }
+    let max_month = grid.values().flatten().copied().max().unwrap_or(0);
+    let month_head: String = MONTHS.iter().map(|m| format!("<th>{m}</th>")).collect();
+    let month_rows: String = grid
+        .iter()
+        .rev()
+        .map(|(year, months)| {
+            let cells: String = months
+                .iter()
+                .enumerate()
+                .map(|(m, n)| shade(&format!(r#"data-y="{year}" data-m="{m}""#), *n, max_month))
+                .collect();
+            format!(r#"<tr><th scope="row">{year}</th>{cells}</tr>"#)
+        })
+        .collect();
+    let by_month = format!(
+        r#"<div class="scroll"><table class="months"><thead><tr><th></th>{month_head}</tr></thead><tbody>{month_rows}</tbody></table></div>"#
+    );
+
+    // Weekday.
+    let per_day: Vec<usize> = DAYS
+        .iter()
+        .map(|d| events.iter().filter(|e| local(e).weekday() == *d).count())
+        .collect();
+    let max_day = per_day.iter().copied().max().unwrap_or(0);
+    let day_rows: String = DAYS
+        .iter()
+        .zip(&per_day)
+        .enumerate()
+        .map(|(i, (d, n))| {
+            format!(
+                r#"<tr data-wd="{i}"><th scope="row">{d}</th><td class="total">{n}</td><td class="wide">{}</td></tr>"#,
+                bar(*n, max_day)
+            )
+        })
+        .collect();
+    let by_day = format!(r#"<table class="days"><tbody>{day_rows}</tbody></table>"#);
+
+    let busiest = grid
+        .iter()
+        .flat_map(|(y, m)| m.iter().enumerate().map(move |(i, n)| (*n, *y, i)))
+        .max();
+    let first = events.iter().map(|e| local(e).year()).min();
+
+    // [year, month (0-11), weekday (0 = Monday), group keys] per event.
+    let data: Vec<(i32, u32, u32, &Vec<String>)> = events
+        .iter()
+        .map(|e| {
+            let t = local(e);
+            (
+                t.year(),
+                t.month0(),
+                t.weekday().num_days_from_monday(),
+                &e.groups,
+            )
+        })
+        .collect();
+    let data = serde_json::to_string(&data)
+        .expect("serialisable")
+        .replace("</", "<\\/");
+
+    format!(
+        r#"<p class="summary" id="summary">{summary}</p>
+<p class="caveat">Some events are missing. Only events announced on LessWrong, the EA Forum, Meetup, Luma, Philosophia's calendar or the old ACX substack are counted; meetups arranged only in the group chats, such as most of the fortnightly community dinners, are not, so the real numbers are higher.</p>
+<h2>Per year</h2>
+{by_year}
+<p class="caveat">An event held by several groups counts for each of them, and once in the total.</p>
+<h2>Per month</h2>
+{by_month}
+<h2>Per weekday</h2>
+{by_day}
+<script type="application/json" id="stats-data">{data}</script>"#,
+        summary = summary(events.len(), first, busiest),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::event::tests::ev;
+
+    #[test]
+    fn counts_per_year_and_group_without_double_counting_the_total() {
+        let mut shared = ev("Petrov Day", 0, "A");
+        shared.groups = vec!["acx".into(), "ea".into()];
+        let solo = ev("Dinner", 120, "B");
+        let html = render(&[&shared, &solo]);
+        assert!(html.contains("<b>2</b> events since 2026"));
+        assert!(html.contains(
+            r#"<tr data-y="2026"><th scope="row">2026</th><td data-g="acx">1</td><td data-g="ea">2</td><td data-g="philosophia">0</td><td class="total">2</td>"#
+        ));
+        assert!(html.contains("busiest month so far was Sep 2026, with 2"));
+        assert!(html.contains(r#"[[2026,8,5,["acx","ea"]],[2026,8,5,["ea"]]]"#));
+    }
+}

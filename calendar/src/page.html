@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<meta name="description" content="Events from the rationality, EA, AI safety and philosophy groups in Munich, in one list.">
+<link rel="icon" href="data:,">
+<link rel="alternate" type="text/calendar" title="Rationality Munich" href="/calendar/feeds/all.ics">
+<style>
+:root { --bg: #faf8f3; --text: #1d1d1b; --muted: #6b6a66; --line: #e2dfd6; --chip: #efece3; --chip-hover: #e5e1d5; --mark: #fff3c4; color-scheme: light dark; }
+@media (prefers-color-scheme: dark) { :root { --bg: #131412; --text: #ecebe6; --muted: #9a9993; --line: #2c2d2a; --chip: #22231f; --chip-hover: #2e302a; --mark: #3a3420; } }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body { font: 17px/1.5 ui-sans-serif, system-ui, sans-serif; padding: 0 16px; }
+main { max-width: 680px; margin: 0 auto; padding: 8vh 0 64px; }
+nav { margin-bottom: 32px; font-size: 15px; display: flex; justify-content: space-between; gap: 16px; }
+a { color: inherit; text-underline-offset: 3px; }
+h1 { font-size: clamp(28px, 7vw, 40px); font-weight: 600; margin: 0 0 8px; letter-spacing: -.01em; }
+.lede { margin: 0 0 20px; color: var(--muted); }
+
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+/* Each chip is the switch: filled when on, outlined and struck through when
+   off. The checkbox stays for keyboards and screen readers, just unseen. */
+.filters label { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border: 1px solid transparent; border-radius: 999px; background: var(--chip); font-size: 14px; cursor: pointer; user-select: none; }
+.filters label:hover { background: var(--chip-hover); }
+.filters label:has(input:not(:checked)) { background: none; border-color: var(--line); color: var(--muted); text-decoration: line-through; }
+.filters label:has(input:focus-visible) { outline: 2px solid var(--text); outline-offset: 2px; }
+.filters input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.filters .n { color: var(--muted); }
+.subscribe { margin: 0 0 8px; font-size: 15px; color: var(--muted); }
+.subscribe a { color: var(--text); font-weight: 600; }
+code { font-size: 13px; overflow-wrap: anywhere; }
+
+h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 40px 0 0; }
+article { display: grid; grid-template-columns: 64px 1fr; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 16px; }
+article:target { background: var(--mark); border-radius: 8px; margin: 0 -8px; padding: 20px 8px; }
+.date { text-align: center; line-height: 1.15; }
+.date .wd { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.date .d { font-size: 28px; font-weight: 600; }
+h3 { font-size: 19px; font-weight: 600; margin: 0 0 4px; line-height: 1.3; }
+h3 a { text-decoration: none; }
+h3 a:hover, h3 a:focus-visible { text-decoration: underline; }
+.meta { color: var(--muted); font-size: 15px; margin: 0 0 8px; }
+.text { margin: 0 0 10px; font-size: 16px; }
+.links { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+.links a { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--chip); text-decoration: none; }
+.links a:hover, .links a:focus-visible { background: var(--chip-hover); }
+/* Add-to-calendar icons, beside the title. */
+.head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.add { display: flex; gap: 6px; flex-shrink: 0; }
+.add a { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); }
+.add a:hover, .add a:focus-visible { color: var(--text); background: var(--chip); }
+.empty { color: var(--muted); margin-top: 32px; }
+
+/* Statistics */
+.summary { font-size: 18px; margin: 8px 0 0; }
+.caveat { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
+table { border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 8px; text-align: right; }
+thead th { font-size: 13px; font-weight: 600; color: var(--muted); }
+tbody th, tfoot th { text-align: left; font-weight: 600; }
+tbody tr { border-top: 1px solid var(--line); }
+tfoot tr { border-top: 2px solid var(--line); }
+.years, .days { width: 100%; }
+.total { font-weight: 600; }
+.wide { width: 40%; }
+.bar { display: block; height: 10px; border-radius: 5px; background: var(--chip); }
+.bar span { display: block; height: 100%; border-radius: 5px; background: var(--muted); }
+.scroll { overflow-x: auto; }
+.months td, .months th { padding: 6px 4px; text-align: center; min-width: 30px; }
+.months tbody th { text-align: left; }
+.heat { border-radius: 4px; }
+.heat.dark { color: var(--bg); font-weight: 600; }
+.zero { color: var(--line); }
+@media (max-width: 560px) { .wide { display: none; } }
+footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 15px; }
+footer p { margin: 0 0 6px; }
+</style>
+</head>
+<body data-page="{{page}}">
+<main>
+<nav><a href="/">← Rationality Munich</a>{{nav}}</nav>
+<h1>{{heading}}</h1>
+<p class="lede">{{lede}}</p>
+{{filters}}
+{{subscribe}}
+{{body}}
+<p class="empty" id="none" hidden>Nothing from the groups you picked.</p>
+<footer>
+<p>Updated {{updated}}. Refreshed every hour.{{stale}}</p>
+<p><a href="/">Home</a> · <a href="/privacy.html">Privacy</a> · <a href="/impressum.html">Impressum</a> · <a href="https://github.com/float3/rationality-munich">Source on GitHub</a></p>
+</footer>
+</main>
+<script>
+// Which groups to show lives in the address (?g=acx,ea), so a filtered view
+// can be shared and nothing is stored on the visitor's device.
+(() => {
+  const form = document.getElementById("filters");
+  if (!form) return;
+  const boxes = [...form.querySelectorAll("input")];
+  const all = boxes.map((b) => b.value);
+  const wanted = new URLSearchParams(location.search).get("g");
+  if (wanted !== null) {
+    const keep = wanted.split(",");
+    boxes.forEach((b) => (b.checked = keep.includes(b.value)));
+  }
+  form.hidden = false;
+  const page = document.body.dataset.page;
+
+  // A link to an event that has since happened lands on the past page.
+  const id = decodeURIComponent(location.hash.slice(1));
+  if (page === "upcoming" && id && !document.getElementById(id)) {
+    location.replace("/calendar/past/" + location.search + location.hash);
+    return;
+  }
+
+  function list(on) {
+    let shown = 0;
+    document.querySelectorAll("section.month").forEach((month) => {
+      let visible = 0;
+      month.querySelectorAll("article").forEach((a) => {
+        const hide = !a.dataset.groups.split(" ").some((g) => on.includes(g));
+        a.hidden = hide;
+        if (!hide) visible++;
+      });
+      month.hidden = visible === 0;
+      shown += visible;
+    });
+    document.getElementById("none").hidden = shown > 0 || !document.querySelector("article");
+
+    const feed = on.length === all.length ? "all" : on.join("+");
+    const url = "rationality-munich.com/calendar/feeds/" + feed + ".ics";
+    const sub = document.getElementById("sub");
+    sub.href = "webcal://" + url;
+    sub.parentElement.hidden = on.length === 0;
+    document.getElementById("suburl").textContent = "https://" + url;
+  }
+
+  // Mirrors shade(), bar() and summary() in stats.rs.
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const rows = JSON.parse(document.getElementById("stats-data")?.textContent || "[]");
+  const max = (xs) => Math.max(1, ...xs);
+  function setBar(tr, n, most) {
+    tr.querySelector(".bar span").style.width = Math.floor((n * 100) / most) + "%";
+  }
+  function recount(on) {
+    const events = rows.filter(([, , , groups]) => groups.some((g) => on.includes(g)));
+    const count = (pred) => events.filter(pred).length;
+
+    document.querySelectorAll("[data-g]").forEach((el) => (el.hidden = !on.includes(el.dataset.g)));
+    const years = [...document.querySelectorAll(".years tbody tr")];
+    const yearTotals = years.map((tr) => count(([y]) => y === +tr.dataset.y));
+    years.forEach((tr, i) => {
+      tr.querySelectorAll("td[data-g]").forEach((td) => {
+        const g = td.dataset.g;
+        td.textContent = count(([y, , , gs]) => y === +tr.dataset.y && gs.includes(g));
+      });
+      tr.querySelector(".total").textContent = yearTotals[i];
+      setBar(tr, yearTotals[i], max(yearTotals));
+    });
+    const foot = document.querySelector('.years tfoot tr');
+    foot.querySelectorAll("td[data-g]").forEach((td) => {
+      td.textContent = count(([, , , gs]) => gs.includes(td.dataset.g));
+    });
+    foot.querySelector(".total").textContent = events.length;
+
+    const cells = [...document.querySelectorAll(".months td[data-m]")];
+    const months = cells.map((td) => count(([y, m]) => y === +td.dataset.y && m === +td.dataset.m));
+    const most = max(months);
+    cells.forEach((td, i) => {
+      const n = months[i];
+      const pct = 12 + Math.floor((n * 58) / most);
+      td.textContent = n || "·";
+      td.className = n ? "heat" + (pct > 40 ? " dark" : "") : "zero";
+      td.style.background = n ? `color-mix(in srgb, var(--text) ${pct}%, transparent)` : "";
+    });
+
+    const days = [...document.querySelectorAll(".days tr")];
+    const perDay = days.map((tr) => count(([, , wd]) => wd === +tr.dataset.wd));
+    days.forEach((tr, i) => {
+      tr.querySelector(".total").textContent = perDay[i];
+      setBar(tr, perDay[i], max(perDay));
+    });
+
+    const first = events.length ? Math.min(...events.map(([y]) => y)) : null;
+    let text = `<b>${events.length}</b> events since ${first ?? "the start"}.`;
+    // Ties go to the later month, as with the tuple comparison in stats.rs.
+    const key = (i) => [months[i], +cells[i].dataset.y, +cells[i].dataset.m];
+    const later = (a, b) => { for (let k = 0; k < 3; k++) if (a[k] !== b[k]) return a[k] > b[k]; return false; };
+    let best = -1;
+    months.forEach((n, i) => {
+      if (n > 0 && (best < 0 || later(key(i), key(best)))) best = i;
+    });
+    if (best >= 0) {
+      const td = cells[best];
+      text += ` The busiest month so far was ${MONTHS[+td.dataset.m]} ${td.dataset.y}, with ${months[best]}.`;
+    }
+    document.getElementById("summary").innerHTML = text;
+  }
+
+  function apply() {
+    const on = boxes.filter((b) => b.checked).map((b) => b.value);
+    if (page === "stats") recount(on);
+    else list(on);
+
+    const query = on.length === all.length ? "" : "?g=" + on.join(",");
+    history.replaceState(null, "", location.pathname + query + location.hash);
+    document.querySelectorAll("[data-keep-filter]").forEach((a) => {
+      a.search = query;
+    });
+  }
+  form.addEventListener("change", apply);
+  apply();
+  // Hidden events above the target shift it; scroll again once filtered.
+  if (id) document.getElementById(id)?.scrollIntoView();
+})();
+</script>
+</body>
+</html>
