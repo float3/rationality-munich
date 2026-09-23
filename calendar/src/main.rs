@@ -251,6 +251,7 @@ fn main() -> Res<()> {
 
     attach_attendance(&mut events);
     sources::apply_headcounts(&mut events);
+    sources::apply_ranges(&mut events);
     turnout::estimate(&mut events, now);
     let past: Vec<&Event> = events.iter().filter(|e| e.end_or_default() < now).collect();
     // Which events the attendance service accepts reports for.

@@ -1,6 +1,6 @@
 # Hand-kept event data
 
-All four files are compiled into the calendar binary.
+All five files are compiled into the calendar binary.
 
 ## history.json: past events worth listing
 
@@ -52,5 +52,13 @@ Per event: its start, its group and how many came, with `"at_least": true`
 where only a floor is known. Matched like the polls. An organiser's count
 beats visitors' reports on /calendar/past/; a floor gives way to a report
 above it. So far: the ACX Meetups Everywhere day on 11 April 2026 (at least
-40) and its Estimation Game (30), and every Estimation Game since (at least
-10 each).
+40) and its Estimation Game (30), every Estimation Game since (at least 10
+each), and the dinner with a visiting rationalist from Tokyo (4).
+
+## ranges.json: how many usually came to a series
+
+What the organisers know about a series as a whole rather than per event:
+its groups, words every title has, the range of headcounts, and the date up
+to which that holds. Each event of the series that nobody counted gets its
+sign-ups kept inside the range, or the middle of it. So far: the ACX
+community dinners, 5 to 12 people each, up to September 2026.

@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use crate::event::{Event, Raw};
+use crate::event::{Came, Event, Raw, title_words};
 use crate::ics;
 
 pub type Res<T> = Result<T, Box<dyn Error>>;
@@ -698,10 +698,48 @@ pub fn apply_headcounts(events: &mut [Event]) {
         };
         let reported_more = e.attended.is_some_and(|c| c.n >= h.came);
         if !(h.at_least && reported_more) {
-            e.attended = Some(crate::event::Came {
+            e.attended = Some(Came {
                 n: h.came,
                 at_least: h.at_least,
             });
+        }
+    }
+}
+
+// What the organisers know about a whole series: how many usually came.
+// See data/README.md.
+
+#[derive(Deserialize)]
+struct Range {
+    groups: Vec<String>,
+    /// Words every event of the series has in its title.
+    title: String,
+    /// Events after this are not covered: the series may have grown.
+    until: DateTime<Utc>,
+    low: u32,
+    high: u32,
+}
+
+/// Gives each event of a series that nobody counted a headcount within the
+/// range the organisers gave: its sign-ups kept inside that range, or the
+/// middle of it.
+pub fn apply_ranges(events: &mut [Event]) {
+    let ranges: Vec<Range> = serde_json::from_str(include_str!("../data/ranges.json"))
+        .expect("data/ranges.json is valid");
+    for r in ranges {
+        let words = title_words(&r.title);
+        for e in events.iter_mut().filter(|e| {
+            e.attended.is_none()
+                && e.start < r.until
+                && e.groups == r.groups
+                && words.is_subset(&title_words(&e.title))
+        }) {
+            let n = if e.signups > 0 {
+                e.signups.clamp(r.low, r.high)
+            } else {
+                (r.low + r.high).div_ceil(2)
+            };
+            e.attended = Some(Came { n, at_least: false });
         }
     }
 }
@@ -838,8 +876,68 @@ mod tests {
     }
 
     #[test]
+    fn a_series_range_fills_in_only_uncounted_events() {
+        let at = |s: &str| DateTime::parse_from_rfc3339(s).unwrap().with_timezone(&Utc);
+        let dinner = |title: &str, start: &str, group: &str, signups: u32| {
+            let mut e = Event::new(Raw {
+                title,
+                start: at(start),
+                end: None,
+                location: "",
+                online: false,
+                text: "",
+                group,
+                label: "LessWrong",
+                url: "https://www.lesswrong.com/events/x",
+            });
+            e.signups = signups;
+            e
+        };
+        let mut events = vec![
+            dinner(
+                "ACX community dinner",
+                "2026-04-22T18:30:00+02:00",
+                "acx",
+                11,
+            ),
+            dinner("Community Dinner", "2026-08-11T18:30:00+02:00", "acx", 2),
+            dinner(
+                "ACX community dinner",
+                "2026-09-09T18:30:00+02:00",
+                "acx",
+                0,
+            ),
+            dinner(
+                "ACX community dinner",
+                "2026-07-08T18:30:00+02:00",
+                "acx",
+                4,
+            ),
+            dinner("EA community dinner", "2026-08-26T18:30:00+02:00", "ea", 5),
+            dinner(
+                "Dinner with a visiting rationalist",
+                "2026-04-19T17:00:00+02:00",
+                "acx",
+                0,
+            ),
+            dinner(
+                "ACX community dinner",
+                "2026-10-07T18:30:00+02:00",
+                "acx",
+                20,
+            ),
+        ];
+        events[3].attended = Some(Came {
+            n: 3,
+            at_least: false,
+        });
+        apply_ranges(&mut events);
+        let n: Vec<Option<u32>> = events.iter().map(|e| e.attended.map(|c| c.n)).collect();
+        assert_eq!(n, [Some(11), Some(5), Some(9), Some(3), None, None, None]);
+    }
+
+    #[test]
     fn organisers_counts_beat_reports_but_floors_give_way() {
-        use crate::event::Came;
         let at = |s: &str| DateTime::parse_from_rfc3339(s).unwrap().with_timezone(&Utc);
         let game = |start: &str, reported: Option<u32>| {
             let mut e = Event::new(Raw {
