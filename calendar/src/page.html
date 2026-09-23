@@ -101,7 +101,8 @@ tfoot tr { border-top: 2px solid var(--line); }
 /* Comparison and chart. Emphasis form: months from the chosen one in ink,
    the year before in a recessive gray. */
 :root { --accent: var(--text); --deemph: color-mix(in srgb, var(--muted) 45%, var(--bg)); }
-.compare { margin: 12px 0; font-size: 15px; color: var(--muted); }
+.compare { margin: 12px 0; font-size: 15px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
+.compare input[type=checkbox] { accent-color: var(--accent); margin: 0 4px 0 0; vertical-align: -2px; }
 .compare input { font: inherit; color: var(--text); background: var(--chip); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; }
 .tiles { display: flex; flex-wrap: wrap; gap: 24px; margin: 8px 0 16px; }
 .tile .label { font-size: 13px; color: var(--muted); }
@@ -265,6 +266,9 @@ footer p { margin: 0 0 6px; }
   // Events per month, the months since the chosen one against the twelve
   // before. Built here rather than in Rust because it follows the switches.
   const sinceBox = document.getElementById("since");
+  // On: compare with the same months a year earlier, and fit the trend to
+  // counts with the usual seasonal swing taken out.
+  const seasonBox = document.getElementById("season");
   // rationality-munich.com went live on Thursday, 17 September 2026.
   const LAUNCH = new Date(2026, 8, 17);
   const DAY = 864e5;
@@ -279,6 +283,24 @@ footer p { margin: 0 0 6px; }
   }
   const monthIndex = (y, m) => y * 12 + m;
   const monthLabel = (i) => MONTHS[i % 12] + " " + Math.floor(i / 12);
+  // Each calendar month's usual share of events, 1 being an average month:
+  // from the complete years before this one, pulled towards 1 by one year's
+  // worth of average months so that thin data cannot swing it far.
+  function seasonIndex(events, thisYear) {
+    const per = Array(12).fill(0);
+    let firstYear = thisYear;
+    events.forEach(([y, m]) => {
+      if (y < thisYear) {
+        per[m]++;
+        firstYear = Math.min(firstYear, y);
+      }
+    });
+    const years = thisYear - firstYear, total = per.reduce((a, b) => a + b, 0);
+    if (years < 2 || !total) return Array(12).fill(1);
+    const avg = total / (12 * years);
+    return per.map((s) => (s + avg) / ((years + 1) * avg));
+  }
+
   function chart(events) {
     const box = document.getElementById("chart");
     const tiles = document.getElementById("tiles");
@@ -298,24 +320,31 @@ footer p { margin: 0 0 6px; }
 
     // Complete months only: the current one is still filling up.
     const sum = (a, b) => months.filter(([i]) => i >= a && i < b).reduce((s, [, n]) => s + n, 0);
-    const before = sum(first, since) / 12;
+    const season = !!seasonBox?.checked;
     const full = current - since;
     const after = full > 0 ? sum(since, current) / full : null;
+    // The same months a year earlier, or the twelve before.
+    const before = season ? (full > 0 ? sum(since - 12, current - 12) / full : 0) : sum(first, since) / 12;
+    const earlier = season ? "the same months a year earlier" : "the year before";
     const total = sum(since, current + 1);
     const fmt = (x) => (Math.round(x * 10) / 10).toLocaleString("en");
     let delta = "";
     if (after !== null && before > 0) {
       const pct = Math.round(((after - before) / before) * 100);
-      delta = `${pct >= 0 ? "+" : "−"}${Math.abs(pct)}% on the year before (${fmt(before)} a month)`;
-    } else if (after !== null) delta = "none the year before";
-    // Since launch: a rate per 30 days, against the year before launch.
+      delta = `${pct >= 0 ? "+" : "−"}${Math.abs(pct)}% on ${earlier} (${fmt(before)} a month)`;
+    } else if (after !== null) delta = `none in ${earlier}`;
+    // Since launch: a rate per 30 days, against the same days a year
+    // earlier or the whole year before launch.
     const dated = events.map((r) => new Date(r[0], r[1], r[4]));
     const days = Math.max(1, (now - LAUNCH) / DAY);
     const sinceLaunch = dated.filter((d) => d >= LAUNCH).length;
-    const yearBefore = dated.filter((d) => d < LAUNCH && d >= LAUNCH - 365 * DAY).length;
-    const rate = (sinceLaunch / days) * 30, rateBefore = (yearBefore / 365) * 30;
+    const rate = (sinceLaunch / days) * 30;
+    const [from, to, span] = season
+      ? [LAUNCH - 365 * DAY, now - 365 * DAY, days]
+      : [LAUNCH - 365 * DAY, LAUNCH.getTime(), 365];
+    const rateBefore = (dated.filter((d) => d >= from && d < to).length / span) * 30;
     const launchDelta = rateBefore
-      ? `${rate >= rateBefore ? "+" : "−"}${Math.abs(Math.round(((rate - rateBefore) / rateBefore) * 100))}% on the year before (${fmt(rateBefore)})`
+      ? `${rate >= rateBefore ? "+" : "−"}${Math.abs(Math.round(((rate - rateBefore) / rateBefore) * 100))}% on ${season ? "the same days a year earlier" : "the year before"} (${fmt(rateBefore)})`
       : "";
     tiles.innerHTML =
       `<div class="tile"><div class="label">Events a month since ${monthLabel(since)}</div>` +
@@ -349,12 +378,15 @@ footer p { margin: 0 0 6px; }
       svg += `<path class="bar${i >= since ? " on" : ""}" d="${d}"/>`;
       if (i % 12 === 0 || k === 0) svg += `<text class="axis" x="${x + bar / 2}" y="${height - 6}" text-anchor="middle">${i % 12 === 0 ? Math.floor(i / 12) : MONTHS[i % 12]}</text>`;
     });
-    // Trend: least squares over the monthly counts shown.
-    const [slope, icept] = fit(months.map((_, k) => k), months.map(([, n]) => n));
+    // Trend: least squares over the monthly counts shown, with each month's
+    // usual seasonal share divided out when adjusting.
+    const index = season ? seasonIndex(events, now.getFullYear()) : Array(12).fill(1);
+    const adjusted = months.map(([i, n]) => n / index[i % 12]);
+    const [slope, icept] = fit(months.map((_, k) => k), adjusted);
     const xAt = (k) => left + k * band + band / 2;
     const yc = (v) => y(Math.max(0, Math.min(ceil, v)));
     svg += `<line class="trend" x1="${xAt(0)}" y1="${yc(icept)}" x2="${xAt(months.length - 1)}" y2="${yc(icept + slope * (months.length - 1))}"/>`;
-    svg += `<text class="axis" x="${xAt(0)}" y="${yc(icept) - 6}">trend ${Math.abs(slope) < 0.05 ? "±0" : (slope > 0 ? "+" : "−") + fmt(Math.abs(slope))}/month</text>`;
+    svg += `<text class="axis" x="${xAt(0)}" y="${yc(icept) - 6}">trend ${Math.abs(slope) < 0.05 ? "±0" : (slope > 0 ? "+" : "−") + fmt(Math.abs(slope))}/month${season ? ", season-adjusted" : ""}</text>`;
     // Launch marker, when the launch month is on the chart.
     const lk = monthIndex(LAUNCH.getFullYear(), LAUNCH.getMonth()) - first;
     if (lk >= 0 && lk < months.length) {
@@ -369,7 +401,10 @@ footer p { margin: 0 0 6px; }
     box.querySelectorAll(".hit").forEach((hit) => {
       const [i, n] = months[+hit.dataset.k];
       const show = () => {
-        tip.textContent = `${monthLabel(i)}: ${n} ${n === 1 ? "event" : "events"}`;
+        const k = +hit.dataset.k;
+        tip.textContent =
+          `${monthLabel(i)}: ${n} ${n === 1 ? "event" : "events"}` +
+          (season && index[i % 12] !== 1 ? ` (${fmt(adjusted[k])} season-adjusted)` : "");
         tip.style.left = `${(+hit.getAttribute("x") + band / 2) / width * 100}%`;
         tip.style.top = `${y(n)}px`;
         tip.hidden = false;
@@ -524,6 +559,7 @@ footer p { margin: 0 0 6px; }
     const params = new URLSearchParams();
     if (on.join(",") !== defaults) params.set("g", on.join(","));
     if (sinceBox && sinceBox.value !== sinceBox.defaultValue) params.set("since", sinceBox.value);
+    if (seasonBox && !seasonBox.checked) params.set("season", "0");
     const query = params.toString() ? "?" + params.toString().replace(/%2C/g, ",") : "";
     history.replaceState(null, "", location.pathname + query + location.hash);
     document.querySelectorAll("[data-keep-filter]").forEach((a) => {
@@ -534,6 +570,8 @@ footer p { margin: 0 0 6px; }
   if (sinceBox) {
     const wantedSince = new URLSearchParams(location.search).get("since");
     if (wantedSince && /^\d{4}-\d{2}$/.test(wantedSince)) sinceBox.value = wantedSince;
+    if (new URLSearchParams(location.search).get("season") === "0") seasonBox.checked = false;
+    seasonBox.addEventListener("change", apply);
     document.getElementById("compare").hidden = false;
     sinceBox.addEventListener("change", apply);
     let resized;
