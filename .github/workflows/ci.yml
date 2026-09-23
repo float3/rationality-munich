@@ -72,8 +72,12 @@ jobs:
           calendar/out/site/stats/index.html
       - name: XML is well-formed
         run: |
-          sudo apt-get install -y --no-install-recommends libxml2-utils > /dev/null
-          xmllint --noout www/sitemap.xml www/favicon.svg calendar/out/site/feed.xml
+          python3 - www/sitemap.xml www/favicon.svg calendar/out/site/feed.xml <<'EOF'
+          import sys, xml.dom.minidom
+          for f in sys.argv[1:]:
+              xml.dom.minidom.parse(f)
+              print("ok", f)
+          EOF
       - name: Calendar files are well-formed
         run: |
           for f in calendar/out/site/feeds/*.ics calendar/out/site/e/*.ics; do
