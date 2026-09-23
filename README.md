@@ -63,13 +63,18 @@ cargo run      # writes out/site/ from the live feeds
 
 ## CI
 
-Every push, and weekly in case a source changes its format:
+Every push, and weekly in case a source changes its format or a link dies:
 
 - **Rust**: `cargo fmt --check`, `clippy -D warnings`, `cargo test`
-- **Nix**: alejandra, `nix flake check`, `nix build .#default` (what the server runs)
+- **Nix**: alejandra, `nix flake check`, `nix build .#default` (what the server runs).
+  The flake check includes `checks.links`: links between the pages in `www/`,
+  offline, since Nix builds have no network
 - **HTML**: the pages in `www/` and the generated calendar pages through
   [html-validate](https://html-validate.org) (rules in `.htmlvalidate.json`),
-  plus well-formed XML and calendar files
+  plus well-formed XML and calendar files, and every link between the pages,
+  calendar included
+- **Links**: every link to another site, with [lychee](https://lychee.cli.rs),
+  and that the WhatsApp invites have not been reset
 
 ## Editing the pages
 

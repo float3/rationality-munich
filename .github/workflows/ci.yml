@@ -78,6 +78,20 @@ jobs:
               xml.dom.minidom.parse(f)
               print("ok", f)
           EOF
+      - uses: cachix/install-nix-action@v31
+      # Offline, laid out the way nginx serves it: the static pages link into
+      # /calendar/, and the calendar to its own pages, anchors and files.
+      - name: Links between the pages, calendar included
+        run: |
+          W="$RUNNER_TEMP/web"
+          mkdir -p "$W"
+          cp -r www/. "$W"
+          cp -r calendar/out/site "$W/calendar"
+          nix shell --inputs-from . nixpkgs#lychee -c lychee --offline --no-progress \
+            --include-fragments --index-files index.html --root-dir "$W" \
+            --remap "https://rationality-munich\.com/(.*) file://$W/\$1" \
+            "$W"/*.html "$W"/sitemap.xml "$W"/robots.txt "$W"/calendar/feed.xml \
+            "$W"/calendar/index.html "$W"/calendar/past/index.html "$W"/calendar/stats/index.html
       - name: Calendar files are well-formed
         run: |
           for f in calendar/out/site/feeds/*.ics calendar/out/site/e/*.ics; do
@@ -85,3 +99,38 @@ jobs:
             tail -1 "$f" | grep -q '^END:VCALENDAR' || { echo "$f: truncated"; exit 1; }
           done
           ls calendar/out/site/feeds
+
+  # Links to other sites. Only CI can check these, since Nix builds have no
+  # network; the weekly run catches links that rot between commits. Event
+  # links in the calendar come fresh from the feeds and are not checked.
+  links:
+    name: Links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - name: Links to other sites
+        run: >-
+          nix shell --inputs-from . nixpkgs#lychee -c lychee --no-progress
+          --max-concurrency 8 --max-retries 3 --accept '200..=299,429'
+          --root-dir "$PWD/www"
+          --remap "https://rationality-munich\.com/(.*) file://$PWD/www/\$1"
+          --exclude '/calendar'
+          www/*.html www/sitemap.xml www/robots.txt www/.well-known/security.txt
+          calendar/data/*.json README.md
+      # A revoked or reset WhatsApp invite still answers 200, but its preview
+      # has no group name.
+      - name: WhatsApp invites are live
+        run: |
+          fail=0
+          for url in $(grep -ohE 'https://chat\.whatsapp\.com/[A-Za-z0-9]+' www/*.html | sort -u); do
+            title=$(curl -sL -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36' "$url" \
+              | grep -oE '<meta property="og:title" content="[^"]*' | sed 's/.*content="//')
+            if [ -z "$title" ]; then
+              echo "::error::$url: invite revoked or reset"
+              fail=1
+            else
+              echo "ok $url ($title)"
+            fi
+          done
+          exit $fail
