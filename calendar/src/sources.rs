@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use crate::event::{Event, Raw, web_url};
+use crate::event::{Event, Raw};
 use crate::ics;
 
 pub type Res<T> = Result<T, Box<dyn Error>>;
@@ -57,11 +57,7 @@ pub fn all() -> Vec<Source> {
         ),
         forum("lw-ea", "LessWrong", LESSWRONG, "cavvnnKLnWeqHPAsR", "ea"),
         forum("eaforum", "EA Forum", EA_FORUM, "E8ruG2KzaNpynpGXK", "ea"),
-        Source {
-            key: "meetup",
-            label: "Meetup",
-            fetch: Box::new(|agent, _| meetup_events(agent)),
-        },
+        meetup_group("meetup", "effective-altruism-munich", "ea", |_| true),
         Source {
             key: "luma",
             label: "Luma",
@@ -72,12 +68,6 @@ pub fn all() -> Vec<Source> {
             label: "Philosophia",
             fetch: Box::new(philosophia_events),
         },
-        // Meetup's feed has no past events; its page lists the latest ten.
-        Source {
-            key: "meetup-past",
-            label: "Meetup",
-            fetch: Box::new(|agent, _| meetup_page(agent, EA_MEETUP, "past", "ea", |_| true)),
-        },
         Source {
             key: "mlphil",
             label: "MCMP",
@@ -85,9 +75,12 @@ pub fn all() -> Vec<Source> {
         },
         // The GEB reading group has no page of its own; it posts in a general
         // Munich activities group, so only its events are taken.
+        // Its events are titled "Bi-Weekly GEB \"Cafminar\"" and the like.
         meetup_group("geb", "munich-weekly-activities", "geb", |title| {
             let t = title.to_lowercase();
-            t.contains("gödel") || t.contains("godel") || t.contains("escher")
+            t.split(|c: char| !c.is_alphanumeric()).any(|w| w == "geb")
+                || t.contains("gödel")
+                || t.contains("escher")
         }),
         meetup_group(
             "agi",
@@ -109,7 +102,8 @@ pub fn all() -> Vec<Source> {
     ]
 }
 
-/// A Meetup group's upcoming and recent past events, read from its pages.
+/// One Meetup group; `keep` picks the events that are the group's when it
+/// posts through a broader one.
 fn meetup_group(
     key: &'static str,
     slug: &'static str,
@@ -119,11 +113,7 @@ fn meetup_group(
     Source {
         key,
         label: "Meetup",
-        fetch: Box::new(move |agent, _| {
-            let mut out = meetup_page(agent, slug, "upcoming", group, keep)?;
-            out.extend(meetup_page(agent, slug, "past", group, keep)?);
-            Ok(out)
-        }),
+        fetch: Box::new(move |agent, _| meetup_events(agent, slug, group, keep)),
     }
 }
 
@@ -188,167 +178,106 @@ fn forum_events(
     Ok(out)
 }
 
-// Meetup: an iCalendar feed of upcoming events only. Past ones stay on the
-// page through the archive.
+// Meetup: the GraphQL endpoint its own website uses. No key needed; it has
+// every group's full history, newest first, with venues.
 
-const EA_MEETUP: &str = "effective-altruism-munich";
-const MEETUP_ICS: &str = "https://www.meetup.com/effective-altruism-munich/events/ical/";
+const MEETUP_GQL: &str = "https://www.meetup.com/gql2";
 
-/// Meetup's feed has no location; the event page's JSON-LD does.
-fn meetup_venue(agent: &ureq::Agent, url: &str) -> Res<(String, bool)> {
-    let page = get(agent, url)?;
-    let mut rest = page.as_str();
-    while let Some(i) = rest.find("<script type=\"application/ld+json\"") {
-        rest = &rest[i..];
-        let Some(open) = rest.find('>') else { break };
-        let Some(close) = rest.find("</script>") else {
-            break;
-        };
-        let block = &rest[open + 1..close.max(open + 1)];
-        rest = &rest[close.max(open + 1)..];
-        let Ok(data) = serde_json::from_str::<Value>(block) else {
-            continue;
-        };
-        let items = match data {
-            Value::Array(items) => items,
-            one => vec![one],
-        };
-        if let Some(item) = items.iter().find(|i| i["@type"] == "Event") {
-            let loc = &item["location"];
-            let mode = item["eventAttendanceMode"].as_str().unwrap_or("");
-            if loc["@type"] == "VirtualLocation" || mode.contains("Online") {
-                return Ok((String::new(), true));
-            }
-            let mut parts: Vec<String> = Vec::new();
-            let name = loc["name"].as_str().unwrap_or("");
-            let street = loc["address"]["streetAddress"].as_str().unwrap_or("");
-            for p in std::iter::once(name)
-                .chain(street.split(','))
-                .map(str::trim)
-            {
-                if !p.is_empty()
-                    && !["Germany", "BY", "de"].contains(&p)
-                    && !parts.iter().any(|q| q.contains(p))
-                {
-                    parts.push(p.to_string());
-                }
-            }
-            return Ok((parts.join(", "), false));
-        }
+const MEETUP_QUERY: &str = r#"
+query($group: String!, $status: EventStatus!, $after: String) {
+  groupByUrlname(urlname: $group) {
+    events(status: $status, first: 100, after: $after, sort: DESC) {
+      pageInfo { hasNextPage endCursor }
+      edges { node { title dateTime endTime eventUrl isOnline description
+                     venue { name address } } }
     }
-    Ok((String::new(), false))
+  }
 }
+"#;
 
-fn meetup_events(agent: &ureq::Agent) -> Res<Vec<Event>> {
-    let mut out = Vec::new();
-    for e in ics::parse(&get(agent, MEETUP_ICS)?) {
-        let Some(start) = ics::time(ics::prop(&e, "DTSTART")) else {
-            continue;
-        };
-        let url = ics::value(&e, "URL");
-        let text = ics::value(&e, "DESCRIPTION");
-        let text = text
-            .strip_prefix("Effective Altruism Munich\n")
-            .unwrap_or(&text);
-        // Without the venue the event still shows, so a failure here is only logged.
-        // The URL comes from the feed, so it is only fetched when it is a Meetup page.
-        let venue = if url.starts_with("https://www.meetup.com/") && web_url(&url) {
-            meetup_venue(agent, &url)
-        } else {
-            Err("not a meetup.com page".into())
-        };
-        let (location, online) = venue.unwrap_or_else(|err| {
-            eprintln!("meetup venue {url:?}: {err}");
-            (String::new(), false)
-        });
-        out.push(Event::new(Raw {
-            title: &ics::value(&e, "SUMMARY"),
-            start,
-            end: ics::time(ics::prop(&e, "DTEND")),
-            location: &location,
-            online,
-            text,
-            group: "ea",
-            label: "Meetup",
-            url: &url,
-        }));
-    }
-    Ok(out)
-}
+/// At most this many pages of a hundred per group and run. Culture Club alone
+/// has held almost 700 events since 2015.
+const MEETUP_PAGES: usize = 10;
 
-/// Meetup's group pages embed their events as Apollo cache entries in
-/// `__NEXT_DATA__`: `Event:<id>` objects pointing at `Venue:<id>` ones. One
-/// request per page, venues included.
-fn meetup_page(
+/// A Meetup group's upcoming (`ACTIVE`) and past events. Cancelled ones have
+/// their own status and never come back.
+fn meetup_events(
     agent: &ureq::Agent,
     slug: &str,
-    kind: &str,
     group: &str,
     keep: fn(&str) -> bool,
 ) -> Res<Vec<Event>> {
-    let page = get(
-        agent,
-        &format!("https://www.meetup.com/{slug}/events/?type={kind}"),
-    )?;
-    let start = page
-        .find(r#"<script id="__NEXT_DATA__""#)
-        .and_then(|i| page[i..].find('>').map(|j| i + j + 1))
-        .ok_or("no __NEXT_DATA__")?;
-    let end = start
-        + page[start..]
-            .find("</script>")
-            .ok_or("unterminated __NEXT_DATA__")?;
-    let data: Value = serde_json::from_str(&page[start..end])?;
-    let state = data["props"]["pageProps"]["__APOLLO_STATE__"]
-        .as_object()
-        .ok_or("no Apollo state")?;
     let mut out = Vec::new();
-    for (k, e) in state {
-        if !k.starts_with("Event:") || e["status"] == "CANCELLED" {
-            continue;
-        }
-        let title = e["title"].as_str().unwrap_or("");
-        let url = e["eventUrl"].as_str().unwrap_or("");
-        let Some(start) = forum_time(&e["dateTime"]) else {
-            continue;
-        };
-        if !keep(title) || !url.starts_with("https://www.meetup.com/") {
-            continue;
-        }
-        let venue = e["venue"]["__ref"].as_str().and_then(|r| state.get(r));
-        let location = venue
-            .map(|v| {
-                let mut parts: Vec<&str> = Vec::new();
-                for x in [&v["name"], &v["address"]]
-                    .iter()
-                    .filter_map(|x| x.as_str())
-                {
-                    // Venues are often named after their own address.
-                    if !x.is_empty() && !parts.contains(&x) {
-                        parts.push(x);
-                    }
+    for status in ["ACTIVE", "PAST"] {
+        let mut after = Value::Null;
+        for _ in 0..MEETUP_PAGES {
+            let body = json!({
+                "query": MEETUP_QUERY,
+                "variables": { "group": slug, "status": status, "after": after },
+            });
+            let data: Value = serde_json::from_str(
+                &agent
+                    .post(MEETUP_GQL)
+                    .header("Content-Type", "application/json")
+                    .send(body.to_string())?
+                    .body_mut()
+                    .read_to_string()?,
+            )?;
+            if let Some(err) = data["errors"].get(0) {
+                return Err(format!("meetup {slug}: {}", err["message"]).into());
+            }
+            let events = &data["data"]["groupByUrlname"]["events"];
+            if events.is_null() {
+                return Err(format!("meetup {slug}: no such group").into());
+            }
+            for edge in events["edges"].as_array().ok_or("no edges")? {
+                if let Some(e) = meetup_event(&edge["node"], group, keep) {
+                    out.push(e);
                 }
-                parts.join(", ")
-            })
-            .unwrap_or_default();
-        // Descriptions are Markdown; the excerpt wants plain text.
-        let text = e["description"]
-            .as_str()
-            .unwrap_or("")
-            .replace(['*', '#', '_'], "");
-        out.push(Event::new(Raw {
-            title,
-            start,
-            end: forum_time(&e["endTime"]),
-            location: &location,
-            online: e["isOnline"].as_bool().unwrap_or(false),
-            text: &text,
-            group,
-            label: "Meetup",
-            url,
-        }));
+            }
+            if events["pageInfo"]["hasNextPage"] != true {
+                break;
+            }
+            after = events["pageInfo"]["endCursor"].clone();
+        }
     }
     Ok(out)
+}
+
+fn meetup_event(e: &Value, group: &str, keep: fn(&str) -> bool) -> Option<Event> {
+    let title = e["title"].as_str()?;
+    let url = e["eventUrl"].as_str()?;
+    let start = forum_time(&e["dateTime"])?;
+    if !keep(title) || !url.starts_with("https://www.meetup.com/") {
+        return None;
+    }
+    let mut place: Vec<&str> = Vec::new();
+    for x in [&e["venue"]["name"], &e["venue"]["address"]]
+        .iter()
+        .filter_map(|x| x.as_str())
+    {
+        // Venues are often named after their own address; online events
+        // come with a placeholder venue.
+        if !x.is_empty() && !place.contains(&x) && x != "Online event" {
+            place.push(x);
+        }
+    }
+    // Descriptions are Markdown; the excerpt wants plain text.
+    let text = e["description"]
+        .as_str()
+        .unwrap_or("")
+        .replace(['*', '#', '_'], "");
+    Some(Event::new(Raw {
+        title,
+        start,
+        end: forum_time(&e["endTime"]),
+        location: &place.join(", "),
+        online: e["isOnline"].as_bool().unwrap_or(false),
+        text: &text,
+        group,
+        label: "Meetup",
+        url,
+    }))
 }
 
 // The MCMP's philosophy of machine learning reading group keeps its schedule,

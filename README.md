@@ -15,7 +15,8 @@ program that builds its calendar.
 
 `calendar/` fetches past and upcoming events every hour, merges events that
 were posted in several places, and writes static files. Sources: LessWrong
-and the EA Forum (GraphQL), Meetup (iCal feed and group pages), Luma (iCal),
+and the EA Forum (GraphQL), Meetup (its GraphQL API, full history back to
+2016), Luma (iCal),
 Philosophia's Google Calendar, and the MCMP reading group's schedule page.
 
 Groups: LW/ACX and EA Munich are shown by default; Philosophia and the
