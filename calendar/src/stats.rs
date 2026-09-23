@@ -70,7 +70,6 @@ fn hidden_unless_on(key: &str) -> &'static str {
 pub fn render(events: &[&Event]) -> String {
     let local = |e: &Event| e.start.with_timezone(&Berlin);
     let everything: Vec<&Event> = events.to_vec();
-    let chat = everything.iter().filter(|e| e.chat).count();
     // What the page shows before the visitor picks.
     let shown: Vec<&Event> = everything
         .iter()
@@ -196,20 +195,12 @@ pub fn render(events: &[&Event]) -> String {
         .expect("serialisable")
         .replace("</", "<\\/");
 
-    let counted = match chat {
-        0 => String::new(),
-        1 => " One event since November 2025 was organised only in the groups' chats; it is listed and counted too.".to_string(),
-        n => format!(
-            " {n} events since November 2025 were organised only in the groups' chats, such as most of the fortnightly ACX community dinners; they are listed and counted too."
-        ),
-    };
-
     format!(
         r#"<p class="summary" id="summary">{summary}</p>
-<p class="caveat">Some events are missing: only events announced on LessWrong, the EA Forum, Meetup, Luma, Philosophia's calendar or the old ACX substack are counted, so the real numbers are higher.{counted} Casual meetups, like lunch and coworking or spontaneous bouldering, are not counted: they are arranged in the spontaneous events chat of the EA Munich WhatsApp community.</p>
+<p class="caveat">Some events were never posted anywhere, so the real numbers are higher. Events arranged only in the group chats are included since November 2025; casual meetups like lunch and coworking are not.</p>
 <h2>Per year</h2>
 {by_year}
-<p class="caveat">An event held by several groups counts for each of them, and once in the total.</p>
+<p class="caveat">Events held by several groups count for each, and once in the total.</p>
 <h2>Per month</h2>
 {by_month}
 <h2>Per weekday</h2>
@@ -255,8 +246,6 @@ mod tests {
         dinner.chat = true;
         let html = render(&[&dinner]);
         assert!(html.contains("<b>1</b> events since 2026"));
-        assert!(
-            html.contains("One event since November 2025 was organised only in the groups' chats")
-        );
+        assert!(html.contains("included since November 2025"));
     }
 }

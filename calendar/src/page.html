@@ -165,10 +165,10 @@ footer p { margin: 0 0 6px; }
     }
     if (feeds.length === 1) {
       const url = feedUrl(feeds[0][1]);
-      box.innerHTML = `<a href="webcal://${url}">Subscribe in your calendar app</a> to get these events there, kept up to date. Or add <code>https://${url}</code> by URL.`;
+      box.innerHTML = `<a href="webcal://${url}">Subscribe in your calendar app</a>, or add <code>https://${url}</code> by URL.`;
     } else {
       const links = feeds.map(([name, f]) => `<a href="webcal://${feedUrl(f)}">${esc(name)}</a>`).join(" · ");
-      box.innerHTML = `Subscribe in your calendar app, one calendar each: ${links}`;
+      box.innerHTML = `Subscribe in your calendar app, one each: ${links}`;
     }
   }
 

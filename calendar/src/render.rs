@@ -194,7 +194,7 @@ fn subscribe() -> String {
     );
     // The script rewrites this for the groups picked; see `subscribe` in page.html.
     format!(
-        r#"<p class="subscribe" id="subscribe"><a href="webcal://{feed}">Subscribe in your calendar app</a> to get these events there, kept up to date. Or add <code>https://{feed}</code> by URL.</p>"#
+        r#"<p class="subscribe" id="subscribe"><a href="webcal://{feed}">Subscribe in your calendar app</a>, or add <code>https://{feed}</code> by URL.</p>"#
     )
 }
 
@@ -206,21 +206,21 @@ pub fn page(p: &Page) -> String {
         Kind::Upcoming => (
             "Calendar · Rationality Munich",
             "Upcoming events",
-            "Events from the rationality and EA groups in Munich, collected from LessWrong, the EA Forum, Meetup and Luma. More Munich groups are one click away below. Regular events are listed on the <a href=\"/#regular\">home page</a>.",
+            "Events from the rationality and EA groups in Munich. More groups are one click away.",
             format!("{past} · {stats}"),
             "upcoming",
         ),
         Kind::Past => (
             "Past events · Rationality Munich",
             "Past events",
-            "Everything these groups have held that we know of, newest first.",
+            "Newest first.",
             format!("{upcoming} · {stats}"),
             "past",
         ),
         Kind::Stats => (
             "Statistics · Rationality Munich",
             "Statistics",
-            "How often the groups meet, from every event we know of.",
+            "How often the groups meet.",
             format!("{upcoming} · {past}"),
             "stats",
         ),
