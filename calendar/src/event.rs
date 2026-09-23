@@ -67,6 +67,15 @@ pub struct Event {
     /// are. Read fresh every run; not kept in caches.
     #[serde(skip)]
     pub attended: Option<(u32, usize)>,
+    /// How many said they would come: a page's RSVP count or a chat poll's
+    /// yes votes. Only counts are read, never who. Cross-posts keep the
+    /// largest, since the same people often sign up on several sites.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub signups: u32,
+}
+
+fn is_zero(n: &u32) -> bool {
+    *n == 0
 }
 
 pub struct Raw<'a> {
@@ -96,7 +105,15 @@ impl Event {
             links: vec![(r.label.to_string(), r.url.to_string())],
             chat: false,
             attended: None,
+            signups: 0,
         }
+    }
+
+    /// Reported attendance if anyone reported it, else the sign-ups.
+    pub fn headcount(&self) -> Option<u32> {
+        self.attended
+            .map(|(n, _)| n)
+            .or(Some(self.signups).filter(|&n| n > 0))
     }
 
     pub fn place(&self) -> &str {
@@ -275,6 +292,7 @@ pub fn merge(mut events: Vec<Event>) -> Vec<Event> {
         if e.location.len() > twin.location.len() {
             twin.location = e.location;
         }
+        twin.signups = twin.signups.max(e.signups);
         twin.end = twin.end.or(e.end);
         twin.online |= e.online;
         // Posted somewhere after all: then it is not chat-only.

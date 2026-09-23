@@ -125,8 +125,15 @@ const EA_FORUM: &str = "https://forum.effectivealtruism.org/graphql";
 const FORUM_QUERY: &str = r#"
 { posts(input: {terms: {view: "VIEW", groupId: "GROUP", limit: 500}}) {
     results { title startTime endTime location onlineEvent pageUrl
-              contents { plaintextDescription } } } }
+              contents { plaintextDescription } rsvps } } }
 "#;
+
+/// The "yes" answers among a post's RSVPs; the rest of each entry is not read.
+fn forum_yes(rsvps: &Value) -> u32 {
+    rsvps.as_array().map_or(0, |list| {
+        list.iter().filter(|r| r["response"] == "yes").count() as u32
+    })
+}
 
 fn forum_time(v: &Value) -> Option<DateTime<Utc>> {
     DateTime::parse_from_rfc3339(v.as_str()?)
@@ -162,7 +169,7 @@ fn forum_events(
             let Some(start) = forum_time(&p["startTime"]) else {
                 continue;
             };
-            out.push(Event::new(Raw {
+            let mut e = Event::new(Raw {
                 title: p["title"].as_str().unwrap_or(""),
                 start,
                 end: forum_time(&p["endTime"]),
@@ -172,7 +179,9 @@ fn forum_events(
                 group,
                 label,
                 url: p["pageUrl"].as_str().unwrap_or(""),
-            }));
+            });
+            e.signups = forum_yes(&p["rsvps"]);
+            out.push(e);
         }
     }
     Ok(out)
@@ -189,7 +198,7 @@ query($group: String!, $status: EventStatus!, $after: String) {
     events(status: $status, first: 100, after: $after, sort: DESC) {
       pageInfo { hasNextPage endCursor }
       edges { node { title dateTime endTime eventUrl isOnline description
-                     venue { name address } } }
+                     venue { name address } going { totalCount } } }
     }
   }
 }
@@ -269,7 +278,7 @@ fn meetup_event(e: &Value, group: &str, keep: fn(&str) -> bool) -> Option<Event>
         .as_str()
         .unwrap_or("")
         .replace(['*', '#', '_'], "");
-    Some(Event::new(Raw {
+    let mut event = Event::new(Raw {
         title,
         start,
         end: forum_time(&e["endTime"]),
@@ -279,7 +288,9 @@ fn meetup_event(e: &Value, group: &str, keep: fn(&str) -> bool) -> Option<Event>
         group,
         label: "Meetup",
         url,
-    }))
+    });
+    event.signups = e["going"]["totalCount"].as_u64().unwrap_or(0) as u32;
+    Some(event)
 }
 
 // The MCMP's philosophy of machine learning reading group keeps its schedule,
@@ -420,7 +431,7 @@ fn luma_events(agent: &ureq::Agent) -> Res<Vec<Event>> {
         let location = ics::value(&e, "LOCATION");
         let online = location.starts_with("http");
         // Luma's description is only boilerplate (link, address, host), so no excerpt.
-        out.push(Event::new(Raw {
+        let mut event = Event::new(Raw {
             title: &ics::value(&e, "SUMMARY"),
             start,
             end: ics::time(ics::prop(&e, "DTEND")),
@@ -430,9 +441,31 @@ fn luma_events(agent: &ureq::Agent) -> Res<Vec<Event>> {
             group: "ea",
             label: "Luma",
             url: &url,
-        }));
+        });
+        event.signups = luma_guest_count(agent, &url).unwrap_or(0);
+        out.push(event);
     }
     Ok(out)
+}
+
+/// How many registered, from the API behind Luma's event pages. The calendar
+/// has only a handful of events, so this is a request each per run. A failure
+/// only loses the count.
+fn luma_guest_count(agent: &ureq::Agent, url: &str) -> Option<u32> {
+    let slug = url
+        .strip_prefix("https://luma.com/")
+        .or_else(|| url.strip_prefix("https://lu.ma/"))?;
+    if slug.is_empty()
+        || !slug
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    {
+        return None;
+    }
+    let data: Value =
+        serde_json::from_str(&get(agent, &format!("https://api.lu.ma/url?url={slug}")).ok()?)
+            .ok()?;
+    data["data"]["guest_count"].as_u64().map(|n| n as u32)
 }
 
 // Philosophia Munich: a public Google Calendar going back to 2020, with weekly
@@ -592,6 +625,47 @@ pub fn unannounced(now: DateTime<Utc>) -> Vec<Event> {
         .collect()
 }
 
+// "Who's coming?" polls from the group chats, for events whose pages had no
+// RSVPs. See data/README.md.
+
+#[derive(Deserialize)]
+struct Poll {
+    start: DateTime<Utc>,
+    group: String,
+    /// Per answer: its votes, and how likely a voter was to come ("50%" is
+    /// 0.5, "definitely" 1).
+    votes: Vec<(u32, f64)>,
+}
+
+impl Poll {
+    /// People expected, rounded.
+    fn expected(&self) -> u32 {
+        self.votes
+            .iter()
+            .map(|&(n, p)| n as f64 * p)
+            .sum::<f64>()
+            .round() as u32
+    }
+}
+
+/// Gives each poll's expected turnout to the group's event that day starting
+/// nearest the time the poll named (a dinner poll counts for the meetup day
+/// it ends), unless it has more sign-ups already.
+pub fn apply_polls(events: &mut [Event]) {
+    let polls: Vec<Poll> =
+        serde_json::from_str(include_str!("../data/polls.json")).expect("data/polls.json is valid");
+    let day = |t: DateTime<Utc>| t.with_timezone(&chrono_tz::Europe::Berlin).date_naive();
+    for p in polls {
+        let nearest = events
+            .iter_mut()
+            .filter(|e| e.groups.contains(&p.group) && day(e.start) == day(p.start))
+            .min_by_key(|e| (e.start - p.start).abs());
+        if let Some(e) = nearest {
+            e.signups = e.signups.max(p.expected());
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -676,6 +750,61 @@ mod tests {
             meetup_event(&e, "ea", |_| true).unwrap().location,
             "Bellevue di Monaco, Müllerstraße 2"
         );
+    }
+
+    #[test]
+    fn only_yes_rsvps_count() {
+        let rsvps = serde_json::json!([
+            { "response": "yes" }, { "response": "maybe" }, { "response": "yes" }, { "response": "no" }
+        ]);
+        assert_eq!(forum_yes(&rsvps), 2);
+        assert_eq!(forum_yes(&Value::Null), 0);
+    }
+
+    #[test]
+    fn polls_fill_in_only_where_pages_had_fewer() {
+        let at = |s: &str| DateTime::parse_from_rfc3339(s).unwrap().with_timezone(&Utc);
+        let dinner = |start: &str, group: &str, signups: u32| {
+            let mut e = Event::new(Raw {
+                title: "Community dinner",
+                start: at(start),
+                end: None,
+                location: "",
+                online: false,
+                text: "",
+                group,
+                label: "LessWrong",
+                url: "https://www.lesswrong.com/events/x",
+            });
+            e.signups = signups;
+            e
+        };
+        let mut events = vec![
+            dinner("2026-04-22T18:30:00+02:00", "acx", 2),
+            dinner("2026-04-22T18:30:00+02:00", "ea", 0),
+            dinner("2026-05-06T19:00:00+02:00", "acx", 20),
+            dinner("2026-04-11T14:00:00+02:00", "acx", 4),
+            dinner("2026-04-11T11:00:00+02:00", "acx", 0),
+        ];
+        apply_polls(&mut events);
+        assert_eq!(events[0].signups, 11);
+        assert_eq!(events[1].signups, 0, "another group's event");
+        assert_eq!(events[2].signups, 20, "the page had more");
+        assert_eq!(
+            (events[3].signups, events[4].signups),
+            (15, 0),
+            "the nearest that day"
+        );
+    }
+
+    #[test]
+    fn a_fifty_percent_vote_is_half_a_person() {
+        let poll: Poll = serde_json::from_str(
+            r#"{ "start": "2026-06-23T18:30:00+02:00", "group": "acx",
+                 "votes": [[4, 0.9], [2, 0.7], [1, 0.5], [1, 0.3], [1, 0.1]] }"#,
+        )
+        .unwrap();
+        assert_eq!(poll.expected(), 6);
     }
 
     #[test]

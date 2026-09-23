@@ -179,7 +179,7 @@ pub fn render(events: &[&Event]) -> String {
     let first = shown.iter().map(|e| local(e).year()).min();
 
     // [year, month (0-11), weekday (0 = Monday), group keys, day of month,
-    // reported attendance or null] per event.
+    // attendance (reported, else sign-ups) or null] per event.
     type Row<'a> = (i32, u32, u32, &'a Vec<String>, u32, Option<u32>);
     let data: Vec<Row> = everything
         .iter()
@@ -191,7 +191,7 @@ pub fn render(events: &[&Event]) -> String {
                 t.weekday().num_days_from_monday(),
                 &e.groups,
                 t.day(),
-                e.attended.map(|(n, _)| n),
+                e.headcount(),
             )
         })
         .collect();
@@ -208,7 +208,7 @@ pub fn render(events: &[&Event]) -> String {
 <figure class="chart" id="chart"><figcaption class="caveat">Events per month. Hover a month for its count.</figcaption></figure>
 <h2>Attendance</h2>
 <div class="tiles" id="att-tiles"></div>
-<figure class="chart" id="att-chart"><figcaption class="caveat">Reported attendance per event, with the average of the last five. Report one on the <a href="/calendar/past/">past events</a> page.</figcaption></figure>
+<figure class="chart" id="att-chart"><figcaption class="caveat">Attendance per event as reported, else sign-ups, with the average of the last five. Report one on the <a href="/calendar/past/">past events</a> page.</figcaption></figure>
 <noscript><p class="caveat">The charts need JavaScript; the tables below have the same event counts.</p></noscript>
 <h2>Per year</h2>
 {by_year}

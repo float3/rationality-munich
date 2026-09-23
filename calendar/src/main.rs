@@ -242,6 +242,7 @@ fn main() -> Res<()> {
             .collect(),
     ));
     assign_ids(&mut events);
+    sources::apply_polls(&mut events);
 
     attach_attendance(&mut events);
     let past: Vec<&Event> = events.iter().filter(|e| e.end_or_default() < now).collect();

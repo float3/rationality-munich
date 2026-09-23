@@ -76,6 +76,8 @@ fn render_event(e: &Event, upcoming: bool) -> String {
     );
     if let Some((n, _)) = e.attended {
         meta.push(format!("about {n} came"));
+    } else if e.signups > 0 {
+        meta.push(format!("{} signed up", e.signups));
     }
     let meta = meta
         .iter()

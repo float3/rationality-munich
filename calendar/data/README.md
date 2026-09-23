@@ -1,6 +1,6 @@
 # Hand-kept event data
 
-Both files are compiled into the calendar binary.
+All three files are compiled into the calendar binary.
 
 ## history.json: past events worth listing
 
@@ -34,3 +34,13 @@ kept: no names, no message text.
 Each entry needs `title`, `start` and `groups`. They are listed on
 /calendar/past/, marked "In the group chat" since there is nothing to link
 to, and counted in the statistics like any other event.
+
+## polls.json: "who's coming?" polls from the group chats
+
+Sign-ups for events whose pages had none, or fewer: each poll's event time,
+its group, and per answer the votes and how likely those voters were to come
+("definitely" 1, "probably" 0.75, "maybe" or "50%" 0.5, a range its middle).
+The expected number of people, rounded, goes to the group's event that day
+starting nearest that time. Polls about topics or dates, and polls for
+events that were then cancelled, are left out. Only counts: the export does
+not say who voted, and nothing else from the chat is kept.
