@@ -177,11 +177,15 @@ footer p { margin: 0 0 6px; }
     return;
   }
 
-  // Past events: "about how many came?", sent to rationality-attendance.
-  if (page === "past") {
+  // "About how many came?", sent to rationality-attendance: for past events,
+  // and for upcoming ones once they have started.
+  if (page === "past" || page === "upcoming") {
+    const now = Date.now();
     document.querySelectorAll("article").forEach((a) => {
+      if (page === "upcoming" && !(Number(a.dataset.start) <= now)) return;
       const li = document.createElement("li");
-      li.innerHTML = '<button type="button" class="attend">How many came?</button>';
+      const label = page === "past" ? "How many came?" : "How many are here?";
+      li.innerHTML = `<button type="button" class="attend">${label}</button>`;
       a.querySelector(".links").append(li);
     });
     document.addEventListener("click", (ev) => {

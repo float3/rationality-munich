@@ -30,8 +30,8 @@ a { color: inherit; }
 .actions { display: grid; gap: 12px; }
 .action { display: block; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; }
 .action:hover, .action:focus-visible { border-color: var(--muted); }
-.action b { display: block; font-size: 19px; font-weight: 600; }
-.action span { color: var(--muted); font-size: 15px; }
+.action > b { display: block; font-size: 19px; font-weight: 600; }
+.action > span { color: var(--muted); font-size: 15px; }
 
 /* One block per group: the name once, then everywhere it posts. */
 .group { padding: 20px 0; border-bottom: 1px solid var(--line); }
@@ -47,7 +47,7 @@ h3 { font-size: 18px; font-weight: 600; margin: 0; }
 .more-groups li { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
 .more-groups a { font-weight: 600; text-decoration: none; }
 .more-groups a:hover, .more-groups a:focus-visible { text-decoration: underline; }
-.more-groups span { color: var(--muted); font-size: 15px; }
+.more-groups > span { color: var(--muted); font-size: 15px; }
 .more-groups span::before { content: "· "; }
 
 /* Regular and upcoming events: a title, when, and a line of context. */

@@ -254,9 +254,14 @@ fn main() -> Res<()> {
     sources::apply_ranges(&mut events);
     turnout::estimate(&mut events, now);
     let past: Vec<&Event> = events.iter().filter(|e| e.end_or_default() < now).collect();
-    // Which events the attendance service accepts reports for.
-    let ids: Vec<&str> = past.iter().map(|e| e.id.as_str()).collect();
-    fs::write(state.join("past-ids.json"), serde_json::to_string(&ids)?)?;
+    // The attendance service takes reports for an event once it has started,
+    // so it gets every event's start and checks the time itself.
+    let starts: std::collections::BTreeMap<&str, DateTime<Utc>> =
+        events.iter().map(|e| (e.id.as_str(), e.start)).collect();
+    fs::write(
+        state.join("event-starts.json"),
+        serde_json::to_string(&starts)?,
+    )?;
     // Chat-only events come from data/unannounced.json every run.
     let archived: Vec<&&Event> = past.iter().filter(|e| !e.chat).collect();
     fs::write(&archive_path, serde_json::to_string(&archived)?)?;

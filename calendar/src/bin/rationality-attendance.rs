@@ -1,6 +1,6 @@
-//! Takes "about how many came?" reports for past events on
-//! rationality-munich.com/calendar/past/ and keeps them in a JSON file that
-//! the calendar reads on its next run.
+//! Takes "about how many came?" reports for events on
+//! rationality-munich.com/calendar, from the moment they start, and keeps them
+//! in a JSON file that the calendar reads on its next run.
 //!
 //! A report stores the event, the number and the time; nothing about who sent
 //! it. The client address (nginx's X-Real-IP) only ever lives in memory, to
@@ -72,12 +72,24 @@ fn parse(body: &str) -> Option<(String, u32)> {
     Some((id?, n))
 }
 
-/// Ids of past events, written by the calendar on every run.
-fn is_past_event(known: &Path, id: &str) -> bool {
-    fs::read_to_string(known)
+/// Every event's start, written by the calendar on every run.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum Known {
+    Starts(HashMap<String, DateTime<Utc>>),
+    /// The calendar's older file: ids of events that had ended.
+    Past(Vec<String>),
+}
+
+fn has_started(known: &Path, id: &str, now: DateTime<Utc>) -> bool {
+    let known = fs::read_to_string(known)
         .ok()
-        .and_then(|s| serde_json::from_str::<Vec<String>>(&s).ok())
-        .is_some_and(|ids| ids.iter().any(|k| k == id))
+        .and_then(|s| serde_json::from_str::<Known>(&s).ok());
+    match known {
+        Some(Known::Starts(starts)) => starts.get(id).is_some_and(|&start| start <= now),
+        Some(Known::Past(ids)) => ids.iter().any(|k| k == id),
+        None => false,
+    }
 }
 
 fn save(file: &Path, reports: &Reports) -> std::io::Result<()> {
@@ -111,10 +123,10 @@ fn handle(state: &mut State, req: &mut Request) -> Response<std::io::Cursor<Vec<
         return reply(413, "Too long.");
     }
     let Some((id, n)) = parse(&body) else {
-        return reply(400, "Send a number between 1 and 1000 for a past event.");
+        return reply(400, "Send a number between 1 and 1000 for an event.");
     };
-    if !is_past_event(&state.known, &id) {
-        return reply(404, "No such past event.");
+    if !has_started(&state.known, &id, Utc::now()) {
+        return reply(404, "No such event, or it has not started yet.");
     }
 
     let address = req
@@ -161,8 +173,9 @@ fn main() {
     let dir = PathBuf::from(std::env::var("STATE_DIRECTORY").unwrap_or_else(|_| "out".into()));
     let file = dir.join("attendance.json");
     let addr = std::env::var("ATTENDANCE_ADDR").unwrap_or_else(|_| "127.0.0.1:8098".into());
-    let known =
-        PathBuf::from(std::env::var("KNOWN_EVENTS").unwrap_or_else(|_| "out/past-ids.json".into()));
+    let known = PathBuf::from(
+        std::env::var("KNOWN_EVENTS").unwrap_or_else(|_| "out/event-starts.json".into()),
+    );
     let reports = fs::read_to_string(&file)
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
@@ -199,5 +212,22 @@ mod tests {
         assert_eq!(parse("id=../etc&n=3"), None);
         assert_eq!(parse("id=X<script>&n=3"), None);
         assert_eq!(parse("n=3"), None);
+    }
+
+    #[test]
+    fn reports_open_when_the_event_starts() {
+        let dir = std::env::temp_dir().join(format!("attendance-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("event-starts.json");
+        fs::write(&file, r#"{"dinner":"2026-09-23T17:00:00Z"}"#).unwrap();
+        let at = |s: &str| s.parse::<DateTime<Utc>>().unwrap();
+        assert!(!has_started(&file, "dinner", at("2026-09-23T16:59:00Z")));
+        assert!(has_started(&file, "dinner", at("2026-09-23T17:00:00Z")));
+        assert!(has_started(&file, "dinner", at("2026-09-24T12:00:00Z")));
+        assert!(!has_started(&file, "brunch", at("2026-09-24T12:00:00Z")));
+        // The older file of ended events still works until the calendar runs.
+        fs::write(&file, r#"["dinner"]"#).unwrap();
+        assert!(has_started(&file, "dinner", at("2026-09-23T16:00:00Z")));
+        fs::remove_dir_all(&dir).unwrap();
     }
 }

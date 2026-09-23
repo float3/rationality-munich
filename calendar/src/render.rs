@@ -125,9 +125,11 @@ fn render_event(e: &Event, upcoming: bool) -> String {
         format!(r#"<p class="text">{}</p>"#, html_escape(&e.excerpt))
     };
     format!(
-        r##"<article id="{id}" data-groups="{groups}"{hidden}><div class="date"><div class="wd">{wd}</div><div class="d">{day}</div></div><div><div class="head"><h3><a href="#{id}">{title}</a></h3>{add}</div><p class="meta">{meta}</p>{text}<ul class="links">{links}</ul></div></article>"##,
+        r##"<article id="{id}" data-groups="{groups}" data-start="{start_ms}"{hidden}><div class="date"><div class="wd">{wd}</div><div class="d">{day}</div></div><div><div class="head"><h3><a href="#{id}">{title}</a></h3>{add}</div><p class="meta">{meta}</p>{text}<ul class="links">{links}</ul></div></article>"##,
         id = e.id,
         groups = e.groups.join(" "),
+        // The script offers attendance reports once this has passed.
+        start_ms = e.start.timestamp_millis(),
         // What the page shows before the visitor picks; the script agrees.
         hidden = if e.in_any(DEFAULT_GROUPS) {
             ""
@@ -306,7 +308,10 @@ mod tests {
             stale: &[],
             now: Utc::now(),
         });
-        assert!(html.contains(r#"<article id="2026-09-26-petrov-day" data-groups="ea">"#));
+        assert!(html.contains(&format!(
+            r#"<article id="2026-09-26-petrov-day" data-groups="ea" data-start="{}">"#,
+            events[0].start.timestamp_millis()
+        )));
         assert!(html.contains(r##"href="#2026-09-26-petrov-day""##));
         assert!(html.contains(r#"href="/calendar/e/2026-09-26-petrov-day.ics""#));
         assert!(
