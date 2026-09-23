@@ -206,7 +206,7 @@ fn subscribe() -> String {
     );
     // The script rewrites this for the groups picked; see `subscribe` in page.html.
     format!(
-        r#"<p class="subscribe" id="subscribe"><a href="webcal://{feed}">Subscribe in your calendar app</a>, or add <code>https://{feed}</code> by URL.</p>"#
+        r#"<p class="subscribe" id="subscribe"><a href="webcal://{feed}">Subscribe in your calendar app</a>, or add <code>https://{feed}</code> by URL. <a class="rss" href="/calendar/rss.xml">RSS</a></p>"#
     )
 }
 

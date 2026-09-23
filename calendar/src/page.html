@@ -7,7 +7,8 @@
 <meta name="description" content="Events from the rationality, EA, AI safety and philosophy groups in Munich, in one list.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="canonical" href="{{canonical}}">
-<link rel="alternate" type="application/atom+xml" title="Rationality Munich: upcoming events" href="/calendar/feed.xml">
+<link rel="alternate" type="application/rss+xml" title="Rationality Munich: upcoming events" href="/calendar/rss.xml">
+<link rel="alternate" type="application/atom+xml" title="Rationality Munich: upcoming events (Atom)" href="/calendar/feed.xml">
 <link rel="alternate" type="text/calendar" title="Rationality Munich calendar" href="/calendar/feeds/acx+ea.ics">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Rationality Munich">
@@ -45,6 +46,7 @@ h1 { font-size: clamp(28px, 7vw, 40px); font-weight: 600; margin: 0 0 8px; lette
 .filters .n { color: var(--muted); }
 .subscribe { margin: 0 0 8px; font-size: 15px; color: var(--muted); }
 .subscribe a { color: var(--text); font-weight: 600; }
+.subscribe a.rss { font-weight: 400; color: var(--muted); margin-left: 4px; }
 code { font-size: 13px; overflow-wrap: anywhere; }
 
 h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 40px 0 0; }
@@ -232,6 +234,8 @@ footer p { margin: 0 0 6px; }
   const nameOf = (g) => boxes.find((b) => b.value === g).dataset.name;
   const feedUrl = (f) => "rationality-munich.com/calendar/feeds/" + f + ".ics";
   const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  // For news readers: the LW/ACX and EA events, whatever is switched on.
+  const RSS = '<a class="rss" href="/calendar/rss.xml">RSS</a>';
   function subscribe(on) {
     const box = document.getElementById("subscribe");
     box.hidden = on.length === 0;
@@ -244,10 +248,10 @@ footer p { margin: 0 0 6px; }
     }
     if (feeds.length === 1) {
       const url = feedUrl(feeds[0][1]);
-      box.innerHTML = `<a href="webcal://${url}">Subscribe in your calendar app</a>, or add <code>https://${url}</code> by URL.`;
+      box.innerHTML = `<a href="webcal://${url}">Subscribe in your calendar app</a>, or add <code>https://${url}</code> by URL. ${RSS}`;
     } else {
       const links = feeds.map(([name, f]) => `<a href="webcal://${feedUrl(f)}">${esc(name)}</a>`).join(" · ");
-      box.innerHTML = `Subscribe in your calendar app, one each: ${links}`;
+      box.innerHTML = `Subscribe in your calendar app, one each: ${links}. ${RSS}`;
     }
   }
 

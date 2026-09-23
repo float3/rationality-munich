@@ -8,7 +8,7 @@
 //! Output, under `$STATE_DIRECTORY/site/`, served at /calendar/:
 //!
 //! - `index.html`, `past/index.html`, `stats/index.html`: the pages
-//! - `feed.xml`: an Atom feed of upcoming events, for feed readers
+//! - `feed.xml`, `rss.xml`: upcoming events for feed readers, as Atom and RSS
 //! - `feeds/<groups>.ics`: one feed per combination of groups
 //!   (`acx+ea.ics`), plus `all.ics`
 //! - `e/<id>.ics`: one file per event, for "Add to calendar"
@@ -130,6 +130,7 @@ fn build_site(dir: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>
     )?;
 
     write(&dir.join("feed.xml"), &feed::atom(&upcoming, now))?;
+    write(&dir.join("rss.xml"), &feed::rss(&upcoming, now))?;
 
     let recent = now - Duration::days(FEED_KEEPS_PAST_DAYS);
     let feed_events: Vec<&Event> = events

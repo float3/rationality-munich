@@ -72,7 +72,7 @@ jobs:
           calendar/out/site/stats/index.html
       - name: XML is well-formed
         run: |
-          python3 - www/sitemap.xml www/favicon.svg calendar/out/site/feed.xml <<'EOF'
+          python3 - www/sitemap.xml www/favicon.svg calendar/out/site/feed.xml calendar/out/site/rss.xml <<'EOF'
           import sys, xml.dom.minidom
           for f in sys.argv[1:]:
               xml.dom.minidom.parse(f)
@@ -90,7 +90,7 @@ jobs:
           nix shell --inputs-from . nixpkgs#lychee -c lychee --offline --no-progress \
             --include-fragments --index-files index.html --root-dir "$W" \
             --remap "https://rationality-munich\.com/(.*) file://$W/\$1" \
-            "$W"/*.html "$W"/sitemap.xml "$W"/robots.txt "$W"/calendar/feed.xml \
+            "$W"/*.html "$W"/sitemap.xml "$W"/robots.txt "$W"/calendar/feed.xml "$W"/calendar/rss.xml \
             "$W"/calendar/index.html "$W"/calendar/past/index.html "$W"/calendar/stats/index.html
       - name: Calendar files are well-formed
         run: |
