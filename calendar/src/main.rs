@@ -8,6 +8,7 @@
 //! Output, under `$STATE_DIRECTORY/site/`, served at /calendar/:
 //!
 //! - `index.html`, `past/index.html`, `stats/index.html`: the pages
+//! - `feed.xml`: an Atom feed of upcoming events, for feed readers
 //! - `feeds/<groups>.ics`: one feed per combination of groups
 //!   (`acx+ea.ics`), plus `all.ics`
 //! - `e/<id>.ics`: one file per event, for "Add to calendar"
@@ -17,6 +18,7 @@
 //! that drop out of a feed once they happen stay in the history.
 
 mod event;
+mod feed;
 mod ics;
 mod render;
 mod sources;
@@ -91,6 +93,7 @@ fn build_site(dir: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>
     let (upcoming, mut past): (Vec<&Event>, Vec<&Event>) =
         events.iter().partition(|e| e.end_or_default() >= now);
     past.reverse();
+    let unannounced = sources::unannounced(now, events);
 
     write(
         &dir.join("index.html"),
@@ -99,6 +102,7 @@ fn build_site(dir: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>
             events: upcoming.clone(),
             stale,
             now,
+            unannounced: &unannounced,
         }),
     )?;
     write(
@@ -108,6 +112,7 @@ fn build_site(dir: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>
             events: past.clone(),
             stale,
             now,
+            unannounced: &unannounced,
         }),
     )?;
     write(
@@ -117,8 +122,11 @@ fn build_site(dir: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>
             events: past,
             stale,
             now,
+            unannounced: &unannounced,
         }),
     )?;
+
+    write(&dir.join("feed.xml"), &feed::atom(&upcoming, now))?;
 
     let recent = now - Duration::days(FEED_KEEPS_PAST_DAYS);
     let feed_events: Vec<&Event> = events

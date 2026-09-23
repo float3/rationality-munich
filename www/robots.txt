@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+# One calendar file per event and per group combination: nothing to index.
+Disallow: /calendar/e/
+Disallow: /calendar/feeds/
+
+Sitemap: https://rationality-munich.com/sitemap.xml

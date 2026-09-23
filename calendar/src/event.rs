@@ -17,6 +17,10 @@ pub const GROUPS: &[(&str, &str)] = &[
     ("philosophia", "Philosophia Munich"),
 ];
 
+/// On until the visitor picks otherwise. Philosophia is its own community
+/// rather than part of the rationality/EA scene, so it starts off.
+pub const DEFAULT_GROUPS: &[&str] = &["acx", "ea"];
+
 pub fn group_name(key: &str) -> &str {
     GROUPS
         .iter()

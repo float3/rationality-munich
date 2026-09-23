@@ -1,0 +1,4 @@
+Contact: mailto:rationality@hilll.dev
+Expires: 2027-09-01T00:00:00.000Z
+Preferred-Languages: en, de
+Canonical: https://rationality-munich.com/.well-known/security.txt

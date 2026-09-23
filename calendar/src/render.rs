@@ -3,7 +3,7 @@
 use chrono::{DateTime, Utc};
 use chrono_tz::Europe::Berlin;
 
-use crate::event::{Event, GROUPS, group_name};
+use crate::event::{DEFAULT_GROUPS, Event, GROUPS, group_name};
 use crate::ics;
 use crate::stats;
 
@@ -105,9 +105,15 @@ fn render_event(e: &Event, upcoming: bool) -> String {
         format!(r#"<p class="text">{}</p>"#, html_escape(&e.excerpt))
     };
     format!(
-        r##"<article id="{id}" data-groups="{groups}"><div class="date"><div class="wd">{wd}</div><div class="d">{day}</div></div><div><div class="head"><h3><a href="#{id}">{title}</a></h3>{add}</div><p class="meta">{meta}</p>{text}<ul class="links">{links}</ul></div></article>"##,
+        r##"<article id="{id}" data-groups="{groups}"{hidden}><div class="date"><div class="wd">{wd}</div><div class="d">{day}</div></div><div><div class="head"><h3><a href="#{id}">{title}</a></h3>{add}</div><p class="meta">{meta}</p>{text}<ul class="links">{links}</ul></div></article>"##,
         id = e.id,
         groups = e.groups.join(" "),
+        // What the page shows before the visitor picks; the script agrees.
+        hidden = if e.in_any(DEFAULT_GROUPS) {
+            ""
+        } else {
+            " hidden"
+        },
         wd = start.format("%a"),
         day = start.format("%-d"),
         title = html_escape(&e.title),
@@ -115,21 +121,26 @@ fn render_event(e: &Event, upcoming: bool) -> String {
 }
 
 fn by_month(events: &[&Event], upcoming: bool) -> String {
-    let mut out = String::new();
-    let mut month = None;
+    let mut months: Vec<(String, Vec<&Event>)> = Vec::new();
     for e in events {
         let this = e.start.with_timezone(&Berlin).format("%B %Y").to_string();
-        if month.as_ref() != Some(&this) {
-            if month.is_some() {
-                out += "</section>\n";
-            }
-            out += &format!("<section class=\"month\"><h2>{this}</h2>\n");
-            month = Some(this);
+        match months.last_mut() {
+            Some((m, list)) if *m == this => list.push(e),
+            _ => months.push((this, vec![e])),
         }
-        out += &render_event(e, upcoming);
-        out += "\n";
     }
-    if month.is_some() {
+    let mut out = String::new();
+    for (month, list) in months {
+        let hidden = if list.iter().any(|e| e.in_any(DEFAULT_GROUPS)) {
+            ""
+        } else {
+            " hidden"
+        };
+        out += &format!("<section class=\"month\"{hidden}><h2>{month}</h2>\n");
+        for e in list {
+            out += &render_event(e, upcoming);
+            out += "\n";
+        }
         out += "</section>\n";
     }
     out
@@ -140,8 +151,9 @@ fn filters(events: &[&Event]) -> String {
         .iter()
         .map(|(key, name)| {
             let n = events.iter().filter(|e| e.in_any(&[key])).count();
+            let checked = if DEFAULT_GROUPS.contains(key) { " checked" } else { "" };
             format!(
-                r#"<label><input type="checkbox" value="{key}" checked> {name} <span class="n">{n}</span></label>"#
+                r#"<label><input type="checkbox" value="{key}"{checked}> {name} <span class="n">{n}</span></label>"#
             )
         })
         .collect();
@@ -160,9 +172,19 @@ pub struct Page<'a> {
     pub events: Vec<&'a Event>,
     pub stale: &'a [String],
     pub now: DateTime<Utc>,
+    /// Stats only: past events nobody announced, see `sources::unannounced`.
+    pub unannounced: &'a [Event],
 }
 
-const SUBSCRIBE: &str = r#"<p class="subscribe"><a id="sub" href="webcal://rationality-munich.com/calendar/feeds/all.ics">Subscribe in your calendar app</a> to get these events there, kept up to date. Or add <code id="suburl">https://rationality-munich.com/calendar/feeds/all.ics</code> by URL.</p>"#;
+fn subscribe() -> String {
+    let feed = format!(
+        "rationality-munich.com/calendar/feeds/{}.ics",
+        DEFAULT_GROUPS.join("+")
+    );
+    format!(
+        r#"<p class="subscribe"><a id="sub" href="webcal://{feed}">Subscribe in your calendar app</a> to get these events there, kept up to date. Or add <code id="suburl">https://{feed}</code> by URL.</p>"#
+    )
+}
 
 pub fn page(p: &Page) -> String {
     let past = r#"<a href="/calendar/past/" data-keep-filter>Past events</a>"#;
@@ -192,7 +214,7 @@ pub fn page(p: &Page) -> String {
         ),
     };
     let body = match p.kind {
-        Kind::Stats => stats::render(&p.events),
+        Kind::Stats => stats::render(&p.events, p.unannounced),
         _ if p.events.is_empty() => format!(
             r#"<p class="empty">{}</p>"#,
             if p.kind == Kind::Upcoming {
@@ -217,8 +239,19 @@ pub fn page(p: &Page) -> String {
         .replace("{{lede}}", lede)
         .replace("{{nav}}", &format!("<span>{nav}</span>"))
         .replace("{{page}}", key)
+        .replace(
+            "{{canonical}}",
+            &match p.kind {
+                Kind::Upcoming => BASE.to_string(),
+                Kind::Past => format!("{BASE}/past/"),
+                Kind::Stats => format!("{BASE}/stats/"),
+            },
+        )
         .replace("{{filters}}", &filters(&p.events))
-        .replace("{{subscribe}}", if listing { SUBSCRIBE } else { "" })
+        .replace(
+            "{{subscribe}}",
+            &if listing { subscribe() } else { String::new() },
+        )
         .replace("{{body}}", &body)
         .replace(
             "{{updated}}",
@@ -244,6 +277,7 @@ mod tests {
             events: events.iter().collect(),
             stale: &[],
             now: Utc::now(),
+            unannounced: &[],
         });
         assert!(html.contains(r#"<article id="2026-09-26-petrov-day" data-groups="ea">"#));
         assert!(html.contains(r##"href="#2026-09-26-petrov-day""##));
@@ -266,6 +300,7 @@ mod tests {
             events: events.iter().collect(),
             stale: &[],
             now: Utc::now(),
+            unannounced: &[],
         });
         assert!(!html.contains("<script>alert") && !html.contains("<img src=x>"));
     }

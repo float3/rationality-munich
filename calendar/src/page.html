@@ -5,8 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{title}}</title>
 <meta name="description" content="Events from the rationality, EA, AI safety and philosophy groups in Munich, in one list.">
-<link rel="icon" href="data:,">
-<link rel="alternate" type="text/calendar" title="Rationality Munich" href="/calendar/feeds/all.ics">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="{{canonical}}">
+<link rel="alternate" type="application/atom+xml" title="Rationality Munich: upcoming events" href="/calendar/feed.xml">
+<link rel="alternate" type="text/calendar" title="Rationality Munich calendar" href="/calendar/feeds/acx+ea.ics">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rationality Munich">
+<meta property="og:title" content="{{title}}">
+<meta property="og:description" content="Events from the rationality, EA, AI safety and philosophy groups in Munich, in one list.">
+<meta property="og:url" content="{{canonical}}">
 <style>
 :root { --bg: #faf8f3; --text: #1d1d1b; --muted: #6b6a66; --line: #e2dfd6; --chip: #efece3; --chip-hover: #e5e1d5; --mark: #fff3c4; color-scheme: light dark; }
 @media (prefers-color-scheme: dark) { :root { --bg: #131412; --text: #ecebe6; --muted: #9a9993; --line: #2c2d2a; --chip: #22231f; --chip-hover: #2e302a; --mark: #3a3420; } }
@@ -99,6 +106,8 @@ footer p { margin: 0 0 6px; }
   if (!form) return;
   const boxes = [...form.querySelectorAll("input")];
   const all = boxes.map((b) => b.value);
+  // What the server ticked: DEFAULT_GROUPS. Only a different choice goes in the URL.
+  const defaults = boxes.filter((b) => b.defaultChecked).map((b) => b.value).join(",");
   const wanted = new URLSearchParams(location.search).get("g");
   if (wanted !== null) {
     const keep = wanted.split(",");
@@ -203,7 +212,7 @@ footer p { margin: 0 0 6px; }
     if (page === "stats") recount(on);
     else list(on);
 
-    const query = on.length === all.length ? "" : "?g=" + on.join(",");
+    const query = on.join(",") === defaults ? "" : "?g=" + on.join(",");
     history.replaceState(null, "", location.pathname + query + location.hash);
     document.querySelectorAll("[data-keep-filter]").forEach((a) => {
       a.search = query;

@@ -1,17 +1,17 @@
 //! How many events the groups have held: per year, per month and per weekday.
 //!
-//! The tables are rendered here for every group, so the page works without
-//! JavaScript. Each cell names what it counts (`data-y`, `data-m`, `data-g`,
-//! `data-wd`), and the page embeds one small row per event, so switching a
-//! group off recounts the same cells in the browser. `recount` in page.html
-//! mirrors `shade`, `bar` and `summary` below.
+//! The tables are rendered here for the default groups, so the page works
+//! without JavaScript. Each cell names what it counts (`data-y`, `data-m`,
+//! `data-g`, `data-wd`), and the page embeds one small row per event, so
+//! switching groups recounts the same cells in the browser. `recount` in
+//! page.html mirrors `shade`, `bar` and `summary` below.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use chrono::{Datelike, Weekday};
 use chrono_tz::Europe::Berlin;
 
-use crate::event::{Event, GROUPS};
+use crate::event::{DEFAULT_GROUPS, Event, GROUPS};
 
 const MONTHS: [&str; 12] = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
@@ -56,62 +56,75 @@ fn summary(total: usize, first: Option<i32>, busiest: Option<(usize, i32, usize)
     s
 }
 
-/// `events` are the ones that already happened.
-pub fn render(events: &[&Event]) -> String {
+/// A column for a group that is off stays in the page, hidden.
+fn hidden_unless_on(key: &str) -> &'static str {
+    if DEFAULT_GROUPS.contains(&key) {
+        ""
+    } else {
+        " hidden"
+    }
+}
+
+/// `events` are the ones that already happened; `unannounced` are past events
+/// nobody posted, which count here but are not listed anywhere.
+pub fn render(events: &[&Event], unannounced: &[Event]) -> String {
     let local = |e: &Event| e.start.with_timezone(&Berlin);
+    let everything: Vec<&Event> = events.iter().copied().chain(unannounced).collect();
+    // What the page shows before the visitor picks.
+    let shown: Vec<&Event> = everything
+        .iter()
+        .copied()
+        .filter(|e| e.in_any(DEFAULT_GROUPS))
+        .collect();
+    // Rows exist for every year any group met, so switching groups on only
+    // ever fills in cells.
+    let years: BTreeSet<i32> = everything.iter().map(|e| local(e).year()).collect();
+    let in_year = |y: i32| shown.iter().filter(move |e| local(e).year() == y);
 
     // Per year and group. An event several groups held counts for each of
     // them, but once in the total.
-    let mut years: BTreeMap<i32, (Vec<usize>, usize)> = BTreeMap::new();
-    for e in events {
-        let row = years
-            .entry(local(e).year())
-            .or_insert_with(|| (vec![0; GROUPS.len()], 0));
-        for (i, (key, _)) in GROUPS.iter().enumerate() {
-            if e.in_any(&[key]) {
-                row.0[i] += 1;
-            }
-        }
-        row.1 += 1;
-    }
-    let max_year = years.values().map(|r| r.1).max().unwrap_or(0);
+    let max_year = years.iter().map(|y| in_year(*y).count()).max().unwrap_or(0);
     let head: String = GROUPS
         .iter()
-        .map(|(key, name)| format!(r#"<th data-g="{key}">{name}</th>"#))
+        .map(|(key, name)| format!(r#"<th data-g="{key}"{}>{name}</th>"#, hidden_unless_on(key)))
         .collect();
+    let group_cell =
+        |key: &str, n: usize| format!(r#"<td data-g="{key}"{}>{n}</td>"#, hidden_unless_on(key));
     let rows: String = years
         .iter()
         .rev()
-        .map(|(year, (per_group, total))| {
+        .map(|y| {
             let cells: String = GROUPS
                 .iter()
-                .zip(per_group)
-                .map(|((key, _), n)| format!(r#"<td data-g="{key}">{n}</td>"#))
+                .map(|(key, _)| {
+                    let n = everything
+                        .iter()
+                        .filter(|e| local(e).year() == *y && e.in_any(&[key]))
+                        .count();
+                    group_cell(key, n)
+                })
                 .collect();
+            let total = in_year(*y).count();
             format!(
-                r#"<tr data-y="{year}"><th scope="row">{year}</th>{cells}<td class="total">{total}</td><td class="wide">{}</td></tr>"#,
-                bar(*total, max_year)
+                r#"<tr data-y="{y}"><th scope="row">{y}</th>{cells}<td class="total">{total}</td><td class="wide">{}</td></tr>"#,
+                bar(total, max_year)
             )
         })
         .collect();
     let total_cells: String = GROUPS
         .iter()
-        .enumerate()
-        .map(|(i, (key, _))| {
-            let n: usize = years.values().map(|r| r.0[i]).sum();
-            format!(r#"<td data-g="{key}">{n}</td>"#)
-        })
+        .map(|(key, _)| group_cell(key, everything.iter().filter(|e| e.in_any(&[key])).count()))
         .collect();
     let by_year = format!(
         r#"<table class="years"><thead><tr><th></th>{head}<th>Total</th><th class="wide"></th></tr></thead><tbody>{rows}</tbody><tfoot><tr data-y="all"><th scope="row">All</th>{total_cells}<td class="total">{}</td><td class="wide"></td></tr></tfoot></table>"#,
-        events.len()
+        shown.len()
     );
 
     // Year by month.
-    let mut grid: BTreeMap<i32, [usize; 12]> = BTreeMap::new();
-    for e in events {
+    let mut grid: BTreeMap<i32, [usize; 12]> = years.iter().map(|y| (*y, [0; 12])).collect();
+    for e in &shown {
         let t = local(e);
-        grid.entry(t.year()).or_insert([0; 12])[t.month0() as usize] += 1;
+        grid.get_mut(&t.year()).expect("every year has a row")[t.month0() as usize] += 1;
     }
     let max_month = grid.values().flatten().copied().max().unwrap_or(0);
     let month_head: String = MONTHS.iter().map(|m| format!("<th>{m}</th>")).collect();
@@ -134,7 +147,7 @@ pub fn render(events: &[&Event]) -> String {
     // Weekday.
     let per_day: Vec<usize> = DAYS
         .iter()
-        .map(|d| events.iter().filter(|e| local(e).weekday() == *d).count())
+        .map(|d| shown.iter().filter(|e| local(e).weekday() == *d).count())
         .collect();
     let max_day = per_day.iter().copied().max().unwrap_or(0);
     let day_rows: String = DAYS
@@ -154,10 +167,10 @@ pub fn render(events: &[&Event]) -> String {
         .iter()
         .flat_map(|(y, m)| m.iter().enumerate().map(move |(i, n)| (*n, *y, i)))
         .max();
-    let first = events.iter().map(|e| local(e).year()).min();
+    let first = shown.iter().map(|e| local(e).year()).min();
 
     // [year, month (0-11), weekday (0 = Monday), group keys] per event.
-    let data: Vec<(i32, u32, u32, &Vec<String>)> = events
+    let data: Vec<(i32, u32, u32, &Vec<String>)> = everything
         .iter()
         .map(|e| {
             let t = local(e);
@@ -173,9 +186,21 @@ pub fn render(events: &[&Event]) -> String {
         .expect("serialisable")
         .replace("</", "<\\/");
 
+    let dinners = unannounced
+        .iter()
+        .filter(|e| e.title == "Community dinner")
+        .count();
+    let others = unannounced.len() - dinners;
+    let mut counted = format!(
+        " The fortnightly community dinners are counted from their schedule, every second Wednesday since 22 April 2026, which adds {dinners} that were never announced."
+    );
+    if others > 0 {
+        counted += &format!(" {others} other unannounced events are added by hand.");
+    }
+
     format!(
         r#"<p class="summary" id="summary">{summary}</p>
-<p class="caveat">Some events are missing. Only events announced on LessWrong, the EA Forum, Meetup, Luma, Philosophia's calendar or the old ACX substack are counted; meetups arranged only in the group chats, such as most of the fortnightly community dinners, are not, so the real numbers are higher.</p>
+<p class="caveat">Some events are missing: only events announced on LessWrong, the EA Forum, Meetup, Luma, Philosophia's calendar or the old ACX substack are counted, so the real numbers are higher.{counted}</p>
 <h2>Per year</h2>
 {by_year}
 <p class="caveat">An event held by several groups counts for each of them, and once in the total.</p>
@@ -184,7 +209,7 @@ pub fn render(events: &[&Event]) -> String {
 <h2>Per weekday</h2>
 {by_day}
 <script type="application/json" id="stats-data">{data}</script>"#,
-        summary = summary(events.len(), first, busiest),
+        summary = summary(shown.len(), first, busiest),
     )
 }
 
@@ -198,12 +223,31 @@ mod tests {
         let mut shared = ev("Petrov Day", 0, "A");
         shared.groups = vec!["acx".into(), "ea".into()];
         let solo = ev("Dinner", 120, "B");
-        let html = render(&[&shared, &solo]);
+        let html = render(&[&shared, &solo], &[]);
         assert!(html.contains("<b>2</b> events since 2026"));
         assert!(html.contains(
-            r#"<tr data-y="2026"><th scope="row">2026</th><td data-g="acx">1</td><td data-g="ea">2</td><td data-g="philosophia">0</td><td class="total">2</td>"#
+            r#"<tr data-y="2026"><th scope="row">2026</th><td data-g="acx">1</td><td data-g="ea">2</td><td data-g="philosophia" hidden>0</td><td class="total">2</td>"#
         ));
         assert!(html.contains("busiest month so far was Sep 2026, with 2"));
         assert!(html.contains(r#"[[2026,8,5,["acx","ea"]],[2026,8,5,["ea"]]]"#));
+    }
+
+    #[test]
+    fn groups_that_start_off_are_not_counted_until_switched_on() {
+        let mut reading = ev("Leviathan by Hobbes", 0, "Philosophia");
+        reading.groups = vec!["philosophia".into()];
+        let html = render(&[&reading, &ev("Dinner", 0, "B")], &[]);
+        assert!(html.contains("<b>1</b> events since 2026"));
+        // Still in the data, so switching Philosophia on counts it.
+        assert!(html.contains(r#"["philosophia"]"#));
+    }
+
+    #[test]
+    fn unannounced_events_count_and_say_so() {
+        let mut dinner = ev("Community dinner", 0, "");
+        dinner.groups = vec!["acx".into()];
+        let html = render(&[], &[dinner]);
+        assert!(html.contains("<b>1</b> events since 2026"));
+        assert!(html.contains("which adds 1 that were never announced"));
     }
 }

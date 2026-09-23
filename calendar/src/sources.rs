@@ -389,6 +389,79 @@ pub fn history() -> Vec<Event> {
         .collect()
 }
 
+// Events that happened but were never announced anywhere we read. They count
+// in the statistics only: with nothing to link to, they are not listed.
+
+/// The fortnightly community dinner: every second Wednesday at 18:30 since
+/// 22 April 2026, almost without a break. A date is skipped when a dinner was
+/// announced that week (it is counted already), which also covers the weeks
+/// EA Munich's monthly community dinner takes its place.
+fn community_dinners(now: DateTime<Utc>, announced: &[Event]) -> Vec<Event> {
+    use chrono::{Datelike, TimeZone};
+    use chrono_tz::Europe::Berlin;
+    let week = |t: DateTime<Utc>| t.with_timezone(&Berlin).iso_week();
+    let dinners: Vec<DateTime<Utc>> = announced
+        .iter()
+        .filter(|e| e.title.to_lowercase().contains("dinner"))
+        .map(|e| e.start)
+        .collect();
+    let mut out = Vec::new();
+    let mut t = Berlin
+        .with_ymd_and_hms(2026, 4, 22, 18, 30, 0)
+        .unwrap()
+        .with_timezone(&Utc);
+    while t + chrono::Duration::hours(3) < now {
+        if !dinners.iter().any(|d| week(*d) == week(t)) {
+            out.push(unlisted("Community dinner", t, "acx"));
+        }
+        // Step in local time so 18:30 stays 18:30 across DST.
+        let next = t.with_timezone(&Berlin).naive_local() + chrono::Duration::days(14);
+        t = Berlin
+            .from_local_datetime(&next)
+            .earliest()
+            .unwrap()
+            .with_timezone(&Utc);
+    }
+    out
+}
+
+fn unlisted(title: &str, start: DateTime<Utc>, group: &str) -> Event {
+    let mut e = Event::new(Raw {
+        title,
+        start,
+        end: None,
+        location: "",
+        online: false,
+        text: "",
+        group,
+        label: "",
+        url: "",
+    });
+    e.links.clear();
+    e
+}
+
+#[derive(Deserialize)]
+struct Unlisted {
+    title: String,
+    start: DateTime<Utc>,
+    groups: Vec<String>,
+}
+
+/// Past events counted in the statistics but never announced: the community
+/// dinners, and whatever data/unannounced.json lists.
+pub fn unannounced(now: DateTime<Utc>, announced: &[Event]) -> Vec<Event> {
+    let listed: Vec<Unlisted> = serde_json::from_str(include_str!("../data/unannounced.json"))
+        .expect("data/unannounced.json is valid");
+    let mut out = community_dinners(now, announced);
+    for u in listed.into_iter().filter(|u| u.start < now) {
+        let mut e = unlisted(&u.title, u.start, &u.groups[0]);
+        e.groups = u.groups;
+        out.push(e);
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -400,6 +473,52 @@ mod tests {
         assert!(
             h.iter()
                 .all(|e| e.start < Utc::now() && !e.links.is_empty())
+        );
+    }
+
+    #[test]
+    fn dinners_every_second_wednesday_except_weeks_with_an_announced_dinner() {
+        use chrono::TimeZone;
+        use chrono_tz::Europe::Berlin;
+        let at = |m, d, h| {
+            Berlin
+                .with_ymd_and_hms(2026, m, d, h, 30, 0)
+                .unwrap()
+                .with_timezone(&Utc)
+        };
+        let announced = |title: &str, t| {
+            let mut e = crate::event::tests::ev(title, 0, "X");
+            e.start = t;
+            e
+        };
+        // Only a dinner announced in the same week skips a date; other
+        // announced events (board games on 6 May) do not.
+        let got = community_dinners(
+            at(6, 20, 12),
+            &[
+                announced("EA community dinner", at(6, 2, 18)),
+                announced("Board games", at(5, 6, 18)),
+            ],
+        );
+        let days: Vec<u32> = got
+            .iter()
+            .map(|e| {
+                use chrono::Datelike;
+                e.start.with_timezone(&Berlin).day()
+            })
+            .collect();
+        // 22 Apr, 6 May, 20 May, (3 Jun skipped: dinner announced on 2 Jun), 17 Jun
+        assert_eq!(days, [22, 6, 20, 17]);
+        assert!(got.iter().all(|e| {
+            e.start
+                .with_timezone(&Berlin)
+                .format("%a %H:%M")
+                .to_string()
+                == "Wed 18:30"
+        }));
+        assert!(
+            got.iter()
+                .all(|e| e.links.is_empty() && e.groups == ["acx"])
         );
     }
 
