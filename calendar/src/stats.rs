@@ -206,7 +206,7 @@ pub fn render(events: &[&Event]) -> String {
 
     format!(
         r#"<p class="summary" id="summary">{summary}</p>
-<p class="caveat">Some events are missing: only events announced on LessWrong, the EA Forum, Meetup, Luma, Philosophia's calendar or the old ACX substack are counted, so the real numbers are higher.{counted}</p>
+<p class="caveat">Some events are missing: only events announced on LessWrong, the EA Forum, Meetup, Luma, Philosophia's calendar or the old ACX substack are counted, so the real numbers are higher.{counted} Casual meetups, like lunch and coworking or spontaneous bouldering, are not counted: they are arranged in the spontaneous events chat of the EA Munich WhatsApp community.</p>
 <h2>Per year</h2>
 {by_year}
 <p class="caveat">An event held by several groups counts for each of them, and once in the total.</p>

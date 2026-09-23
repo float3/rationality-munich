@@ -678,7 +678,7 @@ mod tests {
     #[test]
     fn unannounced_events_load_unlinked_and_known_groups_only() {
         let u = unannounced(Utc::now());
-        assert!(u.len() >= 30);
+        assert!(u.len() >= 20);
         assert!(u.iter().all(|e| e.links.is_empty() && e.chat));
         // They survive sanitising despite having no link.
         assert_eq!(crate::event::sanitize(u.clone()).len(), u.len());
