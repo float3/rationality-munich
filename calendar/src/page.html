@@ -18,6 +18,9 @@
 :root { --bg: #faf8f3; --text: #1d1d1b; --muted: #6b6a66; --line: #e2dfd6; --chip: #efece3; --chip-hover: #e5e1d5; --mark: #fff3c4; color-scheme: light dark; }
 @media (prefers-color-scheme: dark) { :root { --bg: #131412; --text: #ecebe6; --muted: #9a9993; --line: #2c2d2a; --chip: #22231f; --chip-hover: #2e302a; --mark: #3a3420; } }
 html, body { margin: 0; background: var(--bg); color: var(--text); }
+/* `hidden` must win over the display rules below (article is a grid), or the
+   group switches hide nothing. */
+[hidden] { display: none !important; }
 body { font: 17px/1.5 ui-sans-serif, system-ui, sans-serif; padding: 0 16px; }
 main { max-width: 680px; margin: 0 auto; padding: 8vh 0 64px; }
 nav { margin-bottom: 32px; font-size: 15px; display: flex; justify-content: space-between; gap: 16px; }

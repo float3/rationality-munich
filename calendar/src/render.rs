@@ -299,6 +299,13 @@ mod tests {
     }
 
     #[test]
+    fn hidden_beats_the_display_rules() {
+        // Articles are `display: grid`, which would otherwise override the
+        // browser's own `[hidden] { display: none }`.
+        assert!(PAGE.contains("[hidden] { display: none !important; }"));
+    }
+
+    #[test]
     fn nothing_from_a_feed_reaches_the_page_unescaped() {
         let mut e = ev("<script>alert(1)</script>", 0, "A");
         e.location = r#""><img src=x>"#.into();
