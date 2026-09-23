@@ -63,10 +63,10 @@ pub struct Event {
     /// `sources::unannounced`.
     #[serde(default)]
     pub chat: bool,
-    /// Median of visitors' "about how many came" reports, and how many there
-    /// are. Read fresh every run; not kept in caches.
+    /// How many came: the organisers' count, else the median of visitors'
+    /// reports. Read fresh every run; not kept in caches.
     #[serde(skip)]
-    pub attended: Option<(u32, usize)>,
+    pub attended: Option<Came>,
     /// How many said they would come: a page's RSVP count or a chat poll's
     /// yes votes. Only counts are read, never who. Cross-posts keep the
     /// largest, since the same people often sign up on several sites.
@@ -75,6 +75,14 @@ pub struct Event {
     /// Upcoming events only: how many will probably come. See `turnout`.
     #[serde(skip)]
     pub expected: Option<u32>,
+}
+
+/// A headcount after the fact.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Came {
+    pub n: u32,
+    /// Only a floor is known: "at least n".
+    pub at_least: bool,
 }
 
 fn is_zero(n: &u32) -> bool {
@@ -116,7 +124,7 @@ impl Event {
     /// Reported attendance if anyone reported it, else the sign-ups.
     pub fn headcount(&self) -> Option<u32> {
         self.attended
-            .map(|(n, _)| n)
+            .map(|c| c.n)
             .or(Some(self.signups).filter(|&n| n > 0))
     }
 

@@ -20,10 +20,10 @@ const SERIES_MIN: usize = 2;
 pub fn came_per_signup<'a>(events: impl IntoIterator<Item = &'a Event>) -> (f64, usize) {
     let (mut came, mut signed, mut n) = (0.0, 0.0, 0);
     for e in events {
-        if let (Some((a, _)), s) = (e.attended, e.signups)
+        if let (Some(c), s) = (e.attended, e.signups)
             && s > 0
         {
-            came += a as f64;
+            came += c.n as f64;
             signed += s as f64;
             n += 1;
         }
@@ -46,21 +46,29 @@ fn same_series(a: &Event, b: &Event) -> bool {
 /// scaled by the ratio.
 fn headcount(e: &Event, ratio: f64) -> Option<f64> {
     e.attended
-        .map(|(n, _)| n as f64)
+        .map(|c| c.n as f64)
         .or_else(|| (e.signups > 0).then_some(e.signups as f64 * ratio))
 }
 
 /// Sets `expected` on every upcoming event there is a basis for: the larger
 /// of its scaled sign-ups and its series' recent average, since sign-ups
 /// often come in only on the day. `events` are sorted by start.
+///
+/// The ratio is the event's groups' own: people RSVP on Meetup far more
+/// readily than in the ACX chat, so one group's habit says little about
+/// another's.
 pub fn estimate(events: &mut [Event], now: DateTime<Utc>) {
-    let (ratio, _) = came_per_signup(events.iter());
     let expected: Vec<Option<u32>> = events
         .iter()
         .map(|e| {
             if e.end_or_default() < now {
                 return None;
             }
+            let (ratio, _) = came_per_signup(
+                events
+                    .iter()
+                    .filter(|p| p.groups.iter().any(|g| e.groups.contains(g))),
+            );
             let recent: Vec<f64> = events
                 .iter()
                 .rev()
@@ -103,7 +111,7 @@ mod tests {
             url: "https://www.meetup.com/x/events/1/",
         });
         e.signups = signups;
-        e.attended = came.map(|n| (n, 1));
+        e.attended = came.map(|n| crate::event::Came { n, at_least: false });
         e
     }
 
@@ -170,6 +178,14 @@ mod tests {
                 0,
                 None,
             ),
+            // Nobody reported for this group, so its sign-ups stand.
+            event(
+                "Book club",
+                "2026-09-26T18:30:00+02:00",
+                "culture",
+                12,
+                None,
+            ),
         ];
         estimate(&mut events, now);
         assert_eq!(
@@ -179,6 +195,7 @@ mod tests {
         );
         assert_eq!(events[4].expected, Some(4), "no series: the sign-ups");
         assert_eq!(events[5].expected, None, "no basis at all");
+        assert_eq!(events[6].expected, Some(12), "another group's ratio");
         assert_eq!(events[1].expected, None, "past events keep their headcount");
     }
 }

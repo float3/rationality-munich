@@ -203,7 +203,7 @@ pub fn render(events: &[&Event]) -> String {
     // Only once enough reports back it up.
     let per_signup = match turnout::came_per_signup(events.iter().copied()) {
         (ratio, n) if n >= 3 => format!(
-            r#"<p class="caveat">About {ratio:.1} came per sign-up at the {n} events with both. Expected turnout on the upcoming page uses this.</p>"#
+            r#"<p class="caveat">About {ratio:.1} came per sign-up at the {n} events with both; each group's own ratio feeds the expected turnout of its upcoming events.</p>"#
         ),
         _ => String::new(),
     };

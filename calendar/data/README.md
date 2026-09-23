@@ -1,6 +1,6 @@
 # Hand-kept event data
 
-All three files are compiled into the calendar binary.
+All four files are compiled into the calendar binary.
 
 ## history.json: past events worth listing
 
@@ -41,6 +41,16 @@ Sign-ups for events whose pages had none, or fewer: each poll's event time,
 its group, and per answer the votes and how likely those voters were to come
 ("definitely" 1, "probably" 0.75, "maybe" or "50%" 0.5, a range its middle).
 The expected number of people, rounded, goes to the group's event that day
-starting nearest that time. Polls about topics or dates, and polls for
+starting nearest that time, so `start` is the start of the event the poll
+was about (the 11 April dinner poll counts for that day's meetup). Polls about topics or dates, and polls for
 events that were then cancelled, are left out. Only counts: the export does
 not say who voted, and nothing else from the chat is kept.
+
+## headcounts.json: how many came, by the organisers' count
+
+Per event: its start, its group and how many came, with `"at_least": true`
+where only a floor is known. Matched like the polls. An organiser's count
+beats visitors' reports on /calendar/past/; a floor gives way to a report
+above it. So far: the ACX Meetups Everywhere day on 11 April 2026 (at least
+40) and its Estimation Game (30), and every Estimation Game since (at least
+10 each).

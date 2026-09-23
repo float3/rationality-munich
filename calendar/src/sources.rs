@@ -654,14 +654,54 @@ impl Poll {
 pub fn apply_polls(events: &mut [Event]) {
     let polls: Vec<Poll> =
         serde_json::from_str(include_str!("../data/polls.json")).expect("data/polls.json is valid");
-    let day = |t: DateTime<Utc>| t.with_timezone(&chrono_tz::Europe::Berlin).date_naive();
     for p in polls {
-        let nearest = events
-            .iter_mut()
-            .filter(|e| e.groups.contains(&p.group) && day(e.start) == day(p.start))
-            .min_by_key(|e| (e.start - p.start).abs());
-        if let Some(e) = nearest {
+        if let Some(e) = nearest_on_day(events, p.start, &p.group) {
             e.signups = e.signups.max(p.expected());
+        }
+    }
+}
+
+/// The group's event that day starting nearest `start`: hand-kept data names
+/// an event by its group and time rather than by its title, which feeds
+/// change.
+fn nearest_on_day<'a>(
+    events: &'a mut [Event],
+    start: DateTime<Utc>,
+    group: &str,
+) -> Option<&'a mut Event> {
+    let day = |t: DateTime<Utc>| t.with_timezone(&chrono_tz::Europe::Berlin).date_naive();
+    events
+        .iter_mut()
+        .filter(|e| e.groups.iter().any(|g| g == group) && day(e.start) == day(start))
+        .min_by_key(|e| (e.start - start).abs())
+}
+
+// The organisers' own headcounts. See data/README.md.
+
+#[derive(Deserialize)]
+struct Headcount {
+    start: DateTime<Utc>,
+    group: String,
+    came: u32,
+    #[serde(default)]
+    at_least: bool,
+}
+
+/// Organisers counted, so their number beats visitors' reports; a floor
+/// ("at least 10") gives way to a report above it.
+pub fn apply_headcounts(events: &mut [Event]) {
+    let counts: Vec<Headcount> = serde_json::from_str(include_str!("../data/headcounts.json"))
+        .expect("data/headcounts.json is valid");
+    for h in counts {
+        let Some(e) = nearest_on_day(events, h.start, &h.group) else {
+            continue;
+        };
+        let reported_more = e.attended.is_some_and(|c| c.n >= h.came);
+        if !(h.at_least && reported_more) {
+            e.attended = Some(crate::event::Came {
+                n: h.came,
+                at_least: h.at_least,
+            });
         }
     }
 }
@@ -792,8 +832,58 @@ mod tests {
         assert_eq!(events[2].signups, 20, "the page had more");
         assert_eq!(
             (events[3].signups, events[4].signups),
-            (15, 0),
+            (4, 15),
             "the nearest that day"
+        );
+    }
+
+    #[test]
+    fn organisers_counts_beat_reports_but_floors_give_way() {
+        use crate::event::Came;
+        let at = |s: &str| DateTime::parse_from_rfc3339(s).unwrap().with_timezone(&Utc);
+        let game = |start: &str, reported: Option<u32>| {
+            let mut e = Event::new(Raw {
+                title: "The Estimation Game",
+                start: at(start),
+                end: None,
+                location: "",
+                online: false,
+                text: "",
+                group: "acx",
+                label: "LessWrong",
+                url: "https://www.lesswrong.com/events/x",
+            });
+            e.attended = reported.map(|n| Came { n, at_least: false });
+            e
+        };
+        // 11 April: counted 30; 29 July and 30 August: at least 10.
+        let mut events = vec![
+            game("2026-04-11T15:30:00+02:00", Some(12)),
+            game("2026-07-29T18:30:00+02:00", Some(14)),
+            game("2026-08-30T14:00:00+02:00", None),
+        ];
+        apply_headcounts(&mut events);
+        let got: Vec<Option<Came>> = events.iter().map(|e| e.attended).collect();
+        assert_eq!(
+            got[0],
+            Some(Came {
+                n: 30,
+                at_least: false
+            })
+        );
+        assert_eq!(
+            got[1],
+            Some(Came {
+                n: 14,
+                at_least: false
+            })
+        );
+        assert_eq!(
+            got[2],
+            Some(Came {
+                n: 10,
+                at_least: true
+            })
         );
     }
 

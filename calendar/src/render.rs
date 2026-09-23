@@ -74,8 +74,12 @@ fn render_event(e: &Event, upcoming: bool) -> String {
             .collect::<Vec<_>>()
             .join(" & "),
     );
-    if let Some((n, _)) = e.attended {
-        meta.push(format!("about {n} came"));
+    if let Some(c) = e.attended {
+        meta.push(if c.at_least {
+            format!("at least {} came", c.n)
+        } else {
+            format!("about {} came", c.n)
+        });
     } else if let Some(m) = e.expected.filter(|&m| m != e.signups) {
         meta.push(if e.signups > 0 {
             format!("about {m} expected, {} signed up", e.signups)

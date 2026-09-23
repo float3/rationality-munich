@@ -31,7 +31,7 @@ use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Duration, Utc};
 
-use event::{COMBO_GROUPS, Event, GROUPS, assign_ids, group_name, merge, sanitize};
+use event::{COMBO_GROUPS, Came, Event, GROUPS, assign_ids, group_name, merge, sanitize};
 use render::{BASE, Kind, Page};
 use sources::Res;
 
@@ -215,7 +215,10 @@ fn attach_attendance(events: &mut [Event]) {
             } else {
                 (ns[mid - 1] + ns[mid]).div_ceil(2)
             };
-            e.attended = Some((median, ns.len()));
+            e.attended = Some(Came {
+                n: median,
+                at_least: false,
+            });
         }
     }
 }
@@ -247,6 +250,7 @@ fn main() -> Res<()> {
     sources::apply_polls(&mut events);
 
     attach_attendance(&mut events);
+    sources::apply_headcounts(&mut events);
     turnout::estimate(&mut events, now);
     let past: Vec<&Event> = events.iter().filter(|e| e.end_or_default() < now).collect();
     // Which events the attendance service accepts reports for.
