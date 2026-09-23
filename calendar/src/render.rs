@@ -90,6 +90,11 @@ fn render_event(e: &Event, upcoming: bool) -> String {
             )
         })
         .collect();
+    let links = if e.chat {
+        r#"<li><span class="chat">In the group chat</span></li>"#.to_string()
+    } else {
+        links
+    };
     let add = if upcoming {
         format!(
             r#"<div class="add"><a href="/calendar/e/{id}.ics" download="{id}.ics" title="Add to your calendar (.ics)" aria-label="Add to your calendar">{ICON_ADD}</a><a href="{g}" title="Add to Google Calendar" aria-label="Add to Google Calendar">{ICON_GOOGLE}</a></div>"#,
@@ -180,8 +185,6 @@ pub struct Page<'a> {
     pub events: Vec<&'a Event>,
     pub stale: &'a [String],
     pub now: DateTime<Utc>,
-    /// Stats only: past events nobody announced, see `sources::unannounced`.
-    pub unannounced: &'a [Event],
 }
 
 fn subscribe() -> String {
@@ -223,7 +226,7 @@ pub fn page(p: &Page) -> String {
         ),
     };
     let body = match p.kind {
-        Kind::Stats => stats::render(&p.events, p.unannounced),
+        Kind::Stats => stats::render(&p.events),
         _ if p.events.is_empty() => format!(
             r#"<p class="empty">{}</p>"#,
             if p.kind == Kind::Upcoming {
@@ -286,7 +289,6 @@ mod tests {
             events: events.iter().collect(),
             stale: &[],
             now: Utc::now(),
-            unannounced: &[],
         });
         assert!(html.contains(r#"<article id="2026-09-26-petrov-day" data-groups="ea">"#));
         assert!(html.contains(r##"href="#2026-09-26-petrov-day""##));
@@ -316,7 +318,6 @@ mod tests {
             events: events.iter().collect(),
             stale: &[],
             now: Utc::now(),
-            unannounced: &[],
         });
         assert!(!html.contains("<script>alert") && !html.contains("<img src=x>"));
     }

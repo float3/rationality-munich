@@ -66,11 +66,11 @@ fn hidden_unless_on(key: &str) -> &'static str {
     }
 }
 
-/// `events` are the ones that already happened; `unannounced` are past events
-/// nobody posted, which count here but are not listed anywhere.
-pub fn render(events: &[&Event], unannounced: &[Event]) -> String {
+/// `events` are the ones that already happened.
+pub fn render(events: &[&Event]) -> String {
     let local = |e: &Event| e.start.with_timezone(&Berlin);
-    let everything: Vec<&Event> = events.iter().copied().chain(unannounced).collect();
+    let everything: Vec<&Event> = events.to_vec();
+    let chat = everything.iter().filter(|e| e.chat).count();
     // What the page shows before the visitor picks.
     let shown: Vec<&Event> = everything
         .iter()
@@ -196,22 +196,12 @@ pub fn render(events: &[&Event], unannounced: &[Event]) -> String {
         .expect("serialisable")
         .replace("</", "<\\/");
 
-    let counted = if unannounced.is_empty() {
-        String::new()
-    } else {
-        format!(
-            " Also counted: {} since November 2025 that {} organised only in the groups' chats, such as most of the fortnightly ACX community dinners.",
-            if unannounced.len() == 1 {
-                "1 event".to_string()
-            } else {
-                format!("{} events", unannounced.len())
-            },
-            if unannounced.len() == 1 {
-                "was"
-            } else {
-                "were"
-            }
-        )
+    let counted = match chat {
+        0 => String::new(),
+        1 => " One event since November 2025 was organised only in the groups' chats; it is listed and counted too.".to_string(),
+        n => format!(
+            " {n} events since November 2025 were organised only in the groups' chats, such as most of the fortnightly ACX community dinners; they are listed and counted too."
+        ),
     };
 
     format!(
@@ -239,7 +229,7 @@ mod tests {
         let mut shared = ev("Petrov Day", 0, "A");
         shared.groups = vec!["acx".into(), "ea".into()];
         let solo = ev("Dinner", 120, "B");
-        let html = render(&[&shared, &solo], &[]);
+        let html = render(&[&shared, &solo]);
         assert!(html.contains("<b>2</b> events since 2026"));
         assert!(html.contains(
             r#"<tr data-y="2026"><th scope="row">2026</th><td data-g="acx">1</td><td data-g="ea">2</td><td data-g="philosophia" hidden>0</td>"#
@@ -252,7 +242,7 @@ mod tests {
     fn groups_that_start_off_are_not_counted_until_switched_on() {
         let mut reading = ev("Leviathan by Hobbes", 0, "Philosophia");
         reading.groups = vec!["philosophia".into()];
-        let html = render(&[&reading, &ev("Dinner", 0, "B")], &[]);
+        let html = render(&[&reading, &ev("Dinner", 0, "B")]);
         assert!(html.contains("<b>1</b> events since 2026"));
         // Still in the data, so switching Philosophia on counts it.
         assert!(html.contains(r#"["philosophia"]"#));
@@ -262,8 +252,11 @@ mod tests {
     fn unannounced_events_count_and_say_so() {
         let mut dinner = ev("Community dinner", 0, "");
         dinner.groups = vec!["acx".into()];
-        let html = render(&[], &[dinner]);
+        dinner.chat = true;
+        let html = render(&[&dinner]);
         assert!(html.contains("<b>1</b> events since 2026"));
-        assert!(html.contains("Also counted: 1 event since November 2025 that was organised"));
+        assert!(
+            html.contains("One event since November 2025 was organised only in the groups' chats")
+        );
     }
 }

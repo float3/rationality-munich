@@ -21,7 +21,7 @@ Each entry needs `title`, `start` (RFC 3339 with offset), `groups` (keys from
 `excerpt` are optional. These are listed on /calendar/past/ like any other
 event.
 
-## unannounced.json: past events that only count
+## unannounced.json: past events from the group chats
 
 Events organised only in the groups' WhatsApp chats since November 2025, read
 from exported chat histories: the fortnightly ACX community dinners, EA
@@ -29,5 +29,6 @@ lunches and coworking, Intro Fellowship sessions, the Ideas Forum and the like.
 Cancelled ones are left out. Only a date, a generic title and the group are
 kept: no names, no message text.
 
-Each entry needs `title`, `start` and `groups`. They count on
-/calendar/stats/ but are not listed, since there is nothing to link to.
+Each entry needs `title`, `start` and `groups`. They are listed on
+/calendar/past/, marked "In the group chat" since there is nothing to link
+to, and counted in the statistics like any other event.

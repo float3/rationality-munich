@@ -98,7 +98,6 @@ fn build_site(dir: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>
     let (upcoming, mut past): (Vec<&Event>, Vec<&Event>) =
         events.iter().partition(|e| e.end_or_default() >= now);
     past.reverse();
-    let unannounced = sources::unannounced(now);
 
     write(
         &dir.join("index.html"),
@@ -107,7 +106,6 @@ fn build_site(dir: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>
             events: upcoming.clone(),
             stale,
             now,
-            unannounced: &unannounced,
         }),
     )?;
     write(
@@ -117,7 +115,6 @@ fn build_site(dir: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>
             events: past.clone(),
             stale,
             now,
-            unannounced: &unannounced,
         }),
     )?;
     write(
@@ -127,7 +124,6 @@ fn build_site(dir: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>
             events: past,
             stale,
             now,
-            unannounced: &unannounced,
         }),
     )?;
 
@@ -203,17 +199,21 @@ fn main() -> Res<()> {
 
     // Fresh data first: among cross-posts, the first one seen gives the title
     // and the canonical link.
+    // Chat-only events last, so a posted twin gives the title and links.
     let mut events = merge(sanitize(
         fresh
             .into_iter()
             .chain(archive)
             .chain(sources::history())
+            .chain(sources::unannounced(now))
             .collect(),
     ));
     assign_ids(&mut events);
 
     let past: Vec<&Event> = events.iter().filter(|e| e.end_or_default() < now).collect();
-    fs::write(&archive_path, serde_json::to_string(&past)?)?;
+    // Chat-only events come from data/unannounced.json every run.
+    let archived: Vec<&&Event> = past.iter().filter(|e| !e.chat).collect();
+    fs::write(&archive_path, serde_json::to_string(&archived)?)?;
 
     publish(&state, &events, &stale, now)?;
     let upcoming = events.len() - past.len();

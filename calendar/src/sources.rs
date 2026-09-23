@@ -625,8 +625,8 @@ pub fn history() -> Vec<Event> {
 }
 
 // Events that happened but were never announced anywhere we read: organised
-// only in the groups' chats. They count in the statistics; with nothing to
-// link to, they are not listed. See data/README.md.
+// only in the groups' chats. Listed and counted like the rest, marked as
+// chat-only since there is nothing to link to. See data/README.md.
 
 #[derive(Deserialize)]
 struct Unlisted {
@@ -655,6 +655,7 @@ pub fn unannounced(now: DateTime<Utc>) -> Vec<Event> {
             });
             e.groups = u.groups;
             e.links.clear();
+            e.chat = true;
             e
         })
         .collect()
@@ -678,7 +679,9 @@ mod tests {
     fn unannounced_events_load_unlinked_and_known_groups_only() {
         let u = unannounced(Utc::now());
         assert!(u.len() >= 30);
-        assert!(u.iter().all(|e| e.links.is_empty()));
+        assert!(u.iter().all(|e| e.links.is_empty() && e.chat));
+        // They survive sanitising despite having no link.
+        assert_eq!(crate::event::sanitize(u.clone()).len(), u.len());
         let known = ["acx", "ea", "philosophia"];
         assert!(
             u.iter()

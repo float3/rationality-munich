@@ -59,6 +59,10 @@ pub struct Event {
     pub groups: Vec<String>,
     /// (source label, url); the first one is the event's canonical link.
     pub links: Vec<(String, String)>,
+    /// Organised only in a group chat: nothing to link to. See
+    /// `sources::unannounced`.
+    #[serde(default)]
+    pub chat: bool,
 }
 
 pub struct Raw<'a> {
@@ -86,6 +90,7 @@ impl Event {
             online: r.online,
             groups: vec![r.group.to_string()],
             links: vec![(r.label.to_string(), r.url.to_string())],
+            chat: false,
         }
     }
 
@@ -151,7 +156,9 @@ pub fn sanitize(events: Vec<Event>) -> Vec<Event> {
             e.groups
                 .sort_by_key(|g| GROUPS.iter().position(|(k, _)| k == g));
             e.groups.dedup();
-            (!e.links.is_empty() && !e.groups.is_empty() && !e.title.is_empty()).then_some(e)
+            // Only chat events may lack a link.
+            ((e.chat || !e.links.is_empty()) && !e.groups.is_empty() && !e.title.is_empty())
+                .then_some(e)
         })
         .collect()
 }
@@ -209,11 +216,21 @@ const TWIN_GAP: i64 = 30;
 /// their titles. The same event is often titled differently per platform
 /// ("Petrov Day" vs "Petrov Day Ritual: Munich"), so the shorter title's words
 /// only need to mostly appear in the longer one.
+///
+/// A time moved after posting ("picnic moved to 20:00 because of the heat")
+/// leaves the copies hours apart; on the same day, fully matching titles are
+/// still the same event.
 pub fn same_event(a: &Event, b: &Event) -> bool {
-    if (a.start - b.start).abs() > Duration::minutes(TWIN_GAP) {
-        return false;
-    }
     let (wa, wb) = (title_words(&a.title), title_words(&b.title));
+    if (a.start - b.start).abs() > Duration::minutes(TWIN_GAP) {
+        let day = |e: &Event| e.start.with_timezone(&Berlin).date_naive();
+        let (short, long) = if wa.len() <= wb.len() {
+            (&wa, &wb)
+        } else {
+            (&wb, &wa)
+        };
+        return day(a) == day(b) && !short.is_empty() && short.is_subset(long);
+    }
     if wa.is_empty() || wb.is_empty() {
         return a.title.to_lowercase() == b.title.to_lowercase();
     }
@@ -227,11 +244,11 @@ pub fn merge(mut events: Vec<Event>) -> Vec<Event> {
     events.sort_by_key(|e| e.start);
     let mut merged: Vec<Event> = Vec::new();
     for e in events {
-        // Sorted by start, so a twin can only be among the last few.
+        // Sorted by start, so a twin can only be among the last day's.
         let twin = merged
             .iter_mut()
             .rev()
-            .take_while(|m| e.start - m.start <= Duration::minutes(TWIN_GAP))
+            .take_while(|m| e.start - m.start <= Duration::hours(24))
             .find(|m| same_event(m, &e));
         let Some(twin) = twin else {
             merged.push(e);
@@ -255,12 +272,40 @@ pub fn merge(mut events: Vec<Event>) -> Vec<Event> {
         }
         twin.end = twin.end.or(e.end);
         twin.online |= e.online;
+        // Posted somewhere after all: then it is not chat-only.
+        twin.chat &= e.chat;
     }
     for e in &mut merged {
+        tag_by_title(e);
         e.groups
             .sort_by_key(|g| GROUPS.iter().position(|(k, _)| k == g));
     }
     merged
+}
+
+/// An EA or LW/ACX event whose title names the other community is theirs
+/// too: EA Munich posts "ACX Spring Meetups Everywhere" to its own pages.
+fn tag_by_title(e: &mut Event) {
+    if !e.in_any(&["acx", "ea"]) {
+        return;
+    }
+    let lower = e.title.to_lowercase();
+    let words: HashSet<&str> = lower.split(|c: char| !c.is_alphanumeric()).collect();
+    let acx = [
+        "acx",
+        "lesswrong",
+        "lw",
+        "rationalist",
+        "rationalists",
+        "rationality",
+    ];
+    if acx.iter().any(|w| words.contains(w)) && !e.groups.iter().any(|g| g == "acx") {
+        e.groups.push("acx".into());
+    }
+    let ea = words.contains("ea") || lower.contains("effective altruism");
+    if ea && !e.groups.iter().any(|g| g == "ea") {
+        e.groups.push("ea".into());
+    }
 }
 
 // Permalinks
@@ -354,9 +399,10 @@ pub mod tests {
         for (a, b) in different {
             assert!(!same_event(&ev(a, 0, "A"), &ev(b, 0, "B")), "{a} | {b}");
         }
+        // The same title on another day is another event.
         assert!(!same_event(
             &ev("Petrov Day", 0, "A"),
-            &ev("Petrov Day", 90, "B")
+            &ev("Petrov Day", 24 * 60, "B")
         ));
     }
 
@@ -377,6 +423,33 @@ pub mod tests {
         assert_eq!(petrov.links.len(), 2);
         assert_eq!(petrov.groups, ["acx", "ea"]);
         assert_eq!(petrov.location, "Café X, Leopoldstr. 1, München");
+    }
+
+    #[test]
+    fn a_moved_time_still_matches_on_the_same_day() {
+        let posted = ev("Community picnic", 0, "EA Forum");
+        let moved = ev("EA Community Picnic", 90, "Meetup");
+        assert!(same_event(&posted, &moved));
+        // A different event later the same day stays apart.
+        assert!(!same_event(&posted, &ev("Board games", 90, "Meetup")));
+        // So does the same title on another day.
+        assert!(!same_event(
+            &posted,
+            &ev("Community picnic", 24 * 60, "Meetup")
+        ));
+        assert_eq!(merge(vec![posted, moved]).len(), 1);
+    }
+
+    #[test]
+    fn titles_naming_the_other_community_join_it() {
+        let mut spring = ev("ACX Spring Meetups Everywhere 2026", 0, "EA Forum");
+        spring.groups = vec!["ea".into()];
+        let mut reading = ev("Rationality and the EA mindset", 60, "Philosophia");
+        reading.groups = vec!["philosophia".into()];
+        let merged = merge(vec![spring, reading]);
+        assert_eq!(merged[0].groups, ["acx", "ea"]);
+        // Only EA and LW/ACX events are retagged.
+        assert_eq!(merged[1].groups, ["philosophia"]);
     }
 
     #[test]

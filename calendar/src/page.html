@@ -58,6 +58,8 @@ h3 a:hover, h3 a:focus-visible { text-decoration: underline; }
 .links { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
 .links a { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--chip); text-decoration: none; }
 .links a:hover, .links a:focus-visible { background: var(--chip-hover); }
+/* Events organised only in a group chat have nothing to link to. */
+.links .chat { display: inline-block; padding: 2px 9px; border: 1px dashed var(--line); border-radius: 999px; color: var(--muted); }
 /* Add-to-calendar icons, beside the title. */
 .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .add { display: flex; gap: 6px; flex-shrink: 0; }
