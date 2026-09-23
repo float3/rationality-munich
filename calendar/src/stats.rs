@@ -12,6 +12,7 @@ use chrono::{Datelike, Weekday};
 use chrono_tz::Europe::Berlin;
 
 use crate::event::{DEFAULT_GROUPS, Event, GROUPS};
+use crate::render::html_escape;
 
 const MONTHS: [&str; 12] = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
@@ -86,7 +87,13 @@ pub fn render(events: &[&Event], unannounced: &[Event]) -> String {
     let max_year = years.iter().map(|y| in_year(*y).count()).max().unwrap_or(0);
     let head: String = GROUPS
         .iter()
-        .map(|(key, name)| format!(r#"<th data-g="{key}"{}>{name}</th>"#, hidden_unless_on(key)))
+        .map(|(key, name)| {
+            format!(
+                r#"<th scope="col" data-g="{key}"{}>{}</th>"#,
+                hidden_unless_on(key),
+                html_escape(name)
+            )
+        })
         .collect();
     let group_cell =
         |key: &str, n: usize| format!(r#"<td data-g="{key}"{}>{n}</td>"#, hidden_unless_on(key));
@@ -116,7 +123,7 @@ pub fn render(events: &[&Event], unannounced: &[Event]) -> String {
         .map(|(key, _)| group_cell(key, everything.iter().filter(|e| e.in_any(&[key])).count()))
         .collect();
     let by_year = format!(
-        r#"<div class="scroll"><table class="years"><thead><tr><th></th>{head}<th>Total</th><th class="wide"></th></tr></thead><tbody>{rows}</tbody><tfoot><tr data-y="all"><th scope="row">All</th>{total_cells}<td class="total">{}</td><td class="wide"></td></tr></tfoot></table></div>"#,
+        r#"<div class="scroll"><table class="years"><thead><tr><td></td>{head}<th scope="col">Total</th><td class="wide"></td></tr></thead><tbody>{rows}</tbody><tfoot><tr data-y="all"><th scope="row">All</th>{total_cells}<td class="total">{}</td><td class="wide"></td></tr></tfoot></table></div>"#,
         shown.len()
     );
 
@@ -127,7 +134,10 @@ pub fn render(events: &[&Event], unannounced: &[Event]) -> String {
         grid.get_mut(&t.year()).expect("every year has a row")[t.month0() as usize] += 1;
     }
     let max_month = grid.values().flatten().copied().max().unwrap_or(0);
-    let month_head: String = MONTHS.iter().map(|m| format!("<th>{m}</th>")).collect();
+    let month_head: String = MONTHS
+        .iter()
+        .map(|m| format!(r#"<th scope="col">{m}</th>"#))
+        .collect();
     let month_rows: String = grid
         .iter()
         .rev()
@@ -141,7 +151,7 @@ pub fn render(events: &[&Event], unannounced: &[Event]) -> String {
         })
         .collect();
     let by_month = format!(
-        r#"<div class="scroll"><table class="months"><thead><tr><th></th>{month_head}</tr></thead><tbody>{month_rows}</tbody></table></div>"#
+        r#"<div class="scroll"><table class="months"><thead><tr><td></td>{month_head}</tr></thead><tbody>{month_rows}</tbody></table></div>"#
     );
 
     // Weekday.

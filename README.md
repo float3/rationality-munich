@@ -1,5 +1,7 @@
 # rationality-munich.com
 
+[![CI](https://github.com/float3/rationality-munich/actions/workflows/ci.yml/badge.svg)](https://github.com/float3/rationality-munich/actions/workflows/ci.yml)
+
 The pages behind [rationality-munich.com](https://rationality-munich.com): a hub
 for the EA, ACX, LessWrong, AI safety and philosophy groups in Munich, and the
 program that builds its calendar.
@@ -50,6 +52,16 @@ cd calendar
 cargo test
 cargo run      # writes out/site/ from the live feeds
 ```
+
+## CI
+
+Every push, and weekly in case a source changes its format:
+
+- **Rust**: `cargo fmt --check`, `clippy -D warnings`, `cargo test`
+- **Nix**: alejandra, `nix flake check`, `nix build .#default` (what the server runs)
+- **HTML**: the pages in `www/` and the generated calendar pages through
+  [html-validate](https://html-validate.org) (rules in `.htmlvalidate.json`),
+  plus well-formed XML and calendar files
 
 ## Editing the pages
 

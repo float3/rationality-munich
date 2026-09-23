@@ -163,7 +163,7 @@ fn filters(events: &[&Event]) -> String {
     let main: String = main.into_iter().map(chip).collect();
     let more: String = more.into_iter().map(chip).collect();
     format!(
-        r#"<form class="filters" id="filters" data-combo="{}" hidden><div class="row">{main}</div><div class="row more"><span class="label">More groups:</span>{more}</div></form>"#,
+        r#"<div class="filters" id="filters" role="group" aria-label="Groups to show" data-combo="{}" hidden><div class="row">{main}</div><div class="row more"><span class="label">More groups:</span>{more}</div></div>"#,
         COMBO_GROUPS.join(" ")
     )
 }

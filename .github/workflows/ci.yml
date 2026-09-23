@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  # Weekly as well: the calendar reads other sites, and one of them changing
+  # its format should show up here rather than as an empty calendar.
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: calendar
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: calendar
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+
+  nix:
+    name: Nix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - name: Formatting
+        run: nix run nixpkgs#alejandra -- --check .
+      - name: Flake outputs evaluate
+        run: nix flake check
+      # What float3/nixos deploys; runs the tests again inside the sandbox.
+      - name: Build the calendar
+        run: nix build .#default -L
+
+  html:
+    name: HTML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: calendar
+      # The generated pages are validated too, built from the live sources.
+      # A source that is down only adds a note to the pages.
+      - name: Build the calendar pages
+        working-directory: calendar
+        run: cargo run --release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate HTML
+        run: >-
+          npx --yes html-validate@9
+          www/*.html
+          calendar/out/site/index.html
+          calendar/out/site/past/index.html
+          calendar/out/site/stats/index.html
+      - name: XML is well-formed
+        run: |
+          sudo apt-get install -y --no-install-recommends libxml2-utils > /dev/null
+          xmllint --noout www/sitemap.xml www/favicon.svg calendar/out/site/feed.xml
+      - name: Calendar files are well-formed
+        run: |
+          for f in calendar/out/site/feeds/*.ics calendar/out/site/e/*.ics; do
+            head -1 "$f" | grep -q '^BEGIN:VCALENDAR' || { echo "$f: no VCALENDAR"; exit 1; }
+            tail -1 "$f" | grep -q '^END:VCALENDAR' || { echo "$f: truncated"; exit 1; }
+          done
+          ls calendar/out/site/feeds
