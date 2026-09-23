@@ -39,6 +39,13 @@ are one click away.
 The pages filter by group in the browser (`?g=acx,ea`), and the subscribe link
 follows the filter. Visitors' browsers only ever talk to rationality-munich.com.
 
+The stats page charts events per month with a trend line, compares any
+month onwards with the year before (`?since=2026-04`), and analyses reported
+attendance. Visitors report attendance on the past page ("How many came?");
+`src/bin/rationality-attendance.rs` is the small service behind
+`/calendar/attend` that stores those reports (event, number, time; nothing
+about the sender), and the calendar shows each event's median.
+
 `calendar/data/` holds what no feed carries: older events worth listing, and
 events organised only in the groups' chats, which count in the statistics
 (see its README). Past events are also remembered in an archive on the

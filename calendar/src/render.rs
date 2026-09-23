@@ -74,6 +74,9 @@ fn render_event(e: &Event, upcoming: bool) -> String {
             .collect::<Vec<_>>()
             .join(" & "),
     );
+    if let Some((n, _)) = e.attended {
+        meta.push(format!("about {n} came"));
+    }
     let meta = meta
         .iter()
         .map(|m| html_escape(m))

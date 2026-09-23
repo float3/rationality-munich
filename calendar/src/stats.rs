@@ -178,8 +178,10 @@ pub fn render(events: &[&Event]) -> String {
         .max();
     let first = shown.iter().map(|e| local(e).year()).min();
 
-    // [year, month (0-11), weekday (0 = Monday), group keys] per event.
-    let data: Vec<(i32, u32, u32, &Vec<String>)> = everything
+    // [year, month (0-11), weekday (0 = Monday), group keys, day of month,
+    // reported attendance or null] per event.
+    type Row<'a> = (i32, u32, u32, &'a Vec<String>, u32, Option<u32>);
+    let data: Vec<Row> = everything
         .iter()
         .map(|e| {
             let t = local(e);
@@ -188,6 +190,8 @@ pub fn render(events: &[&Event]) -> String {
                 t.month0(),
                 t.weekday().num_days_from_monday(),
                 &e.groups,
+                t.day(),
+                e.attended.map(|(n, _)| n),
             )
         })
         .collect();
@@ -202,7 +206,10 @@ pub fn render(events: &[&Event]) -> String {
 <div class="compare" id="compare" hidden><label>Compare from <input type="month" id="since" value="2026-04"></label></div>
 <div class="tiles" id="tiles"></div>
 <figure class="chart" id="chart"><figcaption class="caveat">Events per month. Hover a month for its count.</figcaption></figure>
-<noscript><p class="caveat">The chart needs JavaScript; the tables below have the same numbers.</p></noscript>
+<h2>Attendance</h2>
+<div class="tiles" id="att-tiles"></div>
+<figure class="chart" id="att-chart"><figcaption class="caveat">Reported attendance per event, with the average of the last five. Report one on the <a href="/calendar/past/">past events</a> page.</figcaption></figure>
+<noscript><p class="caveat">The charts need JavaScript; the tables below have the same event counts.</p></noscript>
 <h2>Per year</h2>
 {by_year}
 <p class="caveat">Events held by several groups count for each, and once in the total.</p>
@@ -231,7 +238,7 @@ mod tests {
             r#"<tr data-y="2026"><th scope="row">2026</th><td data-g="acx">1</td><td data-g="ea">2</td><td data-g="philosophia" hidden>0</td>"#
         ));
         assert!(html.contains("busiest month so far was Sep 2026, with 2"));
-        assert!(html.contains(r#"[[2026,8,5,["acx","ea"]],[2026,8,5,["ea"]]]"#));
+        assert!(html.contains(r#"[[2026,8,5,["acx","ea"],26,null],[2026,8,5,["ea"],26,null]]"#));
     }
 
     #[test]

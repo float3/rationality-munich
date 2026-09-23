@@ -24,6 +24,7 @@ mod render;
 mod sources;
 mod stats;
 
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -185,6 +186,38 @@ fn publish(state: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>)
     Ok(())
 }
 
+/// Visitors' attendance reports, from the file `rationality-attendance`
+/// keeps (`$ATTENDANCE_FILE`). Each event shows the median, which one silly
+/// number cannot move far.
+fn attach_attendance(events: &mut [Event]) {
+    #[derive(serde::Deserialize)]
+    struct Report {
+        n: u32,
+    }
+    let Some(path) = std::env::var_os("ATTENDANCE_FILE") else {
+        return;
+    };
+    let Some(reports) = fs::read_to_string(path)
+        .ok()
+        .and_then(|s| serde_json::from_str::<HashMap<String, Vec<Report>>>(&s).ok())
+    else {
+        return;
+    };
+    for e in events.iter_mut() {
+        if let Some(list) = reports.get(&e.id).filter(|l| !l.is_empty()) {
+            let mut ns: Vec<u32> = list.iter().map(|r| r.n).collect();
+            ns.sort_unstable();
+            let mid = ns.len() / 2;
+            let median = if ns.len() % 2 == 1 {
+                ns[mid]
+            } else {
+                (ns[mid - 1] + ns[mid]).div_ceil(2)
+            };
+            e.attended = Some((median, ns.len()));
+        }
+    }
+}
+
 fn main() -> Res<()> {
     let state = PathBuf::from(std::env::var("STATE_DIRECTORY").unwrap_or_else(|_| "out".into()));
     fs::create_dir_all(&state)?;
@@ -210,7 +243,11 @@ fn main() -> Res<()> {
     ));
     assign_ids(&mut events);
 
+    attach_attendance(&mut events);
     let past: Vec<&Event> = events.iter().filter(|e| e.end_or_default() < now).collect();
+    // Which events the attendance service accepts reports for.
+    let ids: Vec<&str> = past.iter().map(|e| e.id.as_str()).collect();
+    fs::write(state.join("past-ids.json"), serde_json::to_string(&ids)?)?;
     // Chat-only events come from data/unannounced.json every run.
     let archived: Vec<&&Event> = past.iter().filter(|e| !e.chat).collect();
     fs::write(&archive_path, serde_json::to_string(&archived)?)?;

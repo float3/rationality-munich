@@ -63,6 +63,10 @@ pub struct Event {
     /// `sources::unannounced`.
     #[serde(default)]
     pub chat: bool,
+    /// Median of visitors' "about how many came" reports, and how many there
+    /// are. Read fresh every run; not kept in caches.
+    #[serde(skip)]
+    pub attended: Option<(u32, usize)>,
 }
 
 pub struct Raw<'a> {
@@ -91,6 +95,7 @@ impl Event {
             groups: vec![r.group.to_string()],
             links: vec![(r.label.to_string(), r.url.to_string())],
             chat: false,
+            attended: None,
         }
     }
 

@@ -59,6 +59,11 @@ h3 a:hover, h3 a:focus-visible { text-decoration: underline; }
 .links a { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--chip); text-decoration: none; }
 .links a:hover, .links a:focus-visible { background: var(--chip-hover); }
 /* Events organised only in a group chat have nothing to link to. */
+.attend, .attend-form button { font: inherit; font-size: 14px; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; cursor: pointer; }
+.attend:hover, .attend-form button:hover { color: var(--text); }
+.attend-form { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 14px; }
+.attend-form input { width: 5em; font: inherit; color: var(--text); background: var(--chip); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+.attend-form .msg { color: var(--muted); }
 .links .chat { display: inline-block; padding: 2px 9px; border: 1px dashed var(--line); border-radius: 999px; color: var(--muted); }
 /* Add-to-calendar icons, beside the title. */
 .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -106,6 +111,11 @@ tfoot tr { border-top: 2px solid var(--line); }
 .chart .bar.on { fill: var(--accent); }
 .chart .hit { fill: transparent; }
 .chart .hit:hover + .bar, .chart .bar.hover { opacity: .75; }
+.chart .trend { stroke: var(--muted); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.chart .trend.on { stroke: var(--accent); }
+.chart .marker { stroke: var(--muted); stroke-width: 1; }
+.chart .dot { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
+.chart .dot:hover { r: 6; }
 .chart .tip { position: absolute; pointer-events: none; background: var(--text); color: var(--bg); font-size: 13px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -100%); }
 footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 15px; }
 footer p { margin: 0 0 6px; }
@@ -148,6 +158,42 @@ footer p { margin: 0 0 6px; }
   if (page === "upcoming" && id && !document.getElementById(id)) {
     location.replace("/calendar/past/" + location.search + location.hash);
     return;
+  }
+
+  // Past events: "about how many came?", sent to rationality-attendance.
+  if (page === "past") {
+    document.querySelectorAll("article").forEach((a) => {
+      const li = document.createElement("li");
+      li.innerHTML = '<button type="button" class="attend">How many came?</button>';
+      a.querySelector(".links").append(li);
+    });
+    document.addEventListener("click", (ev) => {
+      const button = ev.target.closest(".attend");
+      if (!button) return;
+      const id = button.closest("article").id;
+      const li = button.parentElement;
+      li.innerHTML =
+        '<form class="attend-form"><input type="number" min="1" max="1000" required aria-label="About how many people came" placeholder="about"> <button>Send</button> <span class="msg" role="status"></span></form>';
+      const formEl = li.querySelector("form");
+      formEl.querySelector("input").focus();
+      formEl.addEventListener("submit", async (sub) => {
+        sub.preventDefault();
+        const n = formEl.querySelector("input").value;
+        const msg = formEl.querySelector(".msg");
+        try {
+          const res = await fetch("/calendar/attend", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: "id=" + encodeURIComponent(id) + "&n=" + encodeURIComponent(n),
+          });
+          const data = await res.json();
+          msg.textContent = data.message;
+          if (data.ok) formEl.querySelectorAll("input, button").forEach((x) => (x.disabled = true));
+        } catch {
+          msg.textContent = "Could not send; please try later.";
+        }
+      });
+    });
   }
 
   function list(on) {
@@ -201,6 +247,18 @@ footer p { margin: 0 0 6px; }
   // Events per month, the months since the chosen one against the twelve
   // before. Built here rather than in Rust because it follows the switches.
   const sinceBox = document.getElementById("since");
+  // rationality-munich.com went live on Thursday, 17 September 2026.
+  const LAUNCH = new Date(2026, 8, 17);
+  const DAY = 864e5;
+  // Least squares: the slope and intercept of y over x.
+  function fit(xs, ys) {
+    const n = xs.length;
+    const mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n;
+    let sxy = 0, sxx = 0;
+    xs.forEach((x, i) => { sxy += (x - mx) * (ys[i] - my); sxx += (x - mx) ** 2; });
+    const slope = sxx ? sxy / sxx : 0;
+    return [slope, my - slope * mx];
+  }
   const monthIndex = (y, m) => y * 12 + m;
   const monthLabel = (i) => MONTHS[i % 12] + " " + Math.floor(i / 12);
   function chart(events) {
@@ -232,11 +290,24 @@ footer p { margin: 0 0 6px; }
       const pct = Math.round(((after - before) / before) * 100);
       delta = `${pct >= 0 ? "+" : "−"}${Math.abs(pct)}% on the year before (${fmt(before)} a month)`;
     } else if (after !== null) delta = "none the year before";
+    // Since launch: a rate per 30 days, against the year before launch.
+    const dated = events.map((r) => new Date(r[0], r[1], r[4]));
+    const days = Math.max(1, (now - LAUNCH) / DAY);
+    const sinceLaunch = dated.filter((d) => d >= LAUNCH).length;
+    const yearBefore = dated.filter((d) => d < LAUNCH && d >= LAUNCH - 365 * DAY).length;
+    const rate = (sinceLaunch / days) * 30, rateBefore = (yearBefore / 365) * 30;
+    const launchDelta = rateBefore
+      ? `${rate >= rateBefore ? "+" : "−"}${Math.abs(Math.round(((rate - rateBefore) / rateBefore) * 100))}% on the year before (${fmt(rateBefore)})`
+      : "";
     tiles.innerHTML =
       `<div class="tile"><div class="label">Events a month since ${monthLabel(since)}</div>` +
       `<div class="value">${after === null ? "–" : fmt(after)}</div><div class="delta">${delta}</div></div>` +
       `<div class="tile"><div class="label">Events since ${monthLabel(since)}</div>` +
-      `<div class="value">${total}</div><div class="delta">including this month so far</div></div>`;
+      `<div class="value">${total}</div><div class="delta">including this month so far</div></div>` +
+      `<div class="tile"><div class="label">A month since the site went live</div>` +
+      (days < 28
+        ? `<div class="value">–</div><div class="delta">too early: ${Math.floor(days)} days so far</div></div>`
+        : `<div class="value">${fmt(rate)}</div><div class="delta">${launchDelta}</div></div>`);
 
     // Column chart, sized to its box: columns at most 24px, a 2px gap, a 4px
     // rounded top, hairline grid.
@@ -260,6 +331,18 @@ footer p { margin: 0 0 6px; }
       svg += `<path class="bar${i >= since ? " on" : ""}" d="${d}"/>`;
       if (i % 12 === 0 || k === 0) svg += `<text class="axis" x="${x + bar / 2}" y="${height - 6}" text-anchor="middle">${i % 12 === 0 ? Math.floor(i / 12) : MONTHS[i % 12]}</text>`;
     });
+    // Trend: least squares over the monthly counts shown.
+    const [slope, icept] = fit(months.map((_, k) => k), months.map(([, n]) => n));
+    const xAt = (k) => left + k * band + band / 2;
+    const yc = (v) => y(Math.max(0, Math.min(ceil, v)));
+    svg += `<line class="trend" x1="${xAt(0)}" y1="${yc(icept)}" x2="${xAt(months.length - 1)}" y2="${yc(icept + slope * (months.length - 1))}"/>`;
+    svg += `<text class="axis" x="${xAt(0)}" y="${yc(icept) - 6}">trend ${Math.abs(slope) < 0.05 ? "±0" : (slope > 0 ? "+" : "−") + fmt(Math.abs(slope))}/month</text>`;
+    // Launch marker, when the launch month is on the chart.
+    const lk = monthIndex(LAUNCH.getFullYear(), LAUNCH.getMonth()) - first;
+    if (lk >= 0 && lk < months.length) {
+      const lx = left + lk * band + band * ((LAUNCH.getDate() - 1) / 30);
+      svg += `<line class="marker" x1="${lx}" x2="${lx}" y1="${top}" y2="${y(0)}"/><text class="axis" x="${lx - 4}" y="${top + 10}" text-anchor="end">site live</text>`;
+    }
     svg += "</svg>";
     box.querySelector("svg")?.remove();
     box.querySelector(".tip")?.remove();
@@ -276,6 +359,85 @@ footer p { margin: 0 0 6px; }
       hit.addEventListener("mouseenter", show);
       hit.addEventListener("focus", show);
       hit.addEventListener("mouseleave", () => (tip.hidden = true));
+    });
+  }
+
+  function attendance(events) {
+    const box = document.getElementById("att-chart");
+    const tiles = document.getElementById("att-tiles");
+    if (!box) return;
+    const pts = events
+      .filter((r) => r[5] != null)
+      .map((r) => [new Date(r[0], r[1], r[4]), r[5]])
+      .sort((a, b) => a[0] - b[0]);
+    box.querySelector("svg")?.remove();
+    box.querySelector(".tip")?.remove();
+    if (pts.length < 3) {
+      tiles.innerHTML = `<p class="caveat">${pts.length ? "Only " + pts.length : "No"} events with reported attendance yet; the analysis starts at three.</p>`;
+      return;
+    }
+    const fmt = (x) => (Math.round(x * 10) / 10).toLocaleString("en");
+    const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    const all = mean(pts.map((p) => p[1]));
+    const before = pts.filter((p) => p[0] < LAUNCH).map((p) => p[1]);
+    const after = pts.filter((p) => p[0] >= LAUNCH).map((p) => p[1]);
+    // Trend in people per month, fitted over every reported event.
+    const months = pts.map((p) => (p[0] - pts[0][0]) / (30 * DAY));
+    const [slope] = fit(months, pts.map((p) => p[1]));
+    let launch = "";
+    if (before.length && after.length) {
+      const pct = Math.round(((mean(after) - mean(before)) / mean(before)) * 100);
+      launch = `${pct >= 0 ? "+" : "−"}${Math.abs(pct)}% on before (${fmt(mean(before))}, ${before.length} events)`;
+    }
+    tiles.innerHTML =
+      `<div class="tile"><div class="label">Average attendance</div><div class="value">${fmt(all)}</div><div class="delta">${pts.length} events reported</div></div>` +
+      (after.length ? `<div class="tile"><div class="label">Since the site went live</div><div class="value">${fmt(mean(after))}</div><div class="delta">${launch || after.length + " events"}</div></div>` : "") +
+      (pts.length >= 5 ? `<div class="tile"><div class="label">Trend</div><div class="value">${Math.abs(slope) < 0.05 ? "±0" : (slope > 0 ? "+" : "−") + fmt(Math.abs(slope))}</div><div class="delta">people a month, least squares</div></div>` : "");
+
+    // Dots per event, a 2px line for the average of the last five.
+    const width = Math.max(280, box.clientWidth);
+    const height = 180, left = 28, bottom = 22, top = 8, right = 8;
+    const t0 = pts[0][0].getTime(), t1 = Math.max(pts[pts.length - 1][0].getTime(), t0 + DAY);
+    const x = (d) => left + ((d - t0) / (t1 - t0)) * (width - left - right);
+    const most = Math.max(...pts.map((p) => p[1]));
+    const step = most <= 10 ? 2 : most <= 25 ? 5 : most <= 50 ? 10 : 20;
+    const ceil = Math.ceil(most / step) * step;
+    const y = (n) => top + (height - top - bottom) * (1 - n / ceil);
+    let svg = `<svg viewBox="0 0 ${width} ${height}" height="${height}" role="img" aria-label="Reported attendance per event">`;
+    for (let t = 0; t <= ceil; t += step) {
+      svg += `<line class="grid" x1="${left}" x2="${width}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${left - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`;
+    }
+    const rolling = pts.map((_, i) => mean(pts.slice(Math.max(0, i - 4), i + 1).map((p) => p[1])));
+    svg += `<polyline class="trend on" points="${pts.map((p, i) => x(p[0]) + "," + y(rolling[i])).join(" ")}"/>`;
+    if (LAUNCH > t0 && LAUNCH < t1) {
+      svg += `<line class="marker" x1="${x(LAUNCH)}" x2="${x(LAUNCH)}" y1="${top}" y2="${y(0)}"/><text class="axis" x="${x(LAUNCH) - 4}" y="${top + 10}" text-anchor="end">site live</text>`;
+    }
+    pts.forEach((p, i) => {
+      svg += `<circle class="dot" cx="${x(p[0])}" cy="${y(p[1])}" r="4" data-i="${i}"/>`;
+    });
+    // Years along the bottom, or months when the reports span under a year.
+    const span = t1 - t0;
+    const ticks = [];
+    for (let d = new Date(pts[0][0].getFullYear(), pts[0][0].getMonth() + 1, 1); d <= t1; d.setMonth(d.getMonth() + 1)) {
+      if (span > 400 * DAY ? d.getMonth() === 0 : true) ticks.push(new Date(d));
+    }
+    const every = Math.ceil(ticks.length / 8);
+    ticks.filter((_, i) => i % every === 0).forEach((d) => {
+      const label = span > 400 * DAY ? d.getFullYear() : MONTHS[d.getMonth()];
+      svg += `<text class="axis" x="${x(d)}" y="${height - 6}" text-anchor="middle">${label}</text>`;
+    });
+    svg += "</svg>";
+    box.insertAdjacentHTML("afterbegin", svg + `<div class="tip" hidden></div>`);
+    const tip = box.querySelector(".tip");
+    box.querySelectorAll(".dot").forEach((dot) => {
+      const [d, n] = pts[+dot.dataset.i];
+      dot.addEventListener("mouseenter", () => {
+        tip.textContent = `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}: about ${n}`;
+        tip.style.left = `${(+dot.getAttribute("cx") / width) * 100}%`;
+        tip.style.top = `${+dot.getAttribute("cy") - 8}px`;
+        tip.hidden = false;
+      });
+      dot.addEventListener("mouseleave", () => (tip.hidden = true));
     });
   }
 
@@ -333,6 +495,7 @@ footer p { margin: 0 0 6px; }
     }
     document.getElementById("summary").innerHTML = text;
     chart(events);
+    attendance(events);
   }
 
   function apply() {
