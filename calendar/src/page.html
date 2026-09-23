@@ -88,6 +88,25 @@ tfoot tr { border-top: 2px solid var(--line); }
 .heat.dark { color: var(--bg); font-weight: 600; }
 .zero { color: var(--line); }
 @media (max-width: 560px) { .wide { display: none; } }
+
+/* Comparison and chart. Emphasis form: months from the chosen one in ink,
+   the year before in a recessive gray. */
+:root { --accent: var(--text); --deemph: color-mix(in srgb, var(--muted) 45%, var(--bg)); }
+.compare { margin: 12px 0; font-size: 15px; color: var(--muted); }
+.compare input { font: inherit; color: var(--text); background: var(--chip); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; }
+.tiles { display: flex; flex-wrap: wrap; gap: 24px; margin: 8px 0 16px; }
+.tile .label { font-size: 13px; color: var(--muted); }
+.tile .value { font-size: 32px; font-weight: 600; line-height: 1.2; }
+.tile .delta { font-size: 14px; color: var(--muted); }
+.chart { position: relative; margin: 0; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .axis { fill: var(--muted); font-size: 11px; }
+.chart .bar { fill: var(--deemph); }
+.chart .bar.on { fill: var(--accent); }
+.chart .hit { fill: transparent; }
+.chart .hit:hover + .bar, .chart .bar.hover { opacity: .75; }
+.chart .tip { position: absolute; pointer-events: none; background: var(--text); color: var(--bg); font-size: 13px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -100%); }
 footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 15px; }
 footer p { margin: 0 0 6px; }
 </style>
@@ -179,6 +198,87 @@ footer p { margin: 0 0 6px; }
   function setBar(tr, n, most) {
     tr.querySelector(".bar span").style.width = Math.floor((n * 100) / most) + "%";
   }
+  // Events per month, the months since the chosen one against the twelve
+  // before. Built here rather than in Rust because it follows the switches.
+  const sinceBox = document.getElementById("since");
+  const monthIndex = (y, m) => y * 12 + m;
+  const monthLabel = (i) => MONTHS[i % 12] + " " + Math.floor(i / 12);
+  function chart(events) {
+    const box = document.getElementById("chart");
+    const tiles = document.getElementById("tiles");
+    if (!box) return;
+    const now = new Date();
+    const current = monthIndex(now.getFullYear(), now.getMonth());
+    const [sy, sm] = sinceBox.value.split("-").map(Number);
+    const since = sy ? Math.min(monthIndex(sy, sm - 1), current) : current - 11;
+    const first = since - 12;
+    const counts = new Map();
+    events.forEach(([y, m]) => {
+      const i = monthIndex(y, m);
+      counts.set(i, (counts.get(i) || 0) + 1);
+    });
+    const months = [];
+    for (let i = first; i <= current; i++) months.push([i, counts.get(i) || 0]);
+
+    // Complete months only: the current one is still filling up.
+    const sum = (a, b) => months.filter(([i]) => i >= a && i < b).reduce((s, [, n]) => s + n, 0);
+    const before = sum(first, since) / 12;
+    const full = current - since;
+    const after = full > 0 ? sum(since, current) / full : null;
+    const total = sum(since, current + 1);
+    const fmt = (x) => (Math.round(x * 10) / 10).toLocaleString("en");
+    let delta = "";
+    if (after !== null && before > 0) {
+      const pct = Math.round(((after - before) / before) * 100);
+      delta = `${pct >= 0 ? "+" : "−"}${Math.abs(pct)}% on the year before (${fmt(before)} a month)`;
+    } else if (after !== null) delta = "none the year before";
+    tiles.innerHTML =
+      `<div class="tile"><div class="label">Events a month since ${monthLabel(since)}</div>` +
+      `<div class="value">${after === null ? "–" : fmt(after)}</div><div class="delta">${delta}</div></div>` +
+      `<div class="tile"><div class="label">Events since ${monthLabel(since)}</div>` +
+      `<div class="value">${total}</div><div class="delta">including this month so far</div></div>`;
+
+    // Column chart, sized to its box: columns at most 24px, a 2px gap, a 4px
+    // rounded top, hairline grid.
+    const width = Math.max(280, box.clientWidth);
+    const height = 180, left = 28, bottom = 22, top = 8;
+    const band = (width - left) / months.length;
+    const bar = Math.max(2, Math.min(24, band - 2));
+    const most = Math.max(1, ...months.map(([, n]) => n));
+    const step = most <= 5 ? 1 : most <= 10 ? 2 : most <= 25 ? 5 : 10;
+    const ceil = Math.ceil(most / step) * step;
+    const y = (n) => top + (height - top - bottom) * (1 - n / ceil);
+    let svg = `<svg viewBox="0 0 ${width} ${height}" height="${height}" role="img" aria-label="Events per month from ${monthLabel(first)} to ${monthLabel(current)}">`;
+    for (let t = 0; t <= ceil; t += step) {
+      svg += `<line class="grid" x1="${left}" x2="${width}" y1="${y(t)}" y2="${y(t)}"/><text class="axis" x="${left - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`;
+    }
+    months.forEach(([i, n], k) => {
+      const x = left + k * band + (band - bar) / 2;
+      const h = y(0) - y(n), r = Math.min(4, h, bar / 2);
+      const d = n ? `M${x},${y(0)}V${y(n) + r}Q${x},${y(n)} ${x + r},${y(n)}H${x + bar - r}Q${x + bar},${y(n)} ${x + bar},${y(n) + r}V${y(0)}Z` : "";
+      svg += `<rect class="hit" x="${left + k * band}" y="${top}" width="${band}" height="${height - top - bottom}" data-k="${k}"/>`;
+      svg += `<path class="bar${i >= since ? " on" : ""}" d="${d}"/>`;
+      if (i % 12 === 0 || k === 0) svg += `<text class="axis" x="${x + bar / 2}" y="${height - 6}" text-anchor="middle">${i % 12 === 0 ? Math.floor(i / 12) : MONTHS[i % 12]}</text>`;
+    });
+    svg += "</svg>";
+    box.querySelector("svg")?.remove();
+    box.querySelector(".tip")?.remove();
+    box.insertAdjacentHTML("afterbegin", svg + `<div class="tip" hidden></div>`);
+    const tip = box.querySelector(".tip");
+    box.querySelectorAll(".hit").forEach((hit) => {
+      const [i, n] = months[+hit.dataset.k];
+      const show = () => {
+        tip.textContent = `${monthLabel(i)}: ${n} ${n === 1 ? "event" : "events"}`;
+        tip.style.left = `${(+hit.getAttribute("x") + band / 2) / width * 100}%`;
+        tip.style.top = `${y(n)}px`;
+        tip.hidden = false;
+      };
+      hit.addEventListener("mouseenter", show);
+      hit.addEventListener("focus", show);
+      hit.addEventListener("mouseleave", () => (tip.hidden = true));
+    });
+  }
+
   function recount(on) {
     const events = rows.filter(([, , , groups]) => groups.some((g) => on.includes(g)));
     const count = (pred) => events.filter(pred).length;
@@ -232,6 +332,7 @@ footer p { margin: 0 0 6px; }
       text += ` The busiest month so far was ${MONTHS[+td.dataset.m]} ${td.dataset.y}, with ${months[best]}.`;
     }
     document.getElementById("summary").innerHTML = text;
+    chart(events);
   }
 
   function apply() {
@@ -239,13 +340,27 @@ footer p { margin: 0 0 6px; }
     if (page === "stats") recount(on);
     else list(on);
 
-    const query = on.join(",") === defaults ? "" : "?g=" + on.join(",");
+    const params = new URLSearchParams();
+    if (on.join(",") !== defaults) params.set("g", on.join(","));
+    if (sinceBox && sinceBox.value !== sinceBox.defaultValue) params.set("since", sinceBox.value);
+    const query = params.toString() ? "?" + params.toString().replace(/%2C/g, ",") : "";
     history.replaceState(null, "", location.pathname + query + location.hash);
     document.querySelectorAll("[data-keep-filter]").forEach((a) => {
       a.search = query;
     });
   }
   form.addEventListener("change", apply);
+  if (sinceBox) {
+    const wantedSince = new URLSearchParams(location.search).get("since");
+    if (wantedSince && /^\d{4}-\d{2}$/.test(wantedSince)) sinceBox.value = wantedSince;
+    document.getElementById("compare").hidden = false;
+    sinceBox.addEventListener("change", apply);
+    let resized;
+    window.addEventListener("resize", () => {
+      clearTimeout(resized);
+      resized = setTimeout(apply, 150);
+    });
+  }
   apply();
   // Hidden events above the target shift it; scroll again once filtered.
   if (id) document.getElementById(id)?.scrollIntoView();

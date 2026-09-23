@@ -198,6 +198,11 @@ pub fn render(events: &[&Event]) -> String {
     format!(
         r#"<p class="summary" id="summary">{summary}</p>
 <p class="caveat">Some events were never posted anywhere, so the real numbers are higher. Events arranged only in the group chats are included since November 2025; casual meetups like lunch and coworking are not.</p>
+<h2>Over time</h2>
+<div class="compare" id="compare" hidden><label>Compare from <input type="month" id="since" value="2026-04"></label></div>
+<div class="tiles" id="tiles"></div>
+<figure class="chart" id="chart"><figcaption class="caveat">Events per month. Hover a month for its count.</figcaption></figure>
+<noscript><p class="caveat">The chart needs JavaScript; the tables below have the same numbers.</p></noscript>
 <h2>Per year</h2>
 {by_year}
 <p class="caveat">Events held by several groups count for each, and once in the total.</p>
