@@ -33,6 +33,13 @@ h3 { font-size: 18px; font-weight: 600; margin: 0; }
 .links a { display: inline-block; padding: 5px 12px; border-radius: 999px; background: var(--chip); font-size: 14px; text-decoration: none; }
 .links a:hover, .links a:focus-visible { background: var(--chip-hover); }
 
+/* Regular and upcoming events: a title, when, and a line of context. */
+.events { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.events li { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.events b { font-weight: 600; }
+.events .when { display: block; font-size: 15px; }
+.events .what { margin: 2px 0 0; }
+
 .note { margin: 12px 0 0; color: var(--muted); font-size: 15px; }
 .note a, footer a { color: var(--text); text-underline-offset: 3px; }
 footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 15px; }
@@ -49,6 +56,20 @@ footer p { margin: 0 0 4px; }
 <a class="action" href="https://lists.rationality-munich.com/subscription/form"><b>Event invites by email →</b><span>Pick EA events, rationality events, other events, or all of them</span></a>
 </div>
 <p class="note">No tracking, and you can unsubscribe or delete your data from any email. <a href="privacy.html">Privacy</a></p>
+
+<h2 id="regular">Regular events</h2>
+<ul class="events">
+<li><b>Community dinner</b><span class="when">Every second Wednesday, 18:30</span><p class="what">Skipped some weeks near the end of the month, when EA Munich holds its monthly community dinner instead.</p></li>
+<li><b>EA community dinner</b><span class="when">Monthly, near the end of the month</span><p class="what">Hosted by EA Munich.</p></li>
+<li><b>The Estimation Game</b><span class="when">The last seven days of each month</span><p class="what">A calibration game: how well do your estimates match reality?</p></li>
+</ul>
+<p class="note">Exact dates and places are in the <a href="/calendar">calendar</a> and the groups' chats.</p>
+
+<h2 id="coming-up">Coming up</h2>
+<ul class="events">
+<li><b>ACX Munich weekend</b><span class="when">Next one probably late January</span><p class="what">A weekend of meetups, talks and discussions. There have been three so far.</p></li>
+<li><b>A public evening on the Hugging Face incident</b><span class="when">October or early November, date and venue to follow</span><p class="what">Two short talks on the July 2026 agent-swarm incident, one technical and one on governance, then a moderated discussion and a mixer. Aimed at people new to AI safety.</p></li>
+</ul>
 
 <h2>The groups</h2>
 
