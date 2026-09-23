@@ -258,9 +258,11 @@ fn meetup_event(e: &Value, group: &str, keep: fn(&str) -> bool) -> Option<Event>
     {
         // Venues are often named after their own address; online events
         // come with a placeholder venue.
-        if !x.is_empty() && !place.contains(&x) && x != "Online event" {
-            place.push(x);
+        if x.is_empty() || x == "Online event" || place.iter().any(|p| p.contains(x)) {
+            continue;
         }
+        place.retain(|p| !x.contains(p));
+        place.push(x);
     }
     // Descriptions are Markdown; the excerpt wants plain text.
     let text = e["description"]
@@ -653,6 +655,26 @@ mod tests {
                 "Fri 3 Jul, 16-17",
                 r#"Grzejdziak (2026), "The missing interdiscipline.""#
             ]
+        );
+    }
+
+    #[test]
+    fn a_venue_named_after_its_address_shows_once() {
+        let e = serde_json::json!({
+            "title": "Dine and Discuss", "eventUrl": "https://www.meetup.com/x/events/1/",
+            "dateTime": "2026-09-23T18:00:00+02:00",
+            "venue": { "name": "Gabelsbergerstraße 43", "address": "Gabelsbergerstraße 43, 80333 München" },
+        });
+        let got = meetup_event(&e, "ea", |_| true).unwrap();
+        assert_eq!(got.location, "Gabelsbergerstraße 43, 80333 München");
+        let e = serde_json::json!({
+            "title": "Dinner", "eventUrl": "https://www.meetup.com/x/events/2/",
+            "dateTime": "2026-09-23T18:00:00+02:00",
+            "venue": { "name": "Bellevue di Monaco", "address": "Müllerstraße 2" },
+        });
+        assert_eq!(
+            meetup_event(&e, "ea", |_| true).unwrap().location,
+            "Bellevue di Monaco, Müllerstraße 2"
         );
     }
 

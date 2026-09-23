@@ -31,7 +31,10 @@ h1 { font-size: clamp(28px, 7vw, 40px); font-weight: 600; margin: 0 0 8px; lette
 .filters { margin: 0 0 12px; }
 .filters .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; }
 .filters .more label { font-size: 13px; padding: 2px 10px; }
-.filters .label { font-size: 13px; color: var(--muted); margin-right: 2px; }
+.filters .more summary { display: inline-block; font-size: 14px; color: var(--muted); cursor: pointer; margin: 0 0 8px; }
+.filters .more summary:hover { color: var(--text); }
+.filters .more summary::before { content: "+ "; }
+.filters .more[open] summary::before { content: "− "; }
 /* Each chip is the switch: filled when on, outlined and struck through when
    off. The checkbox stays for keyboards and screen readers, just unseen. */
 .filters label { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border: 1px solid transparent; border-radius: 999px; background: var(--chip); font-size: 14px; cursor: pointer; user-select: none; }
@@ -92,7 +95,6 @@ tfoot tr { border-top: 2px solid var(--line); }
 .heat { border-radius: 4px; }
 .heat.dark { color: var(--bg); font-weight: 600; }
 .zero { color: var(--line); }
-@media (max-width: 560px) { .wide { display: none; } }
 
 /* Comparison and chart. Emphasis form: months from the chosen one in ink,
    the year before in a recessive gray. */
@@ -119,6 +121,16 @@ tfoot tr { border-top: 2px solid var(--line); }
 .chart .tip { position: absolute; pointer-events: none; background: var(--text); color: var(--bg); font-size: 13px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -100%); }
 footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 15px; }
 footer p { margin: 0 0 6px; }
+/* Phones. Last, so it overrides the rules above. */
+@media (max-width: 560px) {
+  .wide { display: none; }
+  article { grid-template-columns: 44px 1fr; gap: 12px; }
+  .date .d { font-size: 24px; }
+  .head { display: block; }
+  .add { margin: 4px 0 6px; }
+  .tile .value { font-size: 26px; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+}
 </style>
 </head>
 <body data-page="{{page}}">
@@ -151,6 +163,8 @@ footer p { margin: 0 0 6px; }
     boxes.forEach((b) => (b.checked = keep.includes(b.value)));
   }
   form.hidden = false;
+  const more = form.querySelector(".more");
+  if (more && more.querySelector("input:checked")) more.open = true;
   const page = document.body.dataset.page;
 
   // A link to an event that has since happened lands on the past page.

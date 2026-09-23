@@ -168,10 +168,11 @@ fn filters(events: &[&Event]) -> String {
         )
     };
     let (main, more): (Vec<_>, Vec<_>) = GROUPS.iter().partition(|(k, _)| COMBO_GROUPS.contains(k));
+    let n_more = more.len();
     let main: String = main.into_iter().map(chip).collect();
     let more: String = more.into_iter().map(chip).collect();
     format!(
-        r#"<div class="filters" id="filters" role="group" aria-label="Groups to show" data-combo="{}" hidden><div class="row">{main}</div><div class="row more"><span class="label">More groups:</span>{more}</div></div>"#,
+        r#"<div class="filters" id="filters" role="group" aria-label="Groups to show" data-combo="{}" hidden><div class="row">{main}</div><details class="more"><summary>More groups ({n_more})</summary><div class="row">{more}</div></details></div>"#,
         COMBO_GROUPS.join(" ")
     )
 }
