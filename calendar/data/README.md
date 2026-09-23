@@ -53,7 +53,8 @@ where only a floor is known. Matched like the polls. An organiser's count
 beats visitors' reports on /calendar/past/; a floor gives way to a report
 above it. So far: the ACX Meetups Everywhere day on 11 April 2026 (at least
 40) and its Estimation Game (30), every Estimation Game since (at least 10
-each), and the dinner with a visiting rationalist from Tokyo (4).
+each), the dinner with a visiting rationalist from Tokyo (4), and both EA
+Munich Speaker Series talks (at least 20 each).
 
 ## ranges.json: how many usually came to a series
 
