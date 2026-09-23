@@ -60,7 +60,7 @@ jobs:
       - name: Build the calendar pages
         working-directory: calendar
         run: cargo run --release
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Validate HTML
