@@ -29,7 +29,7 @@ use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Duration, Utc};
 
-use event::{Event, GROUPS, assign_ids, group_name, merge, sanitize};
+use event::{COMBO_GROUPS, Event, GROUPS, assign_ids, group_name, merge, sanitize};
 use render::{BASE, Kind, Page};
 use sources::Res;
 
@@ -75,25 +75,30 @@ fn write(path: &Path, text: &str) -> Res<()> {
     Ok(())
 }
 
-/// Every non-empty combination of groups, as feed names: `acx`, `acx+ea`, …
+/// The feeds to write, as sets of groups: every non-empty combination of
+/// `COMBO_GROUPS` (`acx`, `acx+ea`, …), then each other group on its own.
 fn group_sets() -> Vec<Vec<&'static str>> {
-    (1..1u32 << GROUPS.len())
-        .map(|mask| {
-            GROUPS
-                .iter()
-                .enumerate()
-                .filter(|(i, _)| mask & (1 << i) != 0)
-                .map(|(_, (k, _))| *k)
-                .collect()
-        })
-        .collect()
+    let combos = (1..1u32 << COMBO_GROUPS.len()).map(|mask| {
+        COMBO_GROUPS
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| mask & (1 << i) != 0)
+            .map(|(_, k)| *k)
+            .collect()
+    });
+    let singles = GROUPS
+        .iter()
+        .map(|(k, _)| *k)
+        .filter(|k| !COMBO_GROUPS.contains(k))
+        .map(|k| vec![k]);
+    combos.chain(singles).collect()
 }
 
 fn build_site(dir: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>) -> Res<()> {
     let (upcoming, mut past): (Vec<&Event>, Vec<&Event>) =
         events.iter().partition(|e| e.end_or_default() >= now);
     past.reverse();
-    let unannounced = sources::unannounced(now, events);
+    let unannounced = sources::unannounced(now);
 
     write(
         &dir.join("index.html"),
@@ -139,19 +144,18 @@ fn build_site(dir: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>
             .copied()
             .filter(|e| e.in_any(&set))
             .collect();
-        let everything = set.len() == GROUPS.len();
-        let name = if everything {
-            "Rationality Munich".to_string()
-        } else {
-            let names: Vec<&str> = set.iter().map(|k| group_name(k)).collect();
-            format!("Rationality Munich: {}", names.join(", "))
-        };
-        let ics = ics::calendar(&name, &chosen, now, BASE);
-        write(&dir.join(format!("feeds/{}.ics", set.join("+"))), &ics)?;
-        if everything {
-            write(&dir.join("feeds/all.ics"), &ics)?;
-        }
+        let names: Vec<&str> = set.iter().map(|k| group_name(k)).collect();
+        let name = format!("Rationality Munich: {}", names.join(", "));
+        write(
+            &dir.join(format!("feeds/{}.ics", set.join("+"))),
+            &ics::calendar(&name, &chosen, now, BASE),
+        )?;
     }
+    // Every group; also served as /calendar.ics.
+    write(
+        &dir.join("feeds/all.ics"),
+        &ics::calendar("Rationality Munich", &feed_events, now, BASE),
+    )?;
 
     for e in events {
         write(
@@ -232,7 +236,10 @@ mod tests {
     #[test]
     fn a_feed_for_every_combination_of_groups() {
         let names: Vec<String> = group_sets().iter().map(|s| s.join("+")).collect();
-        assert_eq!(names.len(), (1 << GROUPS.len()) - 1);
+        let singles = GROUPS.len() - COMBO_GROUPS.len();
+        assert_eq!(names.len(), (1 << COMBO_GROUPS.len()) - 1 + singles);
+        assert!(names.contains(&"acx+ea+philosophia".to_string()));
+        assert!(names.contains(&"agi".to_string()) && !names.contains(&"acx+agi".to_string()));
         assert!(names.contains(&"acx+ea".to_string()));
         assert!(names.contains(&"philosophia".to_string()));
     }

@@ -25,7 +25,10 @@ a { color: inherit; text-underline-offset: 3px; }
 h1 { font-size: clamp(28px, 7vw, 40px); font-weight: 600; margin: 0 0 8px; letter-spacing: -.01em; }
 .lede { margin: 0 0 20px; color: var(--muted); }
 
-.filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.filters { margin: 0 0 12px; }
+.filters .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; }
+.filters .more label { font-size: 13px; padding: 2px 10px; }
+.filters .label { font-size: 13px; color: var(--muted); margin-right: 2px; }
 /* Each chip is the switch: filled when on, outlined and struck through when
    off. The checkbox stays for keyboards and screen readers, just unseen. */
 .filters label { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border: 1px solid transparent; border-radius: 999px; background: var(--chip); font-size: 14px; cursor: pointer; user-select: none; }
@@ -136,13 +139,32 @@ footer p { margin: 0 0 6px; }
       shown += visible;
     });
     document.getElementById("none").hidden = shown > 0 || !document.querySelector("article");
+    subscribe(on);
+  }
 
-    const feed = on.length === all.length ? "all" : on.join("+");
-    const url = "rationality-munich.com/calendar/feeds/" + feed + ".ics";
-    const sub = document.getElementById("sub");
-    sub.href = "webcal://" + url;
-    sub.parentElement.hidden = on.length === 0;
-    document.getElementById("suburl").textContent = "https://" + url;
+  // Feeds exist for every combination of the main groups (data-combo) and for
+  // each other group alone, so a mix needs one subscription per extra group.
+  const combo = form.dataset.combo.split(" ");
+  const nameOf = (g) => boxes.find((b) => b.value === g).dataset.name;
+  const feedUrl = (f) => "rationality-munich.com/calendar/feeds/" + f + ".ics";
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  function subscribe(on) {
+    const box = document.getElementById("subscribe");
+    box.hidden = on.length === 0;
+    const core = on.filter((g) => combo.includes(g));
+    const feeds = [];
+    if (on.length === all.length) feeds.push(["everything", "all"]);
+    else {
+      if (core.length) feeds.push([core.map(nameOf).join(" + "), core.join("+")]);
+      on.filter((g) => !combo.includes(g)).forEach((g) => feeds.push([nameOf(g), g]));
+    }
+    if (feeds.length === 1) {
+      const url = feedUrl(feeds[0][1]);
+      box.innerHTML = `<a href="webcal://${url}">Subscribe in your calendar app</a> to get these events there, kept up to date. Or add <code>https://${url}</code> by URL.`;
+    } else {
+      const links = feeds.map(([name, f]) => `<a href="webcal://${feedUrl(f)}">${esc(name)}</a>`).join(" · ");
+      box.innerHTML = `Subscribe in your calendar app, one calendar each: ${links}`;
+    }
   }
 
   // Mirrors shade(), bar() and summary() in stats.rs.

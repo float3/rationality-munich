@@ -3,7 +3,7 @@
 use chrono::{DateTime, Utc};
 use chrono_tz::Europe::Berlin;
 
-use crate::event::{DEFAULT_GROUPS, Event, GROUPS, group_name};
+use crate::event::{COMBO_GROUPS, DEFAULT_GROUPS, Event, GROUPS, group_name};
 use crate::ics;
 use crate::stats;
 
@@ -147,17 +147,25 @@ fn by_month(events: &[&Event], upcoming: bool) -> String {
 }
 
 fn filters(events: &[&Event]) -> String {
-    let boxes: String = GROUPS
-        .iter()
-        .map(|(key, name)| {
-            let n = events.iter().filter(|e| e.in_any(&[key])).count();
-            let checked = if DEFAULT_GROUPS.contains(key) { " checked" } else { "" };
-            format!(
-                r#"<label><input type="checkbox" value="{key}"{checked}> {name} <span class="n">{n}</span></label>"#
-            )
-        })
-        .collect();
-    format!(r#"<form class="filters" id="filters" hidden>{boxes}</form>"#)
+    let chip = |(key, name): &(&str, &str)| {
+        let n = events.iter().filter(|e| e.in_any(&[key])).count();
+        let checked = if DEFAULT_GROUPS.contains(key) {
+            " checked"
+        } else {
+            ""
+        };
+        format!(
+            r#"<label><input type="checkbox" value="{key}" data-name="{name}"{checked}> {name} <span class="n">{n}</span></label>"#,
+            name = html_escape(name),
+        )
+    };
+    let (main, more): (Vec<_>, Vec<_>) = GROUPS.iter().partition(|(k, _)| COMBO_GROUPS.contains(k));
+    let main: String = main.into_iter().map(chip).collect();
+    let more: String = more.into_iter().map(chip).collect();
+    format!(
+        r#"<form class="filters" id="filters" data-combo="{}" hidden><div class="row">{main}</div><div class="row more"><span class="label">More groups:</span>{more}</div></form>"#,
+        COMBO_GROUPS.join(" ")
+    )
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -181,8 +189,9 @@ fn subscribe() -> String {
         "rationality-munich.com/calendar/feeds/{}.ics",
         DEFAULT_GROUPS.join("+")
     );
+    // The script rewrites this for the groups picked; see `subscribe` in page.html.
     format!(
-        r#"<p class="subscribe"><a id="sub" href="webcal://{feed}">Subscribe in your calendar app</a> to get these events there, kept up to date. Or add <code id="suburl">https://{feed}</code> by URL.</p>"#
+        r#"<p class="subscribe" id="subscribe"><a href="webcal://{feed}">Subscribe in your calendar app</a> to get these events there, kept up to date. Or add <code>https://{feed}</code> by URL.</p>"#
     )
 }
 
@@ -194,7 +203,7 @@ pub fn page(p: &Page) -> String {
         Kind::Upcoming => (
             "Calendar · Rationality Munich",
             "Upcoming events",
-            "Events from the rationality, EA and philosophy groups in Munich, collected from LessWrong, the EA Forum, Meetup, Luma and Philosophia. Regular events are listed on the <a href=\"/#regular\">home page</a>.",
+            "Events from the rationality and EA groups in Munich, collected from LessWrong, the EA Forum, Meetup and Luma. More Munich groups are one click away below. Regular events are listed on the <a href=\"/#regular\">home page</a>.",
             format!("{past} · {stats}"),
             "upcoming",
         ),

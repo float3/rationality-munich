@@ -176,5 +176,23 @@
     "groups": ["acx"],
     "label": "Substack",
     "url": "https://acxmeetup.substack.com/p/acx-meetups-this-weekend-12-1412"
+  },
+  {
+    "title": "Plan to be a slightly better, happier person in 2026",
+    "start": "2026-01-03T15:00:00+01:00",
+    "end": "2026-01-03T18:00:00+01:00",
+    "groups": ["ea"],
+    "label": "Luma",
+    "url": "https://luma.com/jbmjj4az"
+  },
+  {
+    "title": "2nd Unofficial ACX Weekend",
+    "start": "2026-03-20T17:00:00+01:00",
+    "end": "2026-03-22T18:00:00+01:00",
+    "location": "Munich",
+    "excerpt": "A social evening with chocolate tasting, then discussions of Why I am not a Bayesian, post-AGI economics, learning what matters, malevolence and social dark matter, and a session with the local Gödel, Escher, Bach reading group. About 60 RSVPs.",
+    "groups": ["acx"],
+    "label": "Substack",
+    "url": "https://recthink.substack.com/p/uacxw2"
   }
 ]

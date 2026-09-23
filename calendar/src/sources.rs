@@ -72,7 +72,59 @@ pub fn all() -> Vec<Source> {
             label: "Philosophia",
             fetch: Box::new(philosophia_events),
         },
+        // Meetup's feed has no past events; its page lists the latest ten.
+        Source {
+            key: "meetup-past",
+            label: "Meetup",
+            fetch: Box::new(|agent, _| meetup_page(agent, EA_MEETUP, "past", "ea", |_| true)),
+        },
+        Source {
+            key: "mlphil",
+            label: "MCMP",
+            fetch: Box::new(|agent, _| mlphil_events(agent)),
+        },
+        // The GEB reading group has no page of its own; it posts in a general
+        // Munich activities group, so only its events are taken.
+        meetup_group("geb", "munich-weekly-activities", "geb", |title| {
+            let t = title.to_lowercase();
+            t.contains("gödel") || t.contains("godel") || t.contains("escher")
+        }),
+        meetup_group(
+            "agi",
+            "munchen-artificial-general-intelligence-meetup-group",
+            "agi",
+            |_| true,
+        ),
+        meetup_group(
+            "skeptics",
+            "skeptics-in-the-pub-munchen",
+            "skeptics",
+            |_| true,
+        ),
+        meetup_group("science", "science-club-munich", "science", |_| true),
+        meetup_group("minds", "minds-in-motion-munich", "minds", |_| true),
+        meetup_group("curious", "lifelong__curious", "curious", |_| true),
+        meetup_group("silentbooks", "silent-book-club", "silentbooks", |_| true),
+        meetup_group("culture", "culture-club-munich", "culture", |_| true),
     ]
+}
+
+/// A Meetup group's upcoming and recent past events, read from its pages.
+fn meetup_group(
+    key: &'static str,
+    slug: &'static str,
+    group: &'static str,
+    keep: fn(&str) -> bool,
+) -> Source {
+    Source {
+        key,
+        label: "Meetup",
+        fetch: Box::new(move |agent, _| {
+            let mut out = meetup_page(agent, slug, "upcoming", group, keep)?;
+            out.extend(meetup_page(agent, slug, "past", group, keep)?);
+            Ok(out)
+        }),
+    }
 }
 
 // LessWrong and the EA Forum run the same software and the same GraphQL API.
@@ -139,6 +191,7 @@ fn forum_events(
 // Meetup: an iCalendar feed of upcoming events only. Past ones stay on the
 // page through the archive.
 
+const EA_MEETUP: &str = "effective-altruism-munich";
 const MEETUP_ICS: &str = "https://www.meetup.com/effective-altruism-munich/events/ical/";
 
 /// Meetup's feed has no location; the event page's JSON-LD does.
@@ -219,6 +272,188 @@ fn meetup_events(agent: &ureq::Agent) -> Res<Vec<Event>> {
             label: "Meetup",
             url: &url,
         }));
+    }
+    Ok(out)
+}
+
+/// Meetup's group pages embed their events as Apollo cache entries in
+/// `__NEXT_DATA__`: `Event:<id>` objects pointing at `Venue:<id>` ones. One
+/// request per page, venues included.
+fn meetup_page(
+    agent: &ureq::Agent,
+    slug: &str,
+    kind: &str,
+    group: &str,
+    keep: fn(&str) -> bool,
+) -> Res<Vec<Event>> {
+    let page = get(
+        agent,
+        &format!("https://www.meetup.com/{slug}/events/?type={kind}"),
+    )?;
+    let start = page
+        .find(r#"<script id="__NEXT_DATA__""#)
+        .and_then(|i| page[i..].find('>').map(|j| i + j + 1))
+        .ok_or("no __NEXT_DATA__")?;
+    let end = start
+        + page[start..]
+            .find("</script>")
+            .ok_or("unterminated __NEXT_DATA__")?;
+    let data: Value = serde_json::from_str(&page[start..end])?;
+    let state = data["props"]["pageProps"]["__APOLLO_STATE__"]
+        .as_object()
+        .ok_or("no Apollo state")?;
+    let mut out = Vec::new();
+    for (k, e) in state {
+        if !k.starts_with("Event:") || e["status"] == "CANCELLED" {
+            continue;
+        }
+        let title = e["title"].as_str().unwrap_or("");
+        let url = e["eventUrl"].as_str().unwrap_or("");
+        let Some(start) = forum_time(&e["dateTime"]) else {
+            continue;
+        };
+        if !keep(title) || !url.starts_with("https://www.meetup.com/") {
+            continue;
+        }
+        let venue = e["venue"]["__ref"].as_str().and_then(|r| state.get(r));
+        let location = venue
+            .map(|v| {
+                let mut parts: Vec<&str> = Vec::new();
+                for x in [&v["name"], &v["address"]]
+                    .iter()
+                    .filter_map(|x| x.as_str())
+                {
+                    // Venues are often named after their own address.
+                    if !x.is_empty() && !parts.contains(&x) {
+                        parts.push(x);
+                    }
+                }
+                parts.join(", ")
+            })
+            .unwrap_or_default();
+        // Descriptions are Markdown; the excerpt wants plain text.
+        let text = e["description"]
+            .as_str()
+            .unwrap_or("")
+            .replace(['*', '#', '_'], "");
+        out.push(Event::new(Raw {
+            title,
+            start,
+            end: forum_time(&e["endTime"]),
+            location: &location,
+            online: e["isOnline"].as_bool().unwrap_or(false),
+            text: &text,
+            group,
+            label: "Meetup",
+            url,
+        }));
+    }
+    Ok(out)
+}
+
+// The MCMP's philosophy of machine learning reading group keeps its schedule,
+// back to 2022, as one table per semester.
+
+const MLPHIL_PAGE: &str = "https://tomster.userweb.mwn.de/mlregr/";
+
+/// Inner text of every `<td>`, in order; tags dropped.
+fn table_cells(html: &str) -> Vec<String> {
+    let mut cells = Vec::new();
+    let mut rest = html;
+    while let Some(i) = rest.find("<td") {
+        rest = &rest[i..];
+        let Some(open) = rest.find('>') else { break };
+        let Some(close) = rest.find("</td>") else {
+            break;
+        };
+        let inner = &rest[open + 1..close.max(open + 1)];
+        cells.push(collapse(&strip_html(inner)));
+        rest = &rest[close.max(open + 1)..];
+    }
+    cells
+}
+
+fn collapse(s: &str) -> String {
+    s.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// "Fri 17 Jul, 16-17" under a semester heading, as Munich times.
+fn mlphil_time(cell: &str, heading: &str) -> Option<(DateTime<Utc>, DateTime<Utc>)> {
+    use chrono::TimeZone;
+    use chrono_tz::Europe::Berlin;
+    const MONTHS: [&str; 12] = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    let (date, hours) = cell.split_once(',')?;
+    let mut words = date.split_whitespace().skip(1);
+    let day: u32 = words.next()?.parse().ok()?;
+    let word = words.next()?;
+    let month = MONTHS.iter().position(|m| word.starts_with(m))? as u32 + 1;
+    // "Summer 2026", or "Winter 2025/2026" / "Winter 2023/24": winter months
+    // from September on belong to the first year.
+    let first: i32 = heading
+        .split_whitespace()
+        .nth(1)?
+        .split('/')
+        .next()?
+        .parse()
+        .ok()?;
+    let year = if heading.starts_with("Winter") && month < 9 {
+        first + 1
+    } else {
+        first
+    };
+    let clock = |t: &str| -> Option<(u32, u32)> {
+        let mut p = t.trim().split(['.', ':']);
+        let h = p.next()?.parse().ok()?;
+        let m = match p.next() {
+            Some(m) => m.parse().ok()?,
+            None => 0,
+        };
+        Some((h, m))
+    };
+    let (from, to) = hours.split_once(['-', '–'])?;
+    let at = |(h, m): (u32, u32)| {
+        Berlin
+            .with_ymd_and_hms(year, month, day, h, m, 0)
+            .earliest()
+            .map(|t| t.with_timezone(&Utc))
+    };
+    Some((at(clock(from)?)?, at(clock(to)?)?))
+}
+
+fn mlphil_events(agent: &ureq::Agent) -> Res<Vec<Event>> {
+    let page = get(agent, MLPHIL_PAGE)?;
+    let mut out = Vec::new();
+    // Each semester: an <h4> heading, then its table.
+    for section in page.split("<h4").skip(1) {
+        let Some((heading, _)) = section
+            .split_once('>')
+            .and_then(|(_, r)| r.split_once("</h4>"))
+        else {
+            continue;
+        };
+        let heading = collapse(&strip_html(heading));
+        if !heading.starts_with("Summer") && !heading.starts_with("Winter") {
+            continue;
+        }
+        for row in table_cells(section).chunks(2) {
+            let [date, reading] = row else { continue };
+            let Some((start, end)) = mlphil_time(date, &heading) else {
+                continue;
+            };
+            out.push(Event::new(Raw {
+                title: reading,
+                start,
+                end: Some(end),
+                location: "Ludwigstraße 31, room 028",
+                online: false,
+                text: "",
+                group: "mlphil",
+                label: "Reading group",
+                url: MLPHIL_PAGE,
+            }));
+        }
     }
     Ok(out)
 }
@@ -368,8 +603,8 @@ struct Past {
 }
 
 pub fn history() -> Vec<Event> {
-    let past: Vec<Past> = serde_json::from_str(include_str!("../data/acx-substack.json"))
-        .expect("data/acx-substack.json is valid");
+    let past: Vec<Past> = serde_json::from_str(include_str!("../data/history.json"))
+        .expect("data/history.json is valid");
     past.into_iter()
         .map(|p| {
             let mut e = Event::new(Raw {
@@ -389,57 +624,9 @@ pub fn history() -> Vec<Event> {
         .collect()
 }
 
-// Events that happened but were never announced anywhere we read. They count
-// in the statistics only: with nothing to link to, they are not listed.
-
-/// The fortnightly community dinner: every second Wednesday at 18:30 since
-/// 22 April 2026, almost without a break. A date is skipped when a dinner was
-/// announced that week (it is counted already), which also covers the weeks
-/// EA Munich's monthly community dinner takes its place.
-fn community_dinners(now: DateTime<Utc>, announced: &[Event]) -> Vec<Event> {
-    use chrono::{Datelike, TimeZone};
-    use chrono_tz::Europe::Berlin;
-    let week = |t: DateTime<Utc>| t.with_timezone(&Berlin).iso_week();
-    let dinners: Vec<DateTime<Utc>> = announced
-        .iter()
-        .filter(|e| e.title.to_lowercase().contains("dinner"))
-        .map(|e| e.start)
-        .collect();
-    let mut out = Vec::new();
-    let mut t = Berlin
-        .with_ymd_and_hms(2026, 4, 22, 18, 30, 0)
-        .unwrap()
-        .with_timezone(&Utc);
-    while t + chrono::Duration::hours(3) < now {
-        if !dinners.iter().any(|d| week(*d) == week(t)) {
-            out.push(unlisted("Community dinner", t, "acx"));
-        }
-        // Step in local time so 18:30 stays 18:30 across DST.
-        let next = t.with_timezone(&Berlin).naive_local() + chrono::Duration::days(14);
-        t = Berlin
-            .from_local_datetime(&next)
-            .earliest()
-            .unwrap()
-            .with_timezone(&Utc);
-    }
-    out
-}
-
-fn unlisted(title: &str, start: DateTime<Utc>, group: &str) -> Event {
-    let mut e = Event::new(Raw {
-        title,
-        start,
-        end: None,
-        location: "",
-        online: false,
-        text: "",
-        group,
-        label: "",
-        url: "",
-    });
-    e.links.clear();
-    e
-}
+// Events that happened but were never announced anywhere we read: organised
+// only in the groups' chats. They count in the statistics; with nothing to
+// link to, they are not listed. See data/README.md.
 
 #[derive(Deserialize)]
 struct Unlisted {
@@ -448,18 +635,29 @@ struct Unlisted {
     groups: Vec<String>,
 }
 
-/// Past events counted in the statistics but never announced: the community
-/// dinners, and whatever data/unannounced.json lists.
-pub fn unannounced(now: DateTime<Utc>, announced: &[Event]) -> Vec<Event> {
+pub fn unannounced(now: DateTime<Utc>) -> Vec<Event> {
     let listed: Vec<Unlisted> = serde_json::from_str(include_str!("../data/unannounced.json"))
         .expect("data/unannounced.json is valid");
-    let mut out = community_dinners(now, announced);
-    for u in listed.into_iter().filter(|u| u.start < now) {
-        let mut e = unlisted(&u.title, u.start, &u.groups[0]);
-        e.groups = u.groups;
-        out.push(e);
-    }
-    out
+    listed
+        .into_iter()
+        .filter(|u| u.start < now)
+        .map(|u| {
+            let mut e = Event::new(Raw {
+                title: &u.title,
+                start: u.start,
+                end: None,
+                location: "",
+                online: false,
+                text: "",
+                group: &u.groups[0],
+                label: "",
+                url: "",
+            });
+            e.groups = u.groups;
+            e.links.clear();
+            e
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -477,48 +675,52 @@ mod tests {
     }
 
     #[test]
-    fn dinners_every_second_wednesday_except_weeks_with_an_announced_dinner() {
+    fn unannounced_events_load_unlinked_and_known_groups_only() {
+        let u = unannounced(Utc::now());
+        assert!(u.len() >= 30);
+        assert!(u.iter().all(|e| e.links.is_empty()));
+        let known = ["acx", "ea", "philosophia"];
+        assert!(
+            u.iter()
+                .all(|e| e.groups.iter().all(|g| known.contains(&g.as_str())))
+        );
+    }
+
+    #[test]
+    fn reading_group_dates_follow_the_semester() {
         use chrono::TimeZone;
         use chrono_tz::Europe::Berlin;
-        let at = |m, d, h| {
+        let at = |y, m, d, h| {
             Berlin
-                .with_ymd_and_hms(2026, m, d, h, 30, 0)
+                .with_ymd_and_hms(y, m, d, h, 0, 0)
                 .unwrap()
                 .with_timezone(&Utc)
         };
-        let announced = |title: &str, t| {
-            let mut e = crate::event::tests::ev(title, 0, "X");
-            e.start = t;
-            e
-        };
-        // Only a dinner announced in the same week skips a date; other
-        // announced events (board games on 6 May) do not.
-        let got = community_dinners(
-            at(6, 20, 12),
-            &[
-                announced("EA community dinner", at(6, 2, 18)),
-                announced("Board games", at(5, 6, 18)),
-            ],
+        assert_eq!(
+            mlphil_time("Fri 17 Jul, 16-17", "Summer 2026"),
+            Some((at(2026, 7, 17, 16), at(2026, 7, 17, 17)))
         );
-        let days: Vec<u32> = got
-            .iter()
-            .map(|e| {
-                use chrono::Datelike;
-                e.start.with_timezone(&Berlin).day()
-            })
-            .collect();
-        // 22 Apr, 6 May, 20 May, (3 Jun skipped: dinner announced on 2 Jun), 17 Jun
-        assert_eq!(days, [22, 6, 20, 17]);
-        assert!(got.iter().all(|e| {
-            e.start
-                .with_timezone(&Berlin)
-                .format("%a %H:%M")
-                .to_string()
-                == "Wed 18:30"
-        }));
-        assert!(
-            got.iter()
-                .all(|e| e.links.is_empty() && e.groups == ["acx"])
+        assert_eq!(
+            mlphil_time("Thu 15 Jan, 14-15", "Winter 2025/2026").map(|t| t.0),
+            Some(at(2026, 1, 15, 14))
+        );
+        assert_eq!(
+            mlphil_time("Wed 22 Oct, 14-15", "Winter 2025/26").map(|t| t.0),
+            Some(at(2025, 10, 22, 14))
+        );
+        assert!(mlphil_time("tba", "Summer 2026").is_none());
+    }
+
+    #[test]
+    fn table_cells_come_out_as_plain_text() {
+        let html = r#"<tr><th>Date</th></tr><tr><td>Fri 3 Jul, 16-17</td>
+            <td><a href="x">Grzejdziak (2026)</a>, "The missing interdiscipline."</td> </td></tr>"#;
+        assert_eq!(
+            table_cells(html),
+            [
+                "Fri 3 Jul, 16-17",
+                r#"Grzejdziak (2026), "The missing interdiscipline.""#
+            ]
         );
     }
 

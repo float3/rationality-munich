@@ -116,7 +116,7 @@ pub fn render(events: &[&Event], unannounced: &[Event]) -> String {
         .map(|(key, _)| group_cell(key, everything.iter().filter(|e| e.in_any(&[key])).count()))
         .collect();
     let by_year = format!(
-        r#"<table class="years"><thead><tr><th></th>{head}<th>Total</th><th class="wide"></th></tr></thead><tbody>{rows}</tbody><tfoot><tr data-y="all"><th scope="row">All</th>{total_cells}<td class="total">{}</td><td class="wide"></td></tr></tfoot></table>"#,
+        r#"<div class="scroll"><table class="years"><thead><tr><th></th>{head}<th>Total</th><th class="wide"></th></tr></thead><tbody>{rows}</tbody><tfoot><tr data-y="all"><th scope="row">All</th>{total_cells}<td class="total">{}</td><td class="wide"></td></tr></tfoot></table></div>"#,
         shown.len()
     );
 
@@ -186,17 +186,23 @@ pub fn render(events: &[&Event], unannounced: &[Event]) -> String {
         .expect("serialisable")
         .replace("</", "<\\/");
 
-    let dinners = unannounced
-        .iter()
-        .filter(|e| e.title == "Community dinner")
-        .count();
-    let others = unannounced.len() - dinners;
-    let mut counted = format!(
-        " The fortnightly community dinners are counted from their schedule, every second Wednesday since 22 April 2026, which adds {dinners} that were never announced."
-    );
-    if others > 0 {
-        counted += &format!(" {others} other unannounced events are added by hand.");
-    }
+    let counted = if unannounced.is_empty() {
+        String::new()
+    } else {
+        format!(
+            " Also counted: {} since November 2025 that {} organised only in the groups' chats, such as most of the fortnightly ACX community dinners.",
+            if unannounced.len() == 1 {
+                "1 event".to_string()
+            } else {
+                format!("{} events", unannounced.len())
+            },
+            if unannounced.len() == 1 {
+                "was"
+            } else {
+                "were"
+            }
+        )
+    };
 
     format!(
         r#"<p class="summary" id="summary">{summary}</p>
@@ -226,7 +232,7 @@ mod tests {
         let html = render(&[&shared, &solo], &[]);
         assert!(html.contains("<b>2</b> events since 2026"));
         assert!(html.contains(
-            r#"<tr data-y="2026"><th scope="row">2026</th><td data-g="acx">1</td><td data-g="ea">2</td><td data-g="philosophia" hidden>0</td><td class="total">2</td>"#
+            r#"<tr data-y="2026"><th scope="row">2026</th><td data-g="acx">1</td><td data-g="ea">2</td><td data-g="philosophia" hidden>0</td>"#
         ));
         assert!(html.contains("busiest month so far was Sep 2026, with 2"));
         assert!(html.contains(r#"[[2026,8,5,["acx","ea"]],[2026,8,5,["ea"]]]"#));
@@ -248,6 +254,6 @@ mod tests {
         dinner.groups = vec!["acx".into()];
         let html = render(&[], &[dinner]);
         assert!(html.contains("<b>1</b> events since 2026"));
-        assert!(html.contains("which adds 1 that were never announced"));
+        assert!(html.contains("Also counted: 1 event since November 2025 that was organised"));
     }
 }

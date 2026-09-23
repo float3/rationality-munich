@@ -15,7 +15,22 @@ pub const GROUPS: &[(&str, &str)] = &[
     ("acx", "LW/ACX Munich"),
     ("ea", "EA Munich"),
     ("philosophia", "Philosophia Munich"),
+    // Further Munich groups, from recthink.substack.com/p/germany. Off by
+    // default, one feed each.
+    ("mlphil", "Philosophy of ML reading group"),
+    ("geb", "Gödel, Escher, Bach reading group"),
+    ("agi", "AGI Munich"),
+    ("skeptics", "Skeptics in the Pub"),
+    ("science", "Science Club Munich"),
+    ("minds", "Minds in Motion"),
+    ("curious", "Lifelong Curious & Book Lovers"),
+    ("silentbooks", "Silent Book Club"),
+    ("culture", "Culture Club Munich"),
 ];
+
+/// Groups with a feed for every combination of them (`feeds/acx+ea.ics`).
+/// The rest get one feed each, or 2^n files would pile up.
+pub const COMBO_GROUPS: &[&str] = &["acx", "ea", "philosophia"];
 
 /// On until the visitor picks otherwise. Philosophia is its own community
 /// rather than part of the rationality/EA scene, so it starts off.
