@@ -661,6 +661,10 @@ pub fn apply_polls(events: &mut [Event]) {
     }
 }
 
+fn munich_day(t: DateTime<Utc>) -> chrono::NaiveDate {
+    t.with_timezone(&chrono_tz::Europe::Berlin).date_naive()
+}
+
 /// The group's event that day starting nearest `start`: hand-kept data names
 /// an event by its group and time rather than by its title, which feeds
 /// change.
@@ -669,10 +673,9 @@ fn nearest_on_day<'a>(
     start: DateTime<Utc>,
     group: &str,
 ) -> Option<&'a mut Event> {
-    let day = |t: DateTime<Utc>| t.with_timezone(&chrono_tz::Europe::Berlin).date_naive();
     events
         .iter_mut()
-        .filter(|e| e.groups.iter().any(|g| g == group) && day(e.start) == day(start))
+        .filter(|e| e.groups.iter().any(|g| g == group) && munich_day(e.start) == munich_day(start))
         .min_by_key(|e| (e.start - start).abs())
 }
 

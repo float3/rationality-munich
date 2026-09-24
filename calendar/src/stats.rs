@@ -210,7 +210,7 @@ pub fn render(events: &[&Event]) -> String {
 
     format!(
         r#"<p class="summary" id="summary">{summary}</p>
-<p class="caveat">Some events were never posted anywhere, so the real numbers are higher. Events arranged only in the group chats are included since November 2025; casual meetups like lunch and coworking are not.</p>
+<p class="caveat">Some events were never posted anywhere, so the real numbers are higher. Events arranged only in the group chats are included since spring 2023; casual meetups like lunch and coworking are not.</p>
 <h2>Over time</h2>
 <div class="compare" id="compare" hidden><label>Compare from <input type="month" id="since" value="2026-04"></label> <label><input type="checkbox" id="season" checked> Adjust for season</label></div>
 <div class="tiles" id="tiles"></div>
@@ -268,6 +268,6 @@ mod tests {
         dinner.chat = true;
         let html = render(&[&dinner]);
         assert!(html.contains("<b>1</b> events since 2026"));
-        assert!(html.contains("included since November 2025"));
+        assert!(html.contains("included since spring 2023"));
     }
 }

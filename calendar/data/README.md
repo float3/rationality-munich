@@ -23,8 +23,8 @@ event.
 
 ## unannounced.json: past events from the group chats
 
-Events organised only in the groups' WhatsApp chats since November 2025, read
-from exported chat histories: the fortnightly ACX community dinners, Intro
+Events organised only in the groups' WhatsApp chats and EA Munich's
+announcements channel since spring 2023, read from exported chat histories: the fortnightly ACX community dinners, Intro
 Fellowship sessions, the Ideas Forum and the like. Cancelled ones are left
 out, and so are casual meetups (lunch and coworking, bouldering, ...), which
 are arranged in the EA community's spontaneous events chat and are not events
