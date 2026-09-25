@@ -110,12 +110,13 @@ jobs:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
       # 403 and 429 pass: Substack and others refuse GitHub's servers
-      # outright, dead page or not. A dead page is a 404 or 410, or a domain
-      # that no longer resolves.
+      # outright, dead page or not. 502-504 pass too: a site that is down
+      # for a while. A dead page is a 404 or 410, or a domain that no
+      # longer resolves.
       - name: Links to other sites
         run: >-
           nix shell --inputs-from . nixpkgs#lychee -c lychee --no-progress
-          --max-concurrency 8 --max-retries 3 --accept '200..=299,403,429'
+          --max-concurrency 8 --max-retries 3 --accept '200..=299,403,429,502..=504'
           --root-dir "$PWD/www"
           --remap "https://rationality-munich\.com/(.*) file://$PWD/www/\$1"
           --exclude '/calendar'
