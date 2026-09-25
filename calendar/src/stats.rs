@@ -12,6 +12,7 @@ use chrono::{Datelike, Weekday};
 use chrono_tz::Europe::Berlin;
 
 use crate::event::{DEFAULT_GROUPS, Event, GROUPS};
+use crate::kind::{NAMES, kind};
 use crate::render::html_escape;
 use crate::turnout;
 
@@ -180,8 +181,16 @@ pub fn render(events: &[&Event]) -> String {
     let first = shown.iter().map(|e| local(e).year()).min();
 
     // [year, month (0-11), weekday (0 = Monday), group keys, day of month,
-    // attendance (reported, else sign-ups) or null] per event.
-    type Row<'a> = (i32, u32, u32, &'a Vec<String>, u32, Option<u32>);
+    // attendance (reported, else sign-ups) or null, kind] per event.
+    type Row<'a> = (
+        i32,
+        u32,
+        u32,
+        &'a Vec<String>,
+        u32,
+        Option<u32>,
+        &'static str,
+    );
     let data: Vec<Row> = everything
         .iter()
         .map(|e| {
@@ -193,6 +202,7 @@ pub fn render(events: &[&Event]) -> String {
                 &e.groups,
                 t.day(),
                 e.headcount(),
+                kind(&e.title),
             )
         })
         .collect();
@@ -203,7 +213,7 @@ pub fn render(events: &[&Event]) -> String {
     // Only once enough reports back it up.
     let per_signup = match turnout::came_per_signup(events.iter().copied()) {
         (ratio, n) if n >= 3 => format!(
-            r#"<p class="caveat">About {ratio:.1} came per sign-up at the {n} events with both; each group's own ratio feeds the expected turnout of its upcoming events.</p>"#
+            r#"<p class="caveat">About {ratio:.1} came per sign-up at the {n} events with both; each group's ratio, per kind of event, feeds the expected turnout of its upcoming events.</p>"#
         ),
         _ => String::new(),
     };
@@ -219,6 +229,9 @@ pub fn render(events: &[&Event]) -> String {
 <div class="tiles" id="att-tiles"></div>
 <figure class="chart" id="att-chart"><figcaption class="caveat">Attendance per event as reported, else sign-ups, with the average of the last five. Report one on the <a href="/calendar/past/">past events</a> page.</figcaption></figure>
 {per_signup}
+<h2>By kind</h2>
+<div class="scroll"><table class="kinds" id="kinds"></table></div>
+<p class="caveat">Kinds are read from the titles. Typical is the middle headcount, as reported, else sign-ups.</p>
 <noscript><p class="caveat">The charts need JavaScript; the tables below have the same event counts.</p></noscript>
 <h2>Per year</h2>
 {by_year}
@@ -227,8 +240,10 @@ pub fn render(events: &[&Event]) -> String {
 {by_month}
 <h2>Per weekday</h2>
 {by_day}
-<script type="application/json" id="stats-data">{data}</script>"#,
+<script type="application/json" id="stats-data">{data}</script>
+<script type="application/json" id="kind-names">{kinds}</script>"#,
         summary = summary(shown.len(), first, busiest),
+        kinds = serde_json::to_string(NAMES).expect("serialisable"),
     )
 }
 
@@ -248,7 +263,9 @@ mod tests {
             r#"<tr data-y="2026"><th scope="row">2026</th><td data-g="acx">1</td><td data-g="ea">2</td><td data-g="philosophia" hidden>0</td>"#
         ));
         assert!(html.contains("busiest month so far was Sep 2026, with 2"));
-        assert!(html.contains(r#"[[2026,8,5,["acx","ea"],26,null],[2026,8,5,["ea"],26,null]]"#));
+        assert!(html.contains(
+            r#"[[2026,8,5,["acx","ea"],26,null,"other"],[2026,8,5,["ea"],26,null,"dinner"]]"#
+        ));
     }
 
     #[test]

@@ -94,6 +94,7 @@ tfoot tr { border-top: 2px solid var(--line); }
 .scroll { overflow-x: auto; }
 .months td, .months th { padding: 6px 4px; text-align: center; min-width: 30px; }
 .months tbody th { text-align: left; }
+.kinds thead th:first-child { text-align: left; }
 .heat { border-radius: 4px; }
 .heat.dark { color: var(--bg); font-weight: 600; }
 .zero { color: var(--line); }
@@ -498,6 +499,26 @@ footer p { margin: 0 0 6px; }
     });
   }
 
+  // Events and typical turnout per kind of event, most frequent first.
+  const KINDS = JSON.parse(document.getElementById("kind-names")?.textContent || "[]");
+  function kinds(events) {
+    const table = document.getElementById("kinds");
+    if (!table) return;
+    const median = (xs) => {
+      const s = [...xs].sort((a, b) => a - b), m = s.length >> 1;
+      return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
+    };
+    const rows = KINDS.map(([k, name]) => {
+      const of = events.filter((r) => r[6] === k);
+      const counted = of.map((r) => r[5]).filter((n) => n != null);
+      return [name, of.length, counted.length, counted.length ? median(counted) : null];
+    }).filter((r) => r[1] > 0).sort((a, b) => b[1] - a[1]);
+    table.innerHTML =
+      '<thead><tr><th scope="col">Kind</th><th scope="col">Events</th><th scope="col">With a headcount</th><th scope="col">Typical</th></tr></thead><tbody>' +
+      rows.map(([name, n, c, t]) => `<tr><th scope="row">${esc(name)}</th><td>${n}</td><td>${c}</td><td>${t ?? "–"}</td></tr>`).join("") +
+      "</tbody>";
+  }
+
   function recount(on) {
     const events = rows.filter(([, , , groups]) => groups.some((g) => on.includes(g)));
     const count = (pred) => events.filter(pred).length;
@@ -553,6 +574,7 @@ footer p { margin: 0 0 6px; }
     document.getElementById("summary").innerHTML = text;
     chart(events);
     attendance(events);
+    kinds(events);
   }
 
   function apply() {

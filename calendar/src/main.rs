@@ -20,6 +20,7 @@
 mod event;
 mod feed;
 mod ics;
+mod kind;
 mod render;
 mod sources;
 mod stats;
