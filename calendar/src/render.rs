@@ -80,14 +80,14 @@ fn render_event(e: &Event, upcoming: bool) -> String {
         } else {
             format!("about {} came", c.n)
         });
-    } else if let Some(m) = e.expected.filter(|&m| m != e.signups) {
-        meta.push(if e.signups > 0 {
-            format!("about {m} expected, {} signed up", e.signups)
+    } else if let Some(m) = e.expected.filter(|&m| m != e.signed_up()) {
+        meta.push(if e.signed_up() > 0 {
+            format!("about {m} expected, {} signed up", e.signed_up())
         } else {
             format!("about {m} expected")
         });
-    } else if e.signups > 0 {
-        meta.push(format!("{} signed up", e.signups));
+    } else if e.signed_up() > 0 {
+        meta.push(format!("{} signed up", e.signed_up()));
     }
     let meta = meta
         .iter()

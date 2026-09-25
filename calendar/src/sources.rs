@@ -128,10 +128,13 @@ const FORUM_QUERY: &str = r#"
               contents { plaintextDescription } rsvps } } }
 "#;
 
-/// The "yes" answers among a post's RSVPs; the rest of each entry is not read.
-fn forum_yes(rsvps: &Value) -> u32 {
-    rsvps.as_array().map_or(0, |list| {
-        list.iter().filter(|r| r["response"] == "yes").count() as u32
+/// The names on a post's "yes" RSVPs.
+fn forum_yes(rsvps: &Value) -> Vec<&str> {
+    rsvps.as_array().map_or(Vec::new(), |list| {
+        list.iter()
+            .filter(|r| r["response"] == "yes")
+            .filter_map(|r| r["name"].as_str())
+            .collect()
     })
 }
 
@@ -180,7 +183,9 @@ fn forum_events(
                 label,
                 url: p["pageUrl"].as_str().unwrap_or(""),
             });
-            e.signups = forum_yes(&p["rsvps"]);
+            let yes = forum_yes(&p["rsvps"]);
+            e.signups = yes.len() as u32;
+            e.sign_up(yes);
             out.push(e);
         }
     }
@@ -198,7 +203,8 @@ query($group: String!, $status: EventStatus!, $after: String) {
     events(status: $status, first: 100, after: $after, sort: DESC) {
       pageInfo { hasNextPage endCursor }
       edges { node { title dateTime endTime eventUrl isOnline description
-                     venue { name address } going { totalCount } } }
+                     venue { name address } going { totalCount }
+                     rsvps(first: 100) { edges { node { status member { name } } } } } }
     }
   }
 }
@@ -290,6 +296,15 @@ fn meetup_event(e: &Value, group: &str, keep: fn(&str) -> bool) -> Option<Event>
         url,
     });
     event.signups = e["going"]["totalCount"].as_u64().unwrap_or(0) as u32;
+    // Groups that hide their members return no names; the count stands.
+    if let Some(edges) = e["rsvps"]["edges"].as_array() {
+        event.sign_up(
+            edges
+                .iter()
+                .filter(|x| x["node"]["status"] == "YES")
+                .filter_map(|x| x["node"]["member"]["name"].as_str()),
+        );
+    }
     Some(event)
 }
 
@@ -442,16 +457,19 @@ fn luma_events(agent: &ureq::Agent) -> Res<Vec<Event>> {
             label: "Luma",
             url: &url,
         });
-        event.signups = luma_guest_count(agent, &url).unwrap_or(0);
+        if let Some((count, names)) = luma_guests(agent, &url) {
+            event.signups = count;
+            event.sign_up(names.iter().map(String::as_str));
+        }
         out.push(event);
     }
     Ok(out)
 }
 
-/// How many registered, from the API behind Luma's event pages. The calendar
-/// has only a handful of events, so this is a request each per run. A failure
-/// only loses the count.
-fn luma_guest_count(agent: &ureq::Agent, url: &str) -> Option<u32> {
+/// How many registered, and the guests the page shows by name, from the API
+/// behind Luma's event pages. The calendar has only a handful of events, so
+/// this is a request each per run. A failure only loses the count.
+fn luma_guests(agent: &ureq::Agent, url: &str) -> Option<(u32, Vec<String>)> {
     let slug = url
         .strip_prefix("https://luma.com/")
         .or_else(|| url.strip_prefix("https://lu.ma/"))?;
@@ -465,7 +483,15 @@ fn luma_guest_count(agent: &ureq::Agent, url: &str) -> Option<u32> {
     let data: Value =
         serde_json::from_str(&get(agent, &format!("https://api.lu.ma/url?url={slug}")).ok()?)
             .ok()?;
-    data["data"]["guest_count"].as_u64().map(|n| n as u32)
+    let count = data["data"]["guest_count"].as_u64()? as u32;
+    let names = data["data"]["featured_guests"]
+        .as_array()
+        .map_or(Vec::new(), |list| {
+            list.iter()
+                .filter_map(|g| g["name"].as_str().map(String::from))
+                .collect()
+        });
+    Some((count, names))
 }
 
 // Philosophia Munich: a public Google Calendar going back to 2020, with weekly
@@ -737,8 +763,8 @@ pub fn apply_ranges(events: &mut [Event]) {
                 && e.groups == r.groups
                 && words.is_subset(&title_words(&e.title))
         }) {
-            let n = if e.signups > 0 {
-                e.signups.clamp(r.low, r.high)
+            let n = if e.signed_up() > 0 {
+                e.signed_up().clamp(r.low, r.high)
             } else {
                 (r.low + r.high).div_ceil(2)
             };
@@ -836,10 +862,11 @@ mod tests {
     #[test]
     fn only_yes_rsvps_count() {
         let rsvps = serde_json::json!([
-            { "response": "yes" }, { "response": "maybe" }, { "response": "yes" }, { "response": "no" }
+            { "response": "yes", "name": "Anna" }, { "response": "maybe", "name": "Ben" },
+            { "response": "yes", "name": "Cleo" }, { "response": "no", "name": "Dan" }
         ]);
-        assert_eq!(forum_yes(&rsvps), 2);
-        assert_eq!(forum_yes(&Value::Null), 0);
+        assert_eq!(forum_yes(&rsvps).len(), 2);
+        assert!(forum_yes(&Value::Null).is_empty());
     }
 
     #[test]

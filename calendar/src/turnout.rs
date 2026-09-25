@@ -20,7 +20,7 @@ const SERIES_MIN: usize = 2;
 pub fn came_per_signup<'a>(events: impl IntoIterator<Item = &'a Event>) -> (f64, usize) {
     let (mut came, mut signed, mut n) = (0.0, 0.0, 0);
     for e in events {
-        if let (Some(c), s) = (e.attended, e.signups)
+        if let (Some(c), s) = (e.attended, e.signed_up())
             && s > 0
         {
             came += c.n as f64;
@@ -47,7 +47,7 @@ fn same_series(a: &Event, b: &Event) -> bool {
 fn headcount(e: &Event, ratio: f64) -> Option<f64> {
     e.attended
         .map(|c| c.n as f64)
-        .or_else(|| (e.signups > 0).then_some(e.signups as f64 * ratio))
+        .or_else(|| (e.signed_up() > 0).then_some(e.signed_up() as f64 * ratio))
 }
 
 /// Sets `expected` on every upcoming event there is a basis for: the larger
@@ -78,7 +78,7 @@ pub fn estimate(events: &mut [Event], now: DateTime<Utc>) {
                 .collect();
             let series = (recent.len() >= SERIES_MIN)
                 .then(|| recent.iter().sum::<f64>() / recent.len() as f64);
-            let signups = (e.signups > 0).then_some(e.signups as f64 * ratio);
+            let signups = (e.signed_up() > 0).then_some(e.signed_up() as f64 * ratio);
             let best = series
                 .into_iter()
                 .chain(signups)

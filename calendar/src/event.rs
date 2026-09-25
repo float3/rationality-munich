@@ -67,11 +67,15 @@ pub struct Event {
     /// reports. Read fresh every run; not kept in caches.
     #[serde(skip)]
     pub attended: Option<Came>,
-    /// How many said they would come: a page's RSVP count or a chat poll's
-    /// yes votes. Only counts are read, never who. Cross-posts keep the
-    /// largest, since the same people often sign up on several sites.
+    /// The largest sign-up count any one source gives: Meetup's "going",
+    /// Luma's registrations, a chat poll's expected turnout.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub signups: u32,
+    /// Who said yes on the sites that show it (LessWrong, the EA Forum,
+    /// Meetup, Luma), one `person_key` each. Unioned across cross-posts, so
+    /// someone who signed up on two sites counts once. See `signed_up`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub going: Vec<String>,
     /// Upcoming events only: how many will probably come. See `turnout`.
     #[serde(skip)]
     pub expected: Option<u32>,
@@ -87,6 +91,56 @@ pub struct Came {
 
 fn is_zero(n: &u32) -> bool {
     *n == 0
+}
+
+/// Stands in for a person when counting sign-ups across sites: the first
+/// name lowercased, letters only, doubled letters squashed ("hill" and
+/// "hilll" are one person), hashed; then a dot and the second name's initial
+/// if there is one. The sites' RSVP lists are public, but only this is kept.
+pub fn person_key(name: &str) -> Option<String> {
+    let mut words = name.split_whitespace();
+    let squash = |w: &str| {
+        let mut out = String::new();
+        for c in w
+            .chars()
+            .filter(|c| c.is_alphabetic())
+            .flat_map(char::to_lowercase)
+        {
+            if !out.ends_with(c) {
+                out.push(c);
+            }
+        }
+        out
+    };
+    let first = squash(words.next()?);
+    if first.is_empty() {
+        return None;
+    }
+    let hash = first.bytes().fold(0xcbf29ce484222325u64, |h, b| {
+        (h ^ b as u64).wrapping_mul(0x100000001b3)
+    });
+    let initial = words.find_map(|w| squash(w).chars().next());
+    Some(match initial {
+        Some(i) => format!("{hash:016x}.{i}"),
+        None => format!("{hash:016x}"),
+    })
+}
+
+/// Same first name, and initials that agree where both have one: "Martin"
+/// and "Martin S." are one person, "Martin S." and "Martin K." two.
+fn same_person(a: &str, b: &str) -> bool {
+    let (fa, ia) = a.split_once('.').map_or((a, None), |(f, i)| (f, Some(i)));
+    let (fb, ib) = b.split_once('.').map_or((b, None), |(f, i)| (f, Some(i)));
+    fa == fb && (ia.is_none() || ib.is_none() || ia == ib)
+}
+
+/// Adds a person unless they are there already, keeping the fuller key.
+fn add_person(going: &mut Vec<String>, key: String) {
+    match going.iter_mut().find(|k| same_person(k, &key)) {
+        Some(k) if !k.contains('.') && key.contains('.') => *k = key,
+        Some(_) => {}
+        None => going.push(key),
+    }
 }
 
 pub struct Raw<'a> {
@@ -117,15 +171,29 @@ impl Event {
             chat: false,
             attended: None,
             signups: 0,
+            going: Vec::new(),
             expected: None,
         }
+    }
+
+    /// Signs these people up, each once.
+    pub fn sign_up<'a>(&mut self, names: impl IntoIterator<Item = &'a str>) {
+        for key in names.into_iter().filter_map(person_key) {
+            add_person(&mut self.going, key);
+        }
+    }
+
+    /// How many said they would come: everyone named on any site, once
+    /// each, or the largest bare count if that is more.
+    pub fn signed_up(&self) -> u32 {
+        (self.going.len() as u32).max(self.signups)
     }
 
     /// Reported attendance if anyone reported it, else the sign-ups.
     pub fn headcount(&self) -> Option<u32> {
         self.attended
             .map(|c| c.n)
-            .or(Some(self.signups).filter(|&n| n > 0))
+            .or(Some(self.signed_up()).filter(|&n| n > 0))
     }
 
     pub fn place(&self) -> &str {
@@ -305,6 +373,9 @@ pub fn merge(mut events: Vec<Event>) -> Vec<Event> {
             twin.location = e.location;
         }
         twin.signups = twin.signups.max(e.signups);
+        for key in e.going {
+            add_person(&mut twin.going, key);
+        }
         twin.end = twin.end.or(e.end);
         twin.online |= e.online;
         // Posted somewhere after all: then it is not chat-only.
@@ -408,6 +479,29 @@ pub mod tests {
             label,
             url: &url,
         })
+    }
+
+    #[test]
+    fn people_who_signed_up_on_two_sites_count_once() {
+        let mut lw = ev("Petrov Day", 0, "LessWrong");
+        lw.sign_up(["hilll", "Anna", "Martin", "Purple Octopus"]);
+        lw.signups = 4;
+        let mut ea = ev("Petrov Day", 0, "EA Forum");
+        ea.sign_up(["hill", "Martin S.", "Martin K.", "Jo"]);
+        ea.signups = 4;
+        let merged = merge(vec![lw, ea]);
+        assert_eq!(merged.len(), 1);
+        // hill, Anna, Martin S., Martin K., Purple, Jo.
+        assert_eq!(merged[0].signed_up(), 6);
+        assert!(merged[0].going.iter().all(|k| !k.contains("hill")));
+    }
+
+    #[test]
+    fn a_bare_count_stands_when_it_is_more() {
+        let mut e = ev("Dinner", 0, "Meetup");
+        e.sign_up(["Anna"]);
+        e.signups = 11;
+        assert_eq!(e.signed_up(), 11);
     }
 
     #[test]
