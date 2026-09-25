@@ -17,7 +17,8 @@ program that builds its calendar.
 were posted in several places, and writes static files. Sources: LessWrong
 and the EA Forum (GraphQL), Meetup (its GraphQL API, full history back to
 2016), Luma (iCal),
-Philosophia's Google Calendar, and the MCMP reading group's schedule page.
+Philosophia's Google Calendar, the MCMP reading group's schedule page, and
+weekly series kept by hand in `calendar/data/series.ics`.
 
 Groups: LW/ACX and EA Munich are shown by default; Philosophia and the
 further Munich groups from the

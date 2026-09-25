@@ -1,6 +1,15 @@
 # Hand-kept event data
 
-All five files are compiled into the calendar binary.
+All six files are compiled into the calendar binary.
+
+## series.ics: weekly series from the group chats
+
+Regular meetings a group announces only in its chat, as iCal events with a
+weekly RRULE; a cancelled meeting is an EXDATE, an ended series an UNTIL.
+`CATEGORIES` is the group key and `URL` the link shown. Open-ended series
+are listed four weeks ahead. So far: the AI Safety Munich Student Club's
+Tuesday discussion on compute verification, which its organiser agreed to
+have listed (their Thursday course is left out at their request).
 
 ## history.json: past events worth listing
 

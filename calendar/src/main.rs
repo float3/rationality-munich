@@ -244,6 +244,7 @@ fn main() -> Res<()> {
             .into_iter()
             .chain(archive)
             .chain(sources::history())
+            .chain(sources::series(now))
             .chain(sources::unannounced(now))
             .collect(),
     ));
