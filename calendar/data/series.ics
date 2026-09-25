@@ -1,0 +1,15 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//rationality-munich.com//hand-kept series//EN
+BEGIN:VEVENT
+UID:aisafety-compute-verification-tuesdays@rationality-munich.com
+SUMMARY:Compute verification discussion
+DESCRIPTION:The AI Safety Munich Student Club's weekly open discussion on anything to do with compute verification. Newcomers welcome. Online\; the link is posted in the club's WhatsApp group.
+DTSTART;TZID=Europe/Berlin:20260929T180000
+DTEND;TZID=Europe/Berlin:20260929T190000
+RRULE:FREQ=WEEKLY;BYDAY=TU
+LOCATION:Online
+CATEGORIES:aisafety
+URL:https://docs.google.com/document/d/1jAWHNtcdX87Iaf55VynOcs-AEjwv_GOEkOO8V_Cef_U/view
+END:VEVENT
+END:VCALENDAR

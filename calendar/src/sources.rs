@@ -614,6 +614,38 @@ pub fn history() -> Vec<Event> {
         .collect()
 }
 
+// Weekly series announced only in a group chat, kept by hand as iCal so a
+// cancelled meeting is one EXDATE. Open-ended, so only the next few weeks are
+// listed. See data/README.md.
+
+const SERIES_WEEKS: i64 = 4;
+
+pub fn series(now: DateTime<Utc>) -> Vec<Event> {
+    let horizon = now + chrono::Duration::weeks(SERIES_WEEKS);
+    let mut out = Vec::new();
+    for e in &ics::parse(include_str!("../data/series.ics")) {
+        let start = ics::time(ics::prop(e, "DTSTART"));
+        let end = ics::time(ics::prop(e, "DTEND"));
+        let length = start.zip(end).map(|(s, e)| e - s);
+        let group = ics::value(e, "CATEGORIES");
+        let location = ics::value(e, "LOCATION");
+        for t in ics::occurrences(e, horizon) {
+            out.push(Event::new(Raw {
+                title: &ics::value(e, "SUMMARY"),
+                start: t,
+                end: length.map(|l| t + l),
+                location: &location,
+                online: location == "Online",
+                text: &ics::value(e, "DESCRIPTION"),
+                group: &group,
+                label: crate::event::group_name(&group),
+                url: &ics::value(e, "URL"),
+            }));
+        }
+    }
+    out
+}
+
 // Events that happened but were never announced anywhere we read: organised
 // only in the groups' chats. Listed and counted like the rest, marked as
 // chat-only since there is nothing to link to. See data/README.md.
@@ -784,6 +816,30 @@ mod tests {
         assert!(
             h.iter()
                 .all(|e| e.start < Utc::now() && !e.links.is_empty())
+        );
+    }
+
+    #[test]
+    fn weekly_series_list_the_next_few_weeks_in_known_groups() {
+        let now = "2026-10-01T12:00:00Z".parse().unwrap();
+        let s = series(now);
+        assert!(!s.is_empty());
+        assert!(s.iter().all(|e| {
+            e.start <= now + chrono::Duration::weeks(SERIES_WEEKS)
+                && !e.links[0].1.is_empty()
+                && e.groups
+                    .iter()
+                    .all(|g| crate::event::GROUPS.iter().any(|(k, _)| k == g))
+        }));
+        // Tuesdays at 18:00 in Munich, summer time or not.
+        let tuesday = |e: &&Event| {
+            let t = e.start.with_timezone(&chrono_tz::Europe::Berlin);
+            t.format("%a %H:%M").to_string() == "Tue 18:00"
+        };
+        assert!(
+            s.iter()
+                .filter(|e| e.title.contains("Compute"))
+                .all(|e| tuesday(&e))
         );
     }
 
