@@ -9,7 +9,7 @@ use crate::event::{DEFAULT_GROUPS, Event, group_name};
 use crate::render::{BASE, html_escape};
 
 const TITLE: &str = "Rationality Munich: upcoming events";
-const SUBTITLE: &str = "Events from the rationality and EA groups in Munich";
+const SUBTITLE: &str = "Events from the rationality, EA and AI safety groups in Munich";
 
 /// When, where, who, then the excerpt.
 fn summary(e: &Event) -> String {

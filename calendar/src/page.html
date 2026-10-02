@@ -9,7 +9,7 @@
 <link rel="canonical" href="{{canonical}}">
 <link rel="alternate" type="application/rss+xml" title="Rationality Munich: upcoming events" href="/calendar/rss.xml">
 <link rel="alternate" type="application/atom+xml" title="Rationality Munich: upcoming events (Atom)" href="/calendar/feed.xml">
-<link rel="alternate" type="text/calendar" title="Rationality Munich calendar" href="/calendar/feeds/acx+ea.ics">
+<link rel="alternate" type="text/calendar" title="Rationality Munich calendar" href="/calendar/feeds/acx+ea+mais+aisafety.ics">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Rationality Munich">
 <meta property="og:title" content="{{title}}">
@@ -240,7 +240,7 @@ footer p { margin: 0 0 6px; }
   const nameOf = (g) => boxes.find((b) => b.value === g).dataset.name;
   const feedUrl = (f) => "rationality-munich.com/calendar/feeds/" + f + ".ics";
   const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-  // For news readers: the LW/ACX and EA events, whatever is switched on.
+  // For news readers: the default groups' events, whatever is switched on.
   const RSS = '<a class="rss" href="/calendar/rss.xml">RSS</a>';
   function subscribe(on) {
     const box = document.getElementById("subscribe");
