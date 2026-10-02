@@ -7,9 +7,11 @@ All six files are compiled into the calendar binary.
 Regular meetings a group announces only in its chat, as iCal events with a
 weekly RRULE; a cancelled meeting is an EXDATE, an ended series an UNTIL.
 `CATEGORIES` is the group key and `URL` the link shown. Open-ended series
-are listed four weeks ahead. So far: the AI Safety Munich Student Club's
+are listed four weeks ahead. An event without an RRULE is a single meeting
+announced the same way. So far: the AI Safety Munich Student Club's
 Tuesday discussion on compute verification, which its organiser agreed to
-have listed (their Thursday course is left out at their request).
+have listed (their Thursday course is left out at their request), and the
+club's first AI governance meeting on 12 October 2026.
 
 ## history.json: past events worth listing
 
