@@ -224,7 +224,7 @@ pub fn page(p: &Page) -> String {
         Kind::Upcoming => (
             "Calendar · Rationality Munich",
             "Upcoming events",
-            "Events from the rationality and EA groups in Munich. More groups are one click away.",
+            "Events from the rationality, EA and AI safety groups in Munich. More groups are one click away.",
             format!("{past} · {stats}"),
             "upcoming",
         ),

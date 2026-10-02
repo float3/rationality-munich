@@ -58,11 +58,13 @@ pub fn all() -> Vec<Source> {
         forum("lw-ea", "LessWrong", LESSWRONG, "cavvnnKLnWeqHPAsR", "ea"),
         forum("eaforum", "EA Forum", EA_FORUM, "E8ruG2KzaNpynpGXK", "ea"),
         meetup_group("meetup", "effective-altruism-munich", "ea", |_| true),
-        Source {
-            key: "luma",
-            label: "Luma",
-            fetch: Box::new(|agent, _| luma_events(agent)),
-        },
+        luma_calendar("luma", "cal-2OD0oFnuk1CJPbr", "eamunich", "ea"),
+        luma_calendar(
+            "luma-mais",
+            "cal-iQKye42k20Y8pAv",
+            "munich-ai-safety",
+            "mais",
+        ),
         Source {
             key: "philosophia",
             label: "Philosophia",
@@ -415,9 +417,23 @@ fn mlphil_events(agent: &ureq::Agent) -> Res<Vec<Event>> {
     Ok(out)
 }
 
-// Luma: an iCalendar feed of past and upcoming events.
+// Luma: an iCalendar feed of past and upcoming events per calendar, events
+// its members host on their own calendars included.
 
-const LUMA_ICS: &str = "https://api.lu.ma/ics/get?entity=calendar&id=cal-2OD0oFnuk1CJPbr";
+/// One Luma calendar: its id for the feed, and its page (`luma.com/<slug>`)
+/// for an event that names no link of its own.
+fn luma_calendar(
+    key: &'static str,
+    id: &'static str,
+    slug: &'static str,
+    group: &'static str,
+) -> Source {
+    Source {
+        key,
+        label: "Luma",
+        fetch: Box::new(move |agent, _| luma_events(agent, id, slug, group)),
+    }
+}
 
 fn find_luma_link(text: &str) -> Option<String> {
     ["https://luma.com/", "https://lu.ma/"]
@@ -432,9 +448,10 @@ fn find_luma_link(text: &str) -> Option<String> {
         })
 }
 
-fn luma_events(agent: &ureq::Agent) -> Res<Vec<Event>> {
+fn luma_events(agent: &ureq::Agent, id: &str, slug: &str, group: &str) -> Res<Vec<Event>> {
+    let feed = format!("https://api.lu.ma/ics/get?entity=calendar&id={id}");
     let mut out = Vec::new();
-    for e in ics::parse(&get(agent, LUMA_ICS)?) {
+    for e in ics::parse(&get(agent, &feed)?) {
         let Some(start) = ics::time(ics::prop(&e, "DTSTART")) else {
             continue;
         };
@@ -442,7 +459,7 @@ fn luma_events(agent: &ureq::Agent) -> Res<Vec<Event>> {
         let url = Some(ics::value(&e, "URL"))
             .filter(|u| !u.is_empty())
             .or_else(|| find_luma_link(&text))
-            .unwrap_or_else(|| "https://luma.com/eamunich".into());
+            .unwrap_or_else(|| format!("https://luma.com/{slug}"));
         let location = ics::value(&e, "LOCATION");
         let online = location.starts_with("http");
         // Luma's description is only boilerplate (link, address, host), so no excerpt.
@@ -453,7 +470,7 @@ fn luma_events(agent: &ureq::Agent) -> Res<Vec<Event>> {
             location: if online { "" } else { &location },
             online,
             text: "",
-            group: "ea",
+            group,
             label: "Luma",
             url: &url,
         });

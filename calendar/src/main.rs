@@ -294,6 +294,8 @@ mod tests {
         assert!(names.contains(&"acx+ea+philosophia".to_string()));
         assert!(names.contains(&"agi".to_string()) && !names.contains(&"acx+agi".to_string()));
         assert!(names.contains(&"acx+ea".to_string()));
+        // The feed the pages offer before the visitor picks.
+        assert!(names.contains(&event::DEFAULT_GROUPS.join("+")));
         assert!(names.contains(&"philosophia".to_string()));
     }
 }

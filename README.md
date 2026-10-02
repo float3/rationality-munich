@@ -16,11 +16,12 @@ program that builds its calendar.
 `calendar/` fetches past and upcoming events every hour, merges events that
 were posted in several places, and writes static files. Sources: LessWrong
 and the EA Forum (GraphQL), Meetup (its GraphQL API, full history back to
-2016), Luma (iCal),
+2016), Luma (iCal: EA Munich's calendar and Munich AI Safety's),
 Philosophia's Google Calendar, the MCMP reading group's schedule page, and
 weekly series kept by hand in `calendar/data/series.ics`.
 
-Groups: LW/ACX and EA Munich are shown by default; Philosophia and the
+Groups: LW/ACX, EA Munich, Munich AI Safety and the AI Safety Munich Student
+Club are shown by default; Philosophia and the
 further Munich groups from the
 [Recreational Thinking directory](https://recthink.substack.com/p/germany)
 are one click away.
@@ -33,7 +34,7 @@ are one click away.
 | `/calendar#<id>` | one event, e.g. `#2026-09-26-petrov-day-ritual-munich-multiplayer-petrov` |
 | `/calendar/e/<id>.ics` | one event, for "Add to calendar" |
 | `/calendar/feeds/all.ics` | subscription feed of everything (also `/calendar.ics`) |
-| `/calendar/feeds/acx+ea.ics` | a feed per combination of `acx`, `ea`, `philosophia` |
+| `/calendar/feeds/acx+ea.ics` | a feed per combination of `acx`, `ea`, `mais`, `aisafety`, `philosophia` |
 | `/calendar/feeds/agi.ics` | one feed for each further group (`mlphil`, `geb`, `agi`, …) |
 | `/calendar/feed.xml` | Atom feed of upcoming events, for feed readers |
 

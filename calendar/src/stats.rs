@@ -260,7 +260,7 @@ mod tests {
         let html = render(&[&shared, &solo]);
         assert!(html.contains("<b>2</b> events since 2026"));
         assert!(html.contains(
-            r#"<tr data-y="2026"><th scope="row">2026</th><td data-g="acx">1</td><td data-g="ea">2</td><td data-g="philosophia" hidden>0</td>"#
+            r#"<tr data-y="2026"><th scope="row">2026</th><td data-g="acx">1</td><td data-g="ea">2</td><td data-g="mais">0</td><td data-g="aisafety">0</td><td data-g="philosophia" hidden>0</td>"#
         ));
         assert!(html.contains("busiest month so far was Sep 2026, with 2"));
         assert!(html.contains(
