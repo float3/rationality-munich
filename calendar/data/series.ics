@@ -12,4 +12,13 @@ LOCATION:Online
 CATEGORIES:aisafety
 URL:https://docs.google.com/document/d/1jAWHNtcdX87Iaf55VynOcs-AEjwv_GOEkOO8V_Cef_U/view
 END:VEVENT
+BEGIN:VEVENT
+UID:aisafety-intro-ai-governance-20261012@rationality-munich.com
+SUMMARY:Intro to AI Governance
+DESCRIPTION:The AI Safety Munich Student Club's first AI governance meeting: recent case studies\, discussed in groups. No reading needed. In person\; the location will be posted in the club's WhatsApp group.
+DTSTART;TZID=Europe/Berlin:20261012T184500
+DTEND;TZID=Europe/Berlin:20261012T201500
+CATEGORIES:aisafety
+URL:https://docs.google.com/document/d/1jAWHNtcdX87Iaf55VynOcs-AEjwv_GOEkOO8V_Cef_U/view
+END:VEVENT
 END:VCALENDAR
