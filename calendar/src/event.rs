@@ -19,6 +19,9 @@ pub const GROUPS: &[(&str, &str)] = &[
     // On the hub but without a feed: its weekly series is in data/series.ics.
     ("aisafety", "AI Safety Munich Student Club"),
     ("philosophia", "Philosophia Munich"),
+    // On the hub but without a feed: its events are in data/series.ics.
+    // Off by default, one feed.
+    ("pauseai", "PauseAI Munich"),
     // Further Munich groups, from recthink.substack.com/p/germany. Off by
     // default, one feed each.
     ("mlphil", "Philosophy of ML reading group"),

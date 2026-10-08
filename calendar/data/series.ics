@@ -21,4 +21,13 @@ DTEND;TZID=Europe/Berlin:20261012T201500
 CATEGORIES:aisafety
 URL:https://docs.google.com/document/d/1jAWHNtcdX87Iaf55VynOcs-AEjwv_GOEkOO8V_Cef_U/view
 END:VEVENT
+BEGIN:VEVENT
+UID:pauseai-stammtisch-20261014@rationality-munich.com
+SUMMARY:PauseAI München Stammtisch
+DESCRIPTION:Our Stammtisch is on again\, table reserved. News and whatever topics you bring\, in German and English. On Saturday the 17th we go flyering in the city centre\, and we can prepare a bit on Wednesday. Newcomers very welcome!
+DTSTART;TZID=Europe/Berlin:20261014T190000
+LOCATION:Bellevue di Monaco\, Müllerstraße 2\, München
+CATEGORIES:pauseai
+URL:https://www.pause-ai.de/lokalgruppen
+END:VEVENT
 END:VCALENDAR

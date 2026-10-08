@@ -11,7 +11,9 @@ are listed four weeks ahead. An event without an RRULE is a single meeting
 announced the same way. So far: the AI Safety Munich Student Club's
 Tuesday discussion on compute verification, which its organiser agreed to
 have listed (their Thursday course is left out at their request), and the
-club's first AI governance meeting on 12 October 2026.
+club's first AI governance meeting on 12 October 2026. Also PauseAI Munich's Stammtisch on 14 October 2026,
+announced in the group's WhatsApp chat, whose organiser agreed to have it
+listed.
 
 ## history.json: past events worth listing
 
