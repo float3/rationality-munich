@@ -16,12 +16,12 @@ program that builds its calendar.
 `calendar/` fetches past and upcoming events every hour, merges events that
 were posted in several places, and writes static files. Sources: LessWrong
 and the EA Forum (GraphQL), Meetup (its GraphQL API, full history back to
-2016), Luma (iCal: EA Munich's calendar and Munich AI Safety's),
+2016), Luma (iCal: EA Munich's calendar, Munich AI Safety's and Rationality Munich's own two),
 Philosophia's Google Calendar, the MCMP reading group's schedule page, and
 weekly series kept by hand in `calendar/data/series.ics`.
 
 Groups: LW/ACX, EA Munich, Munich AI Safety and the AI Safety Munich Student
-Club are shown by default; Philosophia and the
+Club are shown by default; Philosophia, PauseAI Munich and the
 further Munich groups from the
 [Recreational Thinking directory](https://recthink.substack.com/p/germany)
 are one click away.

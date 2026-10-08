@@ -65,6 +65,21 @@ pub fn all() -> Vec<Source> {
             "munich-ai-safety",
             "mais",
         ),
+        // Rationality Munich's own calendars, for events the hub organises
+        // itself. There are two, kept from different organisers' accounts.
+        // Neither has a vanity slug, so their pages are the id paths.
+        luma_calendar(
+            "luma-rm",
+            "cal-yoGq50p8rzvmi1p",
+            "calendar/cal-yoGq50p8rzvmi1p",
+            "acx",
+        ),
+        luma_calendar(
+            "luma-rm2",
+            "cal-yIpr0wsy5lDeTtI",
+            "calendar/cal-yIpr0wsy5lDeTtI",
+            "acx",
+        ),
         Source {
             key: "philosophia",
             label: "Philosophia",
