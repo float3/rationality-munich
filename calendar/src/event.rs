@@ -20,7 +20,6 @@ pub const GROUPS: &[(&str, &str)] = &[
     ("aisafety", "AI Safety Munich Student Club"),
     ("philosophia", "Philosophia Munich"),
     // On the hub but without a feed: its events are in data/series.ics.
-    // Off by default, one feed.
     ("pauseai", "PauseAI Munich"),
     // Further Munich groups, from recthink.substack.com/p/germany. Off by
     // default, one feed each.
@@ -38,12 +37,12 @@ pub const GROUPS: &[(&str, &str)] = &[
 /// Groups with a feed for every combination of them (`feeds/acx+ea.ics`).
 /// The rest get one feed each, or 2^n files would pile up. In the order of
 /// `GROUPS`, which is the order of the keys in a feed's name.
-pub const COMBO_GROUPS: &[&str] = &["acx", "ea", "mais", "aisafety", "philosophia"];
+pub const COMBO_GROUPS: &[&str] = &["acx", "ea", "mais", "aisafety", "philosophia", "pauseai"];
 
 /// On until the visitor picks otherwise. Philosophia is its own community
 /// rather than part of the rationality/EA/AI safety scene, so it starts off.
 /// All of them are `COMBO_GROUPS`: the default subscription is one feed.
-pub const DEFAULT_GROUPS: &[&str] = &["acx", "ea", "mais", "aisafety"];
+pub const DEFAULT_GROUPS: &[&str] = &["acx", "ea", "mais", "aisafety", "pauseai"];
 
 pub fn group_name(key: &str) -> &str {
     GROUPS
