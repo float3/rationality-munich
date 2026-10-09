@@ -1,0 +1,5 @@
+import type { Metadata } from 'next';
+import './globals.css';
+import { base } from '@/lib/base';
+export const metadata:Metadata={metadataBase:new URL('https://rationality-munich.com'),title:{default:'Rationality Munich — events, groups and meetups',template:'%s · Rationality Munich'},description:'A design concept for rationality-munich.com: the Munich groups for rationality, effective altruism, philosophy and AI safety, and the events they run.',robots:{index:false,follow:false},icons:{icon:`${base}/favicon.svg`},openGraph:{title:'Rationality Munich',description:'A design concept for rationality-munich.com: Munich’s rationality, EA, AI safety and philosophy groups, and their events.',type:'website',locale:'en_GB',images:[{url:`${base}/og.png`,width:1733,height:908,alt:'Rationality Munich'}]},twitter:{card:'summary_large_image',title:'Rationality Munich',description:'A design concept for rationality-munich.com: Munich’s groups and their events.',images:[`${base}/og.png`]}};
+export default function RootLayout({children}:Readonly<{children:React.ReactNode}>){return <html lang="en"><body>{children}</body></html>}

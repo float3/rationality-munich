@@ -1,0 +1,78 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Rationality Munich Concept//Events//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Munich events — September 2026 preview
+X-WR-TIMEZONE:Europe/Berlin
+BEGIN:VEVENT
+UID:concept-dine-and-discuss@rationality-munich.local
+DTSTAMP:20260922T120000Z
+DTSTART:20260923T160000Z
+DTEND:20260923T190000Z
+SUMMARY:Dine & Discuss: The Hugging Face Incident
+LOCATION:Gabelsbergerstraße 43\, Munich
+DESCRIPTION:Join a dinner conversation about recent developments in AI and
+  the questions they raise. Read the organizer’s announcement for the di
+ scussion topic and format.\nSaved 22 September 2026. Check the original a
+ nnouncement for changes: https://www.meetup.com/effective-altruism-munich
+ /events/316556216/
+URL:https://www.meetup.com/effective-altruism-munich/events/316556216/
+END:VEVENT
+BEGIN:VEVENT
+UID:concept-petrov-day@rationality-munich.local
+DTSTAMP:20260922T120000Z
+DTSTART:20260926T170000Z
+SUMMARY:Petrov Day: a shared ritual & gathering
+LOCATION:Munich · see organizer’s announcement
+DESCRIPTION:A gathering with Munich and Freiburg communities around Petrov
+  Day\, a tradition about responsibility and the consequences of our choic
+ es.\nSaved 22 September 2026. Check the original announcement for changes
+ : https://www.lesswrong.com/events/4FeJLqhEq3Bo48ijy/petrov-day-ritual-mu
+ nich-multiplayer-petrov
+URL:https://www.lesswrong.com/events/4FeJLqhEq3Bo48ijy/petrov-day-ritual-m
+ unich-multiplayer-petrov
+END:VEVENT
+BEGIN:VEVENT
+UID:concept-movie-night@rationality-munich.local
+DTSTAMP:20260922T120000Z
+DTSTART:20260928T163000Z
+DTEND:20260928T193000Z
+SUMMARY:Movie night: The AI Doc
+LOCATION:Near Munich Central Station
+DESCRIPTION:Watch The AI Doc: Or How I Became an Apocaloptimist together. 
+ This gathering takes place at a private home\; contact the host through M
+ eetup for the address.\nSaved 22 September 2026. Check the original annou
+ ncement for changes: https://www.meetup.com/effective-altruism-munich/eve
+ nts/316598704/
+URL:https://www.meetup.com/effective-altruism-munich/events/316598704/
+END:VEVENT
+BEGIN:VEVENT
+UID:concept-estimation-game@rationality-munich.local
+DTSTAMP:20260922T120000Z
+DTSTART:20260930T163000Z
+SUMMARY:The Estimation Game
+LOCATION:Café des Bellevue di Monaco\, Müllerstraße
+DESCRIPTION:How well calibrated are your intuitions? Explore 10–15 estim
+ ation questions and compare how you reason about things you may know very
+  little about.\nSaved 22 September 2026. Check the original announcement 
+ for changes: https://www.lesswrong.com/events/caqaDKHczeFeGHJKy/the-estim
+ ation-game-how-well-calibrated-are-your-intuitions-1
+URL:https://www.lesswrong.com/events/caqaDKHczeFeGHJKy/the-estimation-game
+ -how-well-calibrated-are-your-intuitions-1
+END:VEVENT
+BEGIN:VEVENT
+UID:concept-college-meetup@rationality-munich.local
+DTSTAMP:20260922T120000Z
+DTSTART:20261007T163000Z
+SUMMARY:College EA Meetups Everywhere
+LOCATION:TUM main campus\, Arcisstraße 21
+DESCRIPTION:An effective altruism meetup at the TUM main campus. Check the
+  full announcement for the room\, attendance details\, and how to contact
+  the organizer.\nSaved 22 September 2026. Check the original announcement
+  for changes: https://www.lesswrong.com/events/AaGjC3mbmL72jpxzZ/college-
+ ea-meetups-everywhere
+URL:https://www.lesswrong.com/events/AaGjC3mbmL72jpxzZ/college-ea-meetups-
+ everywhere
+END:VEVENT
+END:VCALENDAR
