@@ -264,8 +264,18 @@ fn main() -> Res<()> {
         state.join("event-starts.json"),
         serde_json::to_string(&starts)?,
     )?;
-    // Chat-only events come from data/unannounced.json every run.
-    let archived: Vec<&&Event> = past.iter().filter(|e| !e.chat).collect();
+    // Chat-only events come from data/unannounced.json every run. Archiving
+    // settles the sign-ups: this run read them after the event had ended, so
+    // whatever the sites say from here on — a late RSVP, someone tidying up
+    // their calendar — leaves the figure alone. See Event::settled.
+    let archived: Vec<Event> = past
+        .iter()
+        .filter(|e| !e.chat)
+        .map(|e| Event {
+            settled: true,
+            ..(*e).clone()
+        })
+        .collect();
     fs::write(&archive_path, serde_json::to_string(&archived)?)?;
 
     publish(&state, &events, &stale, now)?;

@@ -53,6 +53,9 @@ about the sender), and the calendar shows each event's median.
 events organised only in the groups' chats, which count in the statistics
 (see its README). Past events are also remembered in an archive on the
 server, so events that drop out of a feed once they happen stay listed.
+Archiving also settles the sign-up count: what the sites said the hour an
+event ended is what it keeps, since they go on taking RSVPs and cancellations
+for weeks afterwards and the statistics have already used the figure.
 
 To add a group: a key in `GROUPS` (`src/event.rs`) and a source in
 `src/sources.rs`; a Meetup group is one `meetup_group(...)` line. Group keys

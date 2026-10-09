@@ -12,7 +12,7 @@ Resized, compressed, and cropped by the page layout. This depicts a public Munic
 
 ## Sharing card
 
-AI-generated typographic artwork made for this demo. Text: Rationality Munich / Meetups · Discussions · Munich.
+AI-generated typographic artwork made for this demo. Text: Rationality Munich / Meetups · Discussions.
 
 ## Content
 

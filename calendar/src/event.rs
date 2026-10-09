@@ -84,6 +84,13 @@ pub struct Event {
     /// someone who signed up on two sites counts once. See `signed_up`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub going: Vec<String>,
+    /// The sign-ups are settled: `signups` and `going` were read after the
+    /// event had ended, so they are what they were on the day. Set when the
+    /// event goes into `archive.json`. The sites keep taking RSVPs and
+    /// cancellations afterwards, and a figure that drifts for months is no
+    /// use to the statistics; `merge` lets a settled copy win.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub settled: bool,
     /// Upcoming events only: how many will probably come. See `turnout`.
     #[serde(skip)]
     pub expected: Option<u32>,
@@ -99,6 +106,10 @@ pub struct Came {
 
 fn is_zero(n: &u32) -> bool {
     *n == 0
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
 }
 
 /// Stands in for a person when counting sign-ups across sites: the first
@@ -180,6 +191,7 @@ impl Event {
             attended: None,
             signups: 0,
             going: Vec::new(),
+            settled: false,
             expected: None,
         }
     }
@@ -380,9 +392,23 @@ pub fn merge(mut events: Vec<Event>) -> Vec<Event> {
         if e.location.len() > twin.location.len() {
             twin.location = e.location;
         }
-        twin.signups = twin.signups.max(e.signups);
-        for key in e.going {
-            add_person(&mut twin.going, key);
+        // Once one copy is settled it decides the sign-ups on its own. The
+        // live feeds keep answering for an event long after it happened, and
+        // a late RSVP or cancellation there should not move a figure the
+        // statistics have already used.
+        match (twin.settled, e.settled) {
+            (true, false) => {}
+            (false, true) => {
+                twin.signups = e.signups;
+                twin.going = e.going;
+                twin.settled = true;
+            }
+            _ => {
+                twin.signups = twin.signups.max(e.signups);
+                for key in e.going {
+                    add_person(&mut twin.going, key);
+                }
+            }
         }
         twin.end = twin.end.or(e.end);
         twin.online |= e.online;
@@ -502,6 +528,42 @@ pub mod tests {
         // hill, Anna, Martin S., Martin K., Purple, Jo.
         assert_eq!(merged[0].signed_up(), 6);
         assert!(merged[0].going.iter().all(|k| !k.contains("hill")));
+    }
+
+    #[test]
+    fn a_settled_event_ignores_sign_ups_that_arrive_afterwards() {
+        // What the archive kept the hour the event ended.
+        let mut archived = ev("Petrov Day", 0, "LessWrong");
+        archived.sign_up(["Anna", "Martin"]);
+        archived.signups = 7;
+        archived.settled = true;
+        // What LessWrong says a week later: two more yesses, one withdrawn.
+        let mut now = ev("Petrov Day", 0, "LessWrong");
+        now.sign_up(["Anna", "Jo", "Purple Octopus"]);
+        now.signups = 9;
+
+        // Either order: the fresh copy comes first in main, but history and
+        // the hand-kept sources are chained on behind it.
+        for pair in [vec![now.clone(), archived.clone()], vec![archived, now]] {
+            let merged = merge(pair);
+            assert_eq!(merged.len(), 1);
+            assert_eq!(merged[0].signed_up(), 7);
+            assert_eq!(merged[0].going.len(), 2);
+            assert!(merged[0].settled);
+        }
+    }
+
+    #[test]
+    fn sign_ups_still_add_up_before_an_event_is_settled() {
+        let mut lw = ev("Dinner", 0, "LessWrong");
+        lw.sign_up(["Anna"]);
+        lw.signups = 3;
+        let mut meetup = ev("Dinner", 0, "Meetup");
+        meetup.sign_up(["Jo"]);
+        meetup.signups = 5;
+        let merged = merge(vec![lw, meetup]);
+        assert_eq!(merged[0].signed_up(), 5);
+        assert!(!merged[0].settled);
     }
 
     #[test]
