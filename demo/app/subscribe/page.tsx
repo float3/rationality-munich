@@ -1,0 +1,7 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { Mail, Check, ArrowUpRight } from 'lucide-react';
+import { Header, Footer } from '@/components/site';
+import { SignupForm } from '@/components/signup-form';
+export const metadata:Metadata={title:'Event invitations',description:'Choose Munich event invitations by topic. A local demonstration of a clear, privacy-conscious mailing-list experience.'};
+export default function SubscribePage(){return <><Header/><main id="main" className="wrap subscribe-page"><div className="subscribe-copy"><Mail size={36} strokeWidth={1.3}/><p className="eyebrow">MAILING LIST</p><h1>Event invites<br/><em>by email.</em></h1><p>An email when the Munich groups announce something in the topics you picked.</p><ul><li><Check size={18}/>Choose the topics you care about</li><li><Check size={18}/>Change your preferences whenever you like</li><li><Check size={18}/>Unsubscribe with a simple link</li></ul><div className="signup-expectations"><h3>What to expect</h3><p>Invitations to community events. How often depends on the event schedule; the owner can set a precise expectation before launch.</p><Link className="text-link" href="/sample-email">See an example <ArrowUpRight size={17}/></Link></div><a className="text-link" href="https://lists.rationality-munich.com/subscription/form" target="_blank" rel="noreferrer">Looking for the real mailing list? ↗</a></div><SignupForm/></main><Footer/></>}

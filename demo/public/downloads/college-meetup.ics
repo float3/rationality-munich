@@ -1,0 +1,22 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Rationality Munich Concept//Events//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Munich events — September 2026 preview
+X-WR-TIMEZONE:Europe/Berlin
+BEGIN:VEVENT
+UID:concept-college-meetup@rationality-munich.local
+DTSTAMP:20260922T120000Z
+DTSTART:20261007T163000Z
+SUMMARY:College EA Meetups Everywhere
+LOCATION:TUM main campus\, Arcisstraße 21
+DESCRIPTION:An effective altruism meetup at the TUM main campus. Check the
+  full announcement for the room\, attendance details\, and how to contact
+  the organizer.\nSaved 22 September 2026. Check the original announcement
+  for changes: https://www.lesswrong.com/events/AaGjC3mbmL72jpxzZ/college-
+ ea-meetups-everywhere
+URL:https://www.lesswrong.com/events/AaGjC3mbmL72jpxzZ/college-ea-meetups-
+ everywhere
+END:VEVENT
+END:VCALENDAR
