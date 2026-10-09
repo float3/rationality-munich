@@ -13,8 +13,8 @@ what you type in the page's memory and nothing else. Every page carries
 
 | Page | What |
 | --- | --- |
-| `/demo` | homepage: upcoming events, the five groups, a first-visit guide, FAQ |
-| `/demo/calendar` | the snapshot as a list; `?preview=empty` and `?preview=unavailable` show the quiet and broken states |
+| `/demo` | homepage: the months as week grids, the five groups, a first-visit guide, FAQ |
+| `/demo/calendar` | each month as a week grid, then the same events as a list; `?preview=empty` and `?preview=unavailable` show the quiet and broken states |
 | `/demo/events/<id>` | one event, with practical details and an `.ics` download |
 | `/demo/subscribe` | the mailing-list signup demonstration |
 | `/demo/sample-email` | what an invitation email could look like |
@@ -55,6 +55,13 @@ served as it is checked in, there is no build step on the server.
 - **The event snapshot lives in `lib/content.ts`** and the group directory in
   `lib/groups.ts`. `pnpm assets` regenerates the `.ics` downloads from the
   former.
+- **`components/month-grid.tsx` draws a month** as a seven-column week grid,
+  Monday first, one month per grid, and `monthsOf` picks the months out of the
+  event list. It is a `<table>` on purpose: the weekday headers then mean
+  something read aloud. The neighbouring month's days keep the rows square but
+  stay empty, so no event is listed twice. 22 September is ringed — the day
+  the snapshot was taken, standing in for today. Narrow screens scroll the
+  grid sideways rather than shrink it; the calendar page also has the list.
 - **`public/images/munich.webp`** is a 1600px copy of a Wikimedia photograph.
   The 3.7 MB original is not in the repository; to regenerate the webp, put it
   at `public/images/munich.jpg`, `pnpm add -D sharp`, and run `pnpm assets`.
