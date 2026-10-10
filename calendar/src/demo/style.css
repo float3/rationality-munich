@@ -38,3 +38,12 @@
 .plans b{font-size:1.15rem;font-weight:600}
 .plans .when{display:block;font-size:.9rem;color:var(--body);margin-top:3px}
 .plans p{font-size:1rem;color:var(--body);line-height:1.65;margin-top:9px;max-width:70ch}
+/* The group directory: every link visible as a chip, the way the hub had
+   them. WhatsApp is the main channel for several of these groups, so none
+   of this belongs behind a dropdown. No third column any more. */
+.directory .group-row{grid-template-columns:70px 1fr}
+.group-links{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 0;padding:0;list-style:none}
+.group-links a{display:inline-flex;align-items:center;min-height:40px;padding:6px 15px;border:1px solid var(--border);border-radius:999px;background:var(--tint);font-size:.875rem;font-weight:600}
+.group-links a:hover,.group-links a:focus-visible{background:var(--card);border-color:var(--mark)}
+@media(max-width:1050px){.directory .group-row{grid-template-columns:45px 1fr}}
+@media(max-width:760px){.directory .group-row{grid-template-columns:30px 1fr}.group-links{gap:7px;margin-top:15px}.group-links a{padding:6px 13px;font-size:.85rem}}

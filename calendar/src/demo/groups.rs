@@ -141,23 +141,21 @@ pub fn section() -> String {
         .iter()
         .enumerate()
         .map(|(i, g)| {
-            let (first, rest) = g.links.split_first().expect("every group has a link");
-            let more = if rest.is_empty() {
-                String::new()
-            } else {
-                let items: String = rest
-                    .iter()
-                    .map(|(label, url)| {
-                        format!(
-                            r#"<li><a href="{url}" aria-label="{label} — {name}">{label} ↗</a></li>"#,
-                            url = html_escape(url),
-                            label = html_escape(label),
-                            name = html_escape(g.name),
-                        )
-                    })
-                    .collect();
-                format!("<details><summary>More ways to connect</summary><ul>{items}</ul></details>")
-            };
+            // All of them, in the hub's order. For several of these groups
+            // WhatsApp is where everything actually happens, so nothing here
+            // goes behind a dropdown.
+            let links: String = g
+                .links
+                .iter()
+                .map(|(label, url)| {
+                    format!(
+                        r#"<li><a href="{url}" aria-label="{label} — {name}">{label}</a></li>"#,
+                        url = html_escape(url),
+                        label = html_escape(label),
+                        name = html_escape(g.name),
+                    )
+                })
+                .collect();
             let regular = if g.regular.is_empty() {
                 String::new()
             } else {
@@ -167,18 +165,16 @@ pub fn section() -> String {
                 )
             };
             format!(
-                r#"<article class="group-row"><div class="group-number">{number:02}<span>↗</span></div><div class="group-info"><p class="eyebrow">{topic}</p><h3>{name}</h3><p>{what}</p>{regular}</div><div class="group-actions"><a class="text-link" href="{url}">{label}<span aria-hidden="true">↗</span></a>{more}</div></article>"#,
+                r#"<article class="group-row"><div class="group-number">{number:02}</div><div class="group-info"><p class="eyebrow">{topic}</p><h3>{name}</h3><p>{what}</p>{regular}<ul class="group-links">{links}</ul></div></article>"#,
                 number = i + 1,
                 topic = g.topic,
                 name = html_escape(g.name),
                 what = html_escape(g.what),
-                url = html_escape(first.1),
-                label = html_escape(first.0),
             )
         })
         .collect();
     format!(
-        r#"<section class="section wrap" id="community"><div class="section-heading"><div><p class="eyebrow">THE GROUPS</p><h2>Six groups in Munich</h2></div><p class="heading-aside">Each has its own organisers<br>and runs its own events.</p></div><div class="group-list">{rows}</div><p class="section-note">Events are in English; PauseAI Munich’s are sometimes in German. The groups announce their own events and this page only collects them, so check the announcement for cost, registration and access.</p></section>"#
+        r#"<section class="section wrap" id="community"><div class="section-heading"><div><p class="eyebrow">THE GROUPS</p><h2>Six groups in Munich</h2></div><p class="heading-aside">Each has its own organisers<br>and runs its own events.</p></div><div class="group-list directory">{rows}</div><p class="section-note">Events are in English; PauseAI Munich’s are sometimes in German. The groups announce their own events and this page only collects them, so check the announcement for cost, registration and access.</p></section>"#
     )
 }
 
@@ -277,9 +273,11 @@ mod tests {
             html.matches("<article class=\"group-row\">").count(),
             GROUPS.len()
         );
-        // Every secondary link and every further group, each once.
-        let secondary: usize = GROUPS.iter().map(|g| g.links.len() - 1).sum();
-        assert_eq!(html.matches("<li>").count(), secondary + MORE.len());
+        // Every link to every group, and every further group, each once.
+        let links: usize = GROUPS.iter().map(|g| g.links.len()).sum();
+        assert_eq!(html.matches("<li>").count(), links + MORE.len());
+        // Nothing a group is reached through may be hidden behind a dropdown.
+        assert!(!section().contains("<details"), "a group link is hidden");
         // The language question, which is the one we can answer.
         assert!(html.contains("sometimes in German"));
     }
