@@ -107,16 +107,8 @@ the site does.
 | `/demo/events/<id>` | one event, with the organiser's announcement and an .ics |
 | `/demo/subscribe`, `/demo/privacy`, `/demo/about` | the pages that are only words |
 
-nginx has to be told, in float3/nixos, that `/demo/` comes from the generator's
-output rather than from `www/`:
-
-```nix
-locations."/demo/".alias = "/var/lib/rationality-calendar/demo/";
-```
-
-Until that lands `/demo` is still served by `www/demo/`, the last build of the
-Next.js proof of concept this replaced. Delete that directory once the
-generated one is live.
+nginx serves `/demo/` from that directory rather than from `www/`; the
+location block is in float3/nixos, beside the one for `/calendar/`.
 
 `src/demo/groups.rs` holds the group directory and the FAQ, the only copy kept
 by hand here. The stylesheet is `src/demo/demo.css`, and the photograph and

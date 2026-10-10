@@ -1,6 +1,0 @@
-# The .ics files the outgoing www/demo/ serves are CRLF by specification
-# (RFC 5545), and git on Windows would otherwise normalise them to LF on the
-# way in. Goes when that directory does. calendar/data/series.ics is
-# deliberately not here: it is a source file the generator parses, not one
-# that is served, and the generated .ics files never touch git at all.
-www/demo/downloads/*.ics -text
