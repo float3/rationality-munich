@@ -10,7 +10,7 @@ program that builds its calendar.
 | --- | --- | --- |
 | `www/` | the hub, privacy page and Impressum | push to `master`; the server pulls within five minutes |
 | `calendar/` | the Rust program behind `/calendar` | bump this flake in float3/nixos and rebuild the server |
-| `demo/` | a design proposal for the hub, served at `/demo` | `pnpm publish-demo` takes a fresh snapshot and writes `www/demo/`; commit that too |
+| `calendar/src/demo/` | the redesign, served at `/demo` | the same program writes it; the same flake bump deploys it |
 
 ## The calendar
 
@@ -64,7 +64,7 @@ are part of feed URLs, so don't rename them.
 ```sh
 cd calendar
 cargo test
-cargo run      # writes out/site/ from the live feeds
+cargo run      # writes out/site/ and out/demo/ from the live feeds
 ```
 
 ## CI
@@ -75,10 +75,10 @@ Every push, and weekly in case a source changes its format or a link dies:
 - **Nix**: alejandra, `nix flake check`, `nix build .#default` (what the server runs).
   The flake check includes `checks.links`: links between the pages in `www/`,
   offline, since Nix builds have no network
-- **HTML**: the pages in `www/` and the generated calendar pages through
-  [html-validate](https://html-validate.org) (rules in `.htmlvalidate.json`),
-  plus well-formed XML and calendar files, and every link between the pages,
-  calendar included
+- **HTML**: the pages in `www/` and the generated calendar and `/demo` pages
+  through [html-validate](https://html-validate.org) (rules in
+  `.htmlvalidate.json`), plus well-formed XML and calendar files, and every
+  link between the pages, calendar and demo included
 - **Links**: every link to another site, with [lychee](https://lychee.cli.rs),
   and that the WhatsApp invites have not been reset
 
@@ -89,14 +89,35 @@ Plain HTML, no build step. Each page carries its own CSS and a dark mode via
 
 ## The /demo redesign
 
-`/demo` is a second, much larger take on the same material: a hero, the months
-as week grids, a first-visit guide, a group directory, an FAQ, and a
-mailing-list signup that does nothing. It is a proposal to look at and argue about, not a
-replacement; nothing links to it from the hub and every page is `noindex`.
+`/demo` is a second, much larger take on the same material, meant to replace
+the hub once it is good enough: a hero, this month and next as week grids, a
+first-visit guide, the group directory, and the questions newcomers ask.
+Nothing links to it from the hub yet and every page is `noindex`.
 
-Its months are this one and the next, and its events are whatever the live
-calendar held when the demo was last published — a static export cannot know
-what day someone visits. The source is a Next.js app in `demo/`;
-`pnpm publish-demo` reads the live calendar, builds, and writes the static
-files to `www/demo/`, which is what goes live, and is also how the demo
-catches up with the calendar. See [demo/README.md](demo/README.md).
+It is **the same events as `/calendar`**, not a copy of them. `calendar/`
+writes it in the same hourly run, from the same merged events, into
+`$STATE_DIRECTORY/demo/`; there is nothing to refresh by hand and nothing to go
+stale. Plain HTML, one stylesheet, no script, so it works the way the rest of
+the site does.
+
+| URL | What |
+| --- | --- |
+| `/demo` | the hub: what is on, the six groups, a first visit, the FAQ |
+| `/demo/calendar` | this month and next as week grids, then every announced event |
+| `/demo/events/<id>` | one event, with the organiser's announcement and an .ics |
+| `/demo/subscribe`, `/demo/privacy`, `/demo/about` | the pages that are only words |
+
+nginx has to be told, in float3/nixos, that `/demo/` comes from the generator's
+output rather than from `www/`:
+
+```nix
+locations."/demo/".alias = "/var/lib/rationality-calendar/demo/";
+```
+
+Until that lands `/demo` is still served by `www/demo/`, the last build of the
+Next.js proof of concept this replaced. Delete that directory once the
+generated one is live.
+
+`src/demo/groups.rs` holds the group directory and the FAQ, the only copy kept
+by hand here. The stylesheet is `src/demo/demo.css`, and the photograph and
+sharing card are compiled into the binary beside it.

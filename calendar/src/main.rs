@@ -13,10 +13,14 @@
 //!   (`acx+ea.ics`), plus `all.ics`
 //! - `e/<id>.ics`: one file per event, for "Add to calendar"
 //!
+//! The same events go out again under `$STATE_DIRECTORY/demo/`, served at
+//! /demo/, in the proposed redesign; see `demo`.
+//!
 //! Each source's last good result is cached, so one site being down leaves its
 //! events in place, and every past event is kept in `archive.json`, so events
 //! that drop out of a feed once they happen stay in the history.
 
+mod demo;
 mod event;
 mod feed;
 mod ics;
@@ -167,21 +171,31 @@ fn build_site(dir: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>
 }
 
 /// Builds next to the live copy and swaps it in, so nginx never serves a
-/// half-written site and files for vanished events disappear.
-fn publish(state: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>) -> Res<()> {
-    let (site, new, old) = (
-        state.join("site"),
-        state.join("site.new"),
-        state.join("site.old"),
+/// half-written directory and files for vanished events disappear.
+fn swap(state: &Path, name: &str, build: impl FnOnce(&Path) -> Res<()>) -> Res<()> {
+    let (live, new, old) = (
+        state.join(name),
+        state.join(format!("{name}.new")),
+        state.join(format!("{name}.old")),
     );
     let _ = fs::remove_dir_all(&new);
-    build_site(&new, events, stale, now)?;
+    build(&new)?;
     let _ = fs::remove_dir_all(&old);
-    if site.exists() {
-        fs::rename(&site, &old)?;
+    if live.exists() {
+        fs::rename(&live, &old)?;
     }
-    fs::rename(&new, &site)?;
+    fs::rename(&new, &live)?;
     let _ = fs::remove_dir_all(&old);
+    Ok(())
+}
+
+fn publish(state: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>) -> Res<()> {
+    // `site` is served at /calendar, `demo` at /demo: the same events, read
+    // once, written twice. See demo::build.
+    swap(state, "site", |dir| build_site(dir, events, stale, now))?;
+    swap(state, "demo", |dir| {
+        demo::build(dir, events, stale, now).map_err(Into::into)
+    })?;
     // Left over from before the site moved into its own directory.
     for stray in ["index.html", "calendar.ics"] {
         let _ = fs::remove_file(state.join(stray));
