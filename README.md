@@ -97,8 +97,8 @@ hub yet and every page is `noindex`.
 It is **the same events as `/calendar`**, not a copy of them. `calendar/`
 writes it in the same hourly run, from the same merged events, into
 `$STATE_DIRECTORY/demo/`; there is nothing to refresh by hand and nothing to go
-stale. Plain HTML, one stylesheet, no script, so it works the way the rest of
-the site does.
+stale. Plain HTML, one stylesheet, no script, light and dark, so it works the
+way the rest of the site does.
 
 | URL | What |
 | --- | --- |
@@ -107,6 +107,7 @@ the site does.
 | `/demo/events/<id>` | one event, with the organiser's announcement and an .ics |
 | `/demo/tools` | AnkiQuest and the Petrov and Arkhipov Day ceremonies |
 | `/demo/subscribe`, `/demo/privacy`, `/demo/impressum`, `/demo/about` | the pages that are only words |
+| `404.html`, `robots.txt`, `sitemap.xml`, `.well-known/security.txt` | written too, so nothing has to be carried over by hand |
 
 nginx serves `/demo/` from that directory rather than from `www/`; the
 location block is in float3/nixos, beside the one for `/calendar/`.
@@ -121,6 +122,11 @@ and the photograph and sharing card are compiled into the binary beside it.
 When the demo does replace the hub, the move is one constant: `AT` in
 `src/demo/mod.rs` goes from `"/demo"` to `""`, and every link, canonical URL
 and asset path follows. A test fails if anything spells the prefix out by
-hand. Point nginx's `/` at the output, and the things still only in `www/` —
-404, robots.txt, sitemap.xml, security.txt — have to come along;
-`/demo/about/` keeps that list.
+hand. Point nginx's `/` at the output and the move is done; `/demo/about/`
+keeps the list of what is still missing.
+
+The stylesheet has one palette, as eighteen roles, and a dark half: every
+colour goes through a `var()`, so dark mode is the second block rather than a
+second stylesheet. The sitemap and `security.txt` are rebuilt hourly with the
+rest, so the event pages are listed and the expiry rolls forward instead of
+quietly passing.

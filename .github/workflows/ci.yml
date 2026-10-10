@@ -71,11 +71,12 @@ jobs:
           calendar/out/site/past/index.html
           calendar/out/site/stats/index.html
           calendar/out/demo/index.html
+          calendar/out/demo/404.html
           calendar/out/demo/*/index.html
           calendar/out/demo/events/*/index.html
       - name: XML is well-formed
         run: |
-          python3 - www/sitemap.xml www/favicon.svg calendar/out/site/feed.xml calendar/out/site/rss.xml <<'EOF'
+          python3 - www/sitemap.xml www/favicon.svg calendar/out/site/feed.xml calendar/out/site/rss.xml calendar/out/demo/sitemap.xml <<'EOF'
           import sys, xml.dom.minidom
           for f in sys.argv[1:]:
               xml.dom.minidom.parse(f)
@@ -98,7 +99,8 @@ jobs:
             --remap "https://rationality-munich\.com/(.*) file://$W/\$1" \
             "$W"/*.html "$W"/sitemap.xml "$W"/robots.txt "$W"/calendar/feed.xml "$W"/calendar/rss.xml \
             "$W"/calendar/index.html "$W"/calendar/past/index.html "$W"/calendar/stats/index.html \
-            "$W"/demo/index.html "$W"/demo/*/index.html "$W"/demo/events/*/index.html
+            "$W"/demo/index.html "$W"/demo/404.html "$W"/demo/*/index.html \
+            "$W"/demo/events/*/index.html "$W"/demo/robots.txt "$W"/demo/sitemap.xml
       - name: Calendar files are well-formed
         run: |
           for f in calendar/out/site/feeds/*.ics calendar/out/site/e/*.ics; do

@@ -12,6 +12,7 @@
 //! - `events/<id>/index.html`: one page per upcoming event
 //! - `tools/`: what this site hosts for other groups to use
 //! - `subscribe/`, `privacy/`, `impressum/`, `about/`: the pages of words
+//! - `404.html`, `robots.txt`, `sitemap.xml`, `.well-known/security.txt`
 //! - `style.css`, `og.png`, `munich.webp`, `favicon.svg`
 
 mod groups;
@@ -20,7 +21,7 @@ mod tools;
 use std::fs;
 use std::path::Path;
 
-use chrono::{DateTime, Datelike, Days, NaiveDate, Utc};
+use chrono::{DateTime, Datelike, Days, Duration, NaiveDate, Utc};
 use chrono_tz::Europe::Berlin;
 
 use crate::event::{DEFAULT_GROUPS, Event, group_name};
@@ -484,6 +485,76 @@ fn privacy() -> String {
         .to_string()
 }
 
+/// The 404. nginx is pointed at it for anything missing under `AT`.
+fn not_found() -> String {
+    format!(
+        r##"<main id="main" class="wrap empty-state">
+<p class="eyebrow">404</p><h1>That page <em>is not here.</em></h1>
+<p>It may have been an event that has since happened, or a typo. The calendar has everything that is still to come.</p>
+<div class="actions"><a class="button primary" href="{AT}/calendar/">See the calendar {ARROW}</a><a class="text-link" href="{AT}/">The hub →</a></div>
+</main>"##
+    )
+}
+
+/// What a crawler is allowed to walk. Inert while this sits under /demo —
+/// only the one at the site root is read — and correct the day it moves.
+fn robots() -> String {
+    format!(
+        "User-agent: *\n\
+         Allow: /\n\
+         # One calendar file per event and per group combination: nothing to index.\n\
+         Disallow: /calendar/e/\n\
+         Disallow: /calendar/feeds/\n\
+         \n\
+         Sitemap: {SITE}{AT}/sitemap.xml\n"
+    )
+}
+
+/// Every page worth indexing, rewritten each run, so the event pages are in
+/// it — which the hub's hand-kept sitemap could never manage.
+fn sitemap(events: &[&Event], now: DateTime<Utc>) -> String {
+    let day = now.with_timezone(&Berlin).format("%Y-%m-%d");
+    let mut urls = vec![
+        (String::new(), "hourly"),
+        ("calendar/".to_string(), "hourly"),
+        ("tools/".to_string(), "monthly"),
+        ("subscribe/".to_string(), "monthly"),
+        ("about/".to_string(), "monthly"),
+        ("privacy/".to_string(), "yearly"),
+        ("impressum/".to_string(), "yearly"),
+    ];
+    urls.extend(
+        events
+            .iter()
+            .map(|e| (format!("events/{}/", e.id), "daily")),
+    );
+    let body: String = urls
+        .iter()
+        .map(|(path, freq)| {
+            format!(
+                "  <url><loc>{SITE}{AT}/{path}</loc><lastmod>{day}</lastmod><changefreq>{freq}</changefreq></url>\n"
+            )
+        })
+        .collect();
+    format!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+         <urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n\
+         {body}</urlset>\n"
+    )
+}
+
+/// Rebuilt hourly, so the expiry rolls forward instead of quietly passing.
+fn security(now: DateTime<Utc>) -> String {
+    let expires = now + Duration::days(365);
+    format!(
+        "Contact: mailto:rationality@hilll.dev\n\
+         Expires: {}\n\
+         Preferred-Languages: en, de\n\
+         Canonical: {SITE}{AT}/.well-known/security.txt\n",
+        expires.format("%Y-%m-%dT%H:%M:%S.000Z"),
+    )
+}
+
 fn impressum() -> String {
     // www/impressum.html. Required by § 5 DDG, so the demo carries its own
     // rather than pointing at a page that is going away.
@@ -545,6 +616,22 @@ pub fn build(
         .collect();
 
     write(&dir.join("style.css"), CSS)?;
+    write(&dir.join("robots.txt"), &robots())?;
+    write(&dir.join("sitemap.xml"), &sitemap(&upcoming, now))?;
+    write(&dir.join(".well-known/security.txt"), &security(now))?;
+    write(
+        &dir.join("404.html"),
+        &shell(
+            Shell {
+                title: "Not found · Rationality Munich".into(),
+                description: "That page is not here.".into(),
+                canonical: format!("{SITE}{AT}/404.html"),
+                body: not_found(),
+            },
+            now,
+            stale,
+        ),
+    )?;
     write(&dir.join("favicon.svg"), FAVICON)?;
     fs::write(dir.join("munich.webp"), PHOTO)?;
     fs::write(dir.join("og.png"), OG)?;
