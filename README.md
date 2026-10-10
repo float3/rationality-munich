@@ -53,9 +53,10 @@ about the sender), and the calendar shows each event's median.
 events organised only in the groups' chats, which count in the statistics
 (see its README). Past events are also remembered in an archive on the
 server, so events that drop out of a feed once they happen stay listed.
-Archiving also settles the sign-up count: what the sites said the hour an
-event ended is what it keeps, since they go on taking RSVPs and cancellations
-for weeks afterwards and the statistics have already used the figure.
+Archiving also settles the sign-up count. The sites go on taking RSVPs and
+cancellations for weeks after an event, so the figure is fixed at what they
+said the hour it ended, rather than drifting after the statistics have used
+it.
 
 To add a group: a key in `GROUPS` (`src/event.rs`) and a source in
 `src/sources.rs`; a Meetup group is one `meetup_group(...)` line. Group keys
@@ -96,9 +97,8 @@ hub yet and every page is `noindex`.
 
 It is **the same events as `/calendar`**, not a copy of them. `calendar/`
 writes it in the same hourly run, from the same merged events, into
-`$STATE_DIRECTORY/demo/`; there is nothing to refresh by hand and nothing to go
-stale. Plain HTML, one stylesheet, no script, light and dark, so it works the
-way the rest of the site does.
+`$STATE_DIRECTORY/demo/`, so there is nothing to refresh by hand. Plain HTML,
+one stylesheet, no script, light and dark.
 
 | URL | What |
 | --- | --- |
@@ -106,18 +106,18 @@ way the rest of the site does.
 | `/demo/calendar` | this month and next as week grids, then every announced event |
 | `/demo/events/<id>` | one event, with the organiser's announcement and an .ics |
 | `/demo/tools` | AnkiQuest and the Petrov and Arkhipov Day ceremonies |
-| `/demo/subscribe`, `/demo/privacy`, `/demo/impressum`, `/demo/about` | the pages that are only words |
-| `404.html`, `robots.txt`, `sitemap.xml`, `.well-known/security.txt` | written too, so nothing has to be carried over by hand |
+| `/demo/subscribe`, `/demo/privacy`, `/demo/impressum`, `/demo/about` | the text pages |
+| `404.html`, `robots.txt`, `sitemap.xml`, `.well-known/security.txt` | generated with the rest |
 
 nginx serves `/demo/` from that directory rather than from `www/`; the
 location block is in float3/nixos, beside the one for `/calendar/`.
 
-`src/demo/groups.rs` holds the group directory, the only copy kept by hand
-here, and every line of it is the hub's own text — the demo must not say
-things about a group that its organisers have not. The privacy policy and
-Impressum are carried in `src/demo/mod.rs` rather than linked, because the
-hub's copies go when the hub does. The stylesheet is `src/demo/style.css`,
-and the photograph and sharing card are compiled into the binary beside it.
+`src/demo/groups.rs` holds the group directory, the only text kept by hand.
+Every line of it is copied from the hub; do not add to it, because nobody from
+these groups has reviewed what the page says about them. The privacy policy
+and Impressum are in `src/demo/mod.rs` rather than linked, since the hub's
+copies go when the hub does. The stylesheet is `src/demo/style.css`, and the
+photograph and sharing card are compiled into the binary beside it.
 
 When the demo does replace the hub, the move is one constant: `AT` in
 `src/demo/mod.rs` goes from `"/demo"` to `""`, and every link, canonical URL
@@ -125,8 +125,7 @@ and asset path follows. A test fails if anything spells the prefix out by
 hand. Point nginx's `/` at the output and the move is done; `/demo/about/`
 keeps the list of what is still missing.
 
-The stylesheet has one palette, as eighteen roles, and a dark half: every
-colour goes through a `var()`, so dark mode is the second block rather than a
-second stylesheet. The sitemap and `security.txt` are rebuilt hourly with the
-rest, so the event pages are listed and the expiry rolls forward instead of
-quietly passing.
+Every colour in the stylesheet goes through one of eighteen role variables,
+so dark mode is a second `:root` block rather than a second stylesheet. The
+sitemap and `security.txt` are rebuilt hourly with everything else: the sitemap
+lists the current event pages, and the `Expires` date stays a year ahead.

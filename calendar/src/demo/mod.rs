@@ -2,8 +2,7 @@
 //! to replace the hub. `AT` is the only place the prefix is written down.
 //!
 //! Written by the same hourly run, from the same merged `Event`s, so there is
-//! nothing to refresh and nothing to go stale. Plain HTML with one stylesheet
-//! and no script: the pages work the way the rest of the site does.
+//! nothing to refresh by hand. Plain HTML with one stylesheet and no script.
 //!
 //! Output, under `$STATE_DIRECTORY/demo/`, served at `AT`:
 //!
@@ -27,9 +26,9 @@ use chrono_tz::Europe::Berlin;
 use crate::event::{DEFAULT_GROUPS, Event, group_name};
 use crate::render::html_escape;
 
-/// Where this is served. `/demo` while it is a proposal; the day it replaces
-/// the hub, this becomes `""` and every link, canonical URL and asset path
-/// here follows. Nothing else in this module spells the prefix out.
+/// Where this is served. `/demo` while it is a proposal; set it to `""` to
+/// serve the same pages at the root. Every link, canonical URL and asset path
+/// is built from it, and a test checks nothing writes the prefix out by hand.
 pub const AT: &str = "/demo";
 const SITE: &str = "https://rationality-munich.com";
 
@@ -80,8 +79,8 @@ fn group_list(e: &Event) -> String {
         .join(" & ")
 }
 
-/// Where it is, or the nearest honest thing to it. An announcement that names
-/// no venue should not leave a blank where a place belongs.
+/// Where it is. An announcement that names no venue gets a stand-in rather
+/// than an empty line.
 fn place(e: &Event) -> &str {
     match e.place() {
         "" => "Location in the announcement",
@@ -89,7 +88,7 @@ fn place(e: &Event) -> &str {
     }
 }
 
-/// The first announcement that is not our own page: the organiser's.
+/// The organiser's own announcement.
 fn source(e: &Event) -> Option<&(String, String)> {
     e.links.first()
 }
@@ -118,8 +117,8 @@ fn weeks_of(year: i32, month: u32) -> Vec<Vec<NaiveDate>> {
         .collect()
 }
 
-/// One month as a seven-column week grid. A table because it is one: the
-/// weekday headers then mean something read aloud.
+/// One month as a seven-column week grid. A table rather than a CSS grid, so
+/// the weekday headers are announced as column headers.
 fn month_grid(year: i32, month: u32, events: &[&Event], today: NaiveDate) -> String {
     let label = NaiveDate::from_ymd_opt(year, month, 1)
         .expect("a first of the month is real")
@@ -133,8 +132,8 @@ fn month_grid(year: i32, month: u32, events: &[&Event], today: NaiveDate) -> Str
     for week in weeks_of(year, month) {
         rows += "<tr>";
         for date in week {
-            // The neighbouring month's days keep the rows square but stay
-            // empty: its own grid is where its events belong.
+            // The neighbouring month's days fill out the row but stay empty;
+            // their events belong in that month's own grid.
             let inside = date.month() == month && date.year() == year;
             let today_here: Vec<&&Event> = if inside {
                 events.iter().filter(|e| day(e) == date).collect()
@@ -255,6 +254,14 @@ fn shell(s: Shell, now: DateTime<Utc>, stale: &[String]) -> String {
 }
 
 fn home(events: &[&Event], today: NaiveDate) -> String {
+    // Empty when there is nothing on, rather than "0 events coming up".
+    let count = match events.len() {
+        0 => String::new(),
+        n => format!(
+            r#"<p class="eyebrow"><span class="status-dot"></span> {n} EVENT{plural} COMING UP</p>"#,
+            plural = if n == 1 { "" } else { "S" },
+        ),
+    };
     let next = events.first();
     let hero_card = match next {
         Some(e) => format!(
@@ -284,8 +291,7 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
             )
         })
         .collect();
-    // The organisers say it themselves often enough that we can let them: the
-    // first event whose own announcement says you can turn up cold.
+    // The first event whose own announcement says newcomers are welcome.
     let welcoming = events.iter().find(|e| {
         let text = e.excerpt.to_lowercase();
         [
@@ -318,21 +324,22 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
     format!(
         r##"<main id="main">
 <section class="hero wrap">
-<div class="hero-copy"><p class="eyebrow"><span class="status-dot"></span> SIX GROUPS, ONE CALENDAR</p>
-<h1>Meetups in Munich for<br><em>rationality, EA and AI safety.</em></h1>
+<div class="hero-copy">{count}
+<h1>Meetups in Munich for rationality, EA and AI safety</h1>
 <p class="hero-intro">Six independent groups run discussions, dinners, workshops and talks in Munich. This page collects them and their events in one place.</p>
 <div class="actions"><a class="button primary" href="{AT}/calendar/">See the calendar {ARROW}</a><a class="text-link" href="{AT}/#community">The groups →</a></div>
 </div>
 <figure class="hero-image"><img src="{AT}/munich.webp" alt="The Monopteros and green lawns in Munich’s Englischer Garten" width="1600" height="979" fetchpriority="high">{hero_card}<figcaption>Photograph: the Englischer Garten, Munich</figcaption></figure>
 </section>
 <div class="topic-strip"><div class="wrap"><span>RATIONALITY</span><i>✳</i><span>EFFECTIVE ALTRUISM</span><i>✳</i><span>PHILOSOPHY</span><i>✳</i><span>AI SAFETY</span><i>✳</i><span>AI POLICY</span></div></div>
-<section class="section wrap" id="events"><div class="section-heading"><div><p class="eyebrow">THIS MONTH AND NEXT</p><h2>Coming up in Munich</h2></div><a href="{AT}/calendar/" class="text-link">All events {ARROW}</a></div><div class="home-months">{grids}</div>{empty}<p class="section-note">All times Munich time. Check the organiser’s announcement before setting off.</p></section>
+<section class="section wrap" id="events"><div class="section-heading"><div><p class="eyebrow">THIS MONTH AND NEXT</p><h2>Coming up in Munich</h2></div><a href="{AT}/calendar/" class="text-link">All events {ARROW}</a></div><div class="home-months">{grids}</div>{empty}<p class="section-note">All times Munich time. Check the organiser’s announcement before you go.</p></section>
 {spotlight}
 {groups}
 {more}
-<section class="section wrap" id="tools"><div class="section-heading"><div><p class="eyebrow">TOOLS</p><h2>Things we host</h2></div><a class="text-link" href="{AT}/tools/">All three {ARROW}</a></div><p class="section-note">AnkiQuest, and the Petrov and Arkhipov Day ceremonies. Written for this community, free to use for your own.</p></section>
-<section class="wrap newsletter-section"><div class="newsletter-icon" aria-hidden="true">✉</div><div><p class="eyebrow">MAILING LIST</p><h2>Event invites<br><em>by email.</em></h2><p>Pick the topics you want to hear about. No open or click tracking, and you can unsubscribe or delete your data from any email.</p><a class="button primary" href="{AT}/subscribe/">Get event invitations {ARROW}</a><a class="text-link" href="https://lists.rationality-munich.com/archive">See the archive →</a></div><div class="newsletter-note"><p>EA, RATIONALITY,<br>OR EVERYTHING.</p><span>Pick what you want invitations about. Unsubscribe at any time.</span></div></section>
+<section class="section wrap" id="tools"><div class="section-heading"><div><p class="eyebrow">TOOLS</p><h2>Things this site hosts</h2></div><a class="text-link" href="{AT}/tools/">All three {ARROW}</a></div><p class="section-note">AnkiQuest, and the Petrov and Arkhipov Day ceremonies. All three are open source and free to use.</p></section>
+<section class="wrap newsletter-section"><div class="newsletter-icon" aria-hidden="true">✉</div><div><p class="eyebrow">MAILING LIST</p><h2>Event invites by email</h2><p>Pick the topics you want to hear about. No open or click tracking, and you can unsubscribe or delete your data from any email.</p><a class="button primary" href="{AT}/subscribe/">Get event invitations {ARROW}</a><a class="text-link" href="https://lists.rationality-munich.com/archive">See the archive →</a></div><div class="newsletter-note"><p>EA, RATIONALITY,<br>OR EVERYTHING.</p><span>Pick what you want invitations about. Unsubscribe at any time.</span></div></section>
 </main>"##,
+        count = count,
         groups = groups::section(),
         more = groups::more(),
     )
@@ -369,12 +376,12 @@ fn calendar(events: &[&Event], today: NaiveDate) -> String {
     );
     format!(
         r##"<main id="main" class="wrap calendar-page">
-<div class="page-heading"><p class="eyebrow">CALENDAR</p><div class="title-actions"><h1>Upcoming <em>events.</em></h1></div><p>Discussions, dinners, games and talks in Munich.</p>
-<details class="subscribe-box"><summary>Subscribe to the calendar</summary><div><p>Every event below, in your own calendar app, kept up to date.</p><a class="button primary" href="webcal://{feed}">Open in Apple Calendar or Outlook {ARROW}</a><h3>Google Calendar</h3><p>Other calendars → + → From URL, then paste this address.</p><h3>Outlook on the web</h3><p>Add calendar → Subscribe from web, then paste this address.</p><code>https://{feed}</code><p><a class="text-link" href="/calendar/rss.xml">RSS</a> and <a class="text-link" href="/calendar/feed.xml">Atom</a> feeds too.</p></div></details></div>
+<div class="page-heading"><p class="eyebrow">CALENDAR</p><div class="title-actions"><h1>Upcoming events</h1></div><p>Discussions, dinners, games and talks in Munich.</p>
+<details class="subscribe-box"><summary>Subscribe to the calendar</summary><div><p>Every event below, in your own calendar app, updated automatically.</p><a class="button primary" href="webcal://{feed}">Open in Apple Calendar or Outlook {ARROW}</a><h3>Google Calendar</h3><p>Other calendars → + → From URL, then paste this address.</p><h3>Outlook on the web</h3><p>Add calendar → Subscribe from web, then paste this address.</p><code>https://{feed}</code><p><a class="text-link" href="/calendar/rss.xml">RSS</a> and <a class="text-link" href="/calendar/feed.xml">Atom</a> feeds too.</p></div></details></div>
 <div class="calendar-context"><span><span class="status-dot"></span> {n} upcoming event{s}</span><span>All times Munich local time</span></div>
 {grids}
 {list}
-<aside class="coverage-note"><h3>A note on coverage</h3><p>These are the events the groups have announced on LessWrong, the EA Forum, Meetup, Luma and their own pages. The original listing is the one to trust for registration, language and cost. Anything further off than next month is in the list above but not in the grids.</p><div class="actions"><a class="text-link" href="{AT}/#community">Find another group ↗</a><a class="text-link" href="mailto:rationality@hilll.dev?subject=Event%20suggestion%20for%20Rationality%20Munich">Suggest an event ↗</a><a class="text-link" href="/calendar/past/">Past events ↗</a></div></aside>
+<aside class="coverage-note"><h3>A note on coverage</h3><p>These are the events the groups have announced on LessWrong, the EA Forum, Meetup, Luma and their own pages. Check the original listing for registration, language and cost. Events later than next month are in the list above but not in the grids.</p><div class="actions"><a class="text-link" href="{AT}/#community">Find another group ↗</a><a class="text-link" href="mailto:rationality@hilll.dev?subject=Event%20suggestion%20for%20Rationality%20Munich">Suggest an event ↗</a><a class="text-link" href="/calendar/past/">Past events ↗</a></div></aside>
 </main>"##,
         n = events.len(),
         s = plural(events.len()),
@@ -421,7 +428,7 @@ fn event_page(e: &Event, now: DateTime<Utc>) -> String {
 <a class="text-link back-link" href="{AT}/calendar/">← All events</a>
 <div class="detail-grid"><article><div class="detail-labels"><span class="tag">{category}</span><span class="eyebrow">{groups}</span></div><h1>{title}</h1>{lede}
 <div class="detail-body"><h2>What to know before you go</h2><p>This event is organised by {groups}. The full announcement has the latest information and any registration instructions.</p>
-<p>Events are in English, unless the announcement says otherwise — PauseAI Munich’s are sometimes in German. Cost, registration, capacity, preparation and step-free access are all things only the organiser knows; ask the host if the announcement does not say.</p>
+<p>Events are in English, unless the announcement says otherwise; PauseAI Munich’s are sometimes in German. Check the announcement for cost, registration, capacity, preparation and step-free access, or ask the host.</p>
 <a class="text-link" href="mailto:rationality@hilll.dev?subject=Correction">Report a detail that needs updating ↗</a></div></article>
 <aside class="detail-aside"><p class="eyebrow">PRACTICAL DETAILS</p>
 <div class="detail-fact"><time datetime="{iso}">{long}</time></div>
@@ -431,9 +438,9 @@ fn event_page(e: &Event, now: DateTime<Utc>) -> String {
 {signups}
 {announcement}
 <a class="button secondary" href="/calendar/e/{id}.ics" download="{id}.ics">Add this event to my calendar</a>
-<p class="small-note">The .ics adds this event only. Subscribing to the whole calendar keeps up with changes.</p>
+<p class="small-note">The .ics adds this event only. Subscribe to the calendar to get later changes.</p>
 {more}
-<p class="snapshot-note">Read from the organisers’ announcements at {updated}. Always check the original.</p></aside></div>
+<p class="snapshot-note">Read from the organisers’ announcements at {updated}. Check the original for changes.</p></aside></div>
 </main>"##,
         category = html_escape(groups::category(e)),
         groups = html_escape(&group_list(e)),
@@ -450,22 +457,22 @@ fn event_page(e: &Event, now: DateTime<Utc>) -> String {
 fn subscribe() -> String {
     format!(
         r##"<main id="main" class="wrap subscribe-page">
-<div class="subscribe-copy"><p class="eyebrow">MAILING LIST</p><h1>Event invites<br><em>by email.</em></h1>
+<div class="subscribe-copy"><p class="eyebrow">MAILING LIST</p><h1>Event invites by email</h1>
 <p>An email when the Munich groups announce something in the topics you picked.</p>
 <ul><li>Choose the topics you care about</li><li>Change your preferences whenever you like</li><li>Unsubscribe with a link in every email</li></ul>
-<div class="signup-expectations"><h3>What to expect</h3><p>Invitations to community events, as often as there are events worth an email. No open or click tracking, and you can delete your data from any email.</p><a class="text-link" href="https://lists.rationality-munich.com/archive">Read the archive {ARROW}</a></div></div>
-<div class="signup-card"><h2>Sign up</h2><p class="form-intro">The list is run on the site’s own mail server; the form below is the real one.</p>
+<div class="signup-expectations"><h3>What to expect</h3><p>Invitations to community events. No open or click tracking, and you can delete your data from any email.</p><a class="text-link" href="https://lists.rationality-munich.com/archive">Read the archive {ARROW}</a></div></div>
+<div class="signup-card"><h2>Sign up</h2><p class="form-intro">The list runs on this site’s own server. The signup form is part of it, not of this page.</p>
 <a class="button primary submit-button" href="https://lists.rationality-munich.com/subscription/form">Go to the signup form {ARROW}</a>
-<p class="small-note">This demo does not handle your address itself — it hands you to the mailing list the live site already runs, so nothing here collects anything. <a href="{AT}/privacy/">Privacy details</a></p></div>
+<p class="small-note">This page does not take your address; the link goes to the mailing list this site already runs. <a href="{AT}/privacy/">Privacy details</a></p></div>
 </main>"##
     )
 }
 
 fn privacy() -> String {
-    // www/privacy.html, which goes when the hub does. Same text, same
-    // date: it is a legal document, not copy to rewrite for a layout.
+    // www/privacy.html, which goes when the hub does. Copied unchanged,
+    // including the date: changing a privacy policy to fit a layout is wrong.
     r##"<main id="main" class="wrap reading-page">
-<div class="page-heading"><p class="eyebrow">PRIVACY</p><h1>Your data,<br><em>in short.</em></h1><p>Datenschutzerklärung · last updated 23 September 2026</p></div>
+<div class="page-heading"><p class="eyebrow">PRIVACY</p><h1>What this site stores</h1><p>Datenschutzerklärung · last updated 23 September 2026</p></div>
 <article class="prose"><p>This site has no cookies, no analytics and no tracking. The mailing list stores your email address and the lists you picked, and you can delete that yourself at any time.</p>
 <h2>Who is responsible</h2><p>L. David Weil, for Rationality Munich, an informal, non-commercial community group. Contact: <a href="mailto:rationality@hilll.dev">rationality@hilll.dev</a>.</p>
 <h2>Visiting this website</h2><p>When you load a page, the web server logs your IP address, the time, the page requested, the referring page and your browser’s user agent. We use these logs only to keep the server running and to deal with abuse, which is our legitimate interest (Art. 6(1)(f) GDPR). They are deleted after 7 days.</p>
@@ -485,19 +492,19 @@ fn privacy() -> String {
         .to_string()
 }
 
-/// The 404. nginx is pointed at it for anything missing under `AT`.
+/// The 404 page. nginx serves it for anything missing under `AT`.
 fn not_found() -> String {
     format!(
         r##"<main id="main" class="wrap empty-state">
-<p class="eyebrow">404</p><h1>That page <em>is not here.</em></h1>
-<p>It may have been an event that has since happened, or a typo. The calendar has everything that is still to come.</p>
-<div class="actions"><a class="button primary" href="{AT}/calendar/">See the calendar {ARROW}</a><a class="text-link" href="{AT}/">The hub →</a></div>
+<p class="eyebrow">404</p><h1>Page not found</h1>
+<p>It may have been an event that has already happened, or a mistyped address. The calendar lists everything still to come.</p>
+<div class="actions"><a class="button primary" href="{AT}/calendar/">See the calendar {ARROW}</a><a class="text-link" href="{AT}/">Home</a></div>
 </main>"##
     )
 }
 
-/// What a crawler is allowed to walk. Inert while this sits under /demo —
-/// only the one at the site root is read — and correct the day it moves.
+/// Ignored while this sits under /demo, since crawlers only read the one at
+/// the site root, and correct once it moves.
 fn robots() -> String {
     format!(
         "User-agent: *\n\
@@ -510,8 +517,8 @@ fn robots() -> String {
     )
 }
 
-/// Every page worth indexing, rewritten each run, so the event pages are in
-/// it — which the hub's hand-kept sitemap could never manage.
+/// Every page worth indexing, rewritten each run, so the event pages are
+/// listed and stay current.
 fn sitemap(events: &[&Event], now: DateTime<Utc>) -> String {
     let day = now.with_timezone(&Berlin).format("%Y-%m-%d");
     let mut urls = vec![
@@ -543,7 +550,7 @@ fn sitemap(events: &[&Event], now: DateTime<Utc>) -> String {
     )
 }
 
-/// Rebuilt hourly, so the expiry rolls forward instead of quietly passing.
+/// Rebuilt hourly, so the expiry stays a year away instead of lapsing.
 fn security(now: DateTime<Utc>) -> String {
     let expires = now + Duration::days(365);
     format!(
@@ -556,8 +563,8 @@ fn security(now: DateTime<Utc>) -> String {
 }
 
 fn impressum() -> String {
-    // www/impressum.html. Required by § 5 DDG, so the demo carries its own
-    // rather than pointing at a page that is going away.
+    // www/impressum.html. Required by § 5 DDG, so this page carries its own
+    // copy rather than linking to one that is going away.
     r##"<main id="main" class="wrap reading-page">
 <div class="page-heading"><p class="eyebrow">LEGAL NOTICE</p><h1>Impressum</h1></div>
 <article class="prose"><h2>Angaben gemäß § 5 DDG</h2><p>L. David Weil</p>
@@ -571,18 +578,18 @@ fn impressum() -> String {
 fn about(now: DateTime<Utc>) -> String {
     format!(
         r##"<main id="main" class="wrap reading-page">
-<div class="page-heading"><p class="eyebrow">ABOUT</p><h1>About <em>this demo.</em></h1><p>A design proposal for rationality-munich.com, parked at /demo on the real site. It is not the live site, and the groups listed here have not endorsed it.</p></div>
-<article class="prose"><h2>It is the real calendar</h2><p>These pages are built by the same hourly job that builds <a href="/calendar">/calendar</a>, from the same events, merged across LessWrong, the EA Forum, Meetup, Luma and the groups’ own pages. Nothing here is a copy kept by hand: this page was written at {updated}, and will be written again within the hour.</p>
-<p>It is plain HTML and one stylesheet. No script runs, so it works the way the rest of the site does — with JavaScript off, in a text browser, and without waiting on anyone else’s API.</p>
+<div class="page-heading"><p class="eyebrow">ABOUT</p><h1>About this demo</h1><p>A design proposal for rationality-munich.com, served at /demo on this site. It is not the live site, and the groups listed here have not endorsed it.</p></div>
+<article class="prose"><h2>It is the real calendar</h2><p>These pages are built by the same hourly job that builds <a href="/calendar">/calendar</a>, from the same events, merged across LessWrong, the EA Forum, Meetup, Luma and the groups’ own pages. Nothing here is a copy kept by hand. This page was written at {updated} and will be written again within the hour.</p>
+<p>It is plain HTML and one stylesheet, with no script. The pages work with JavaScript off and in a text browser, and loading one never waits on another site.</p>
 <h2>What is here</h2><ul><li>A hub page: what is on, the six groups, and the further Munich groups whose events are in the calendar but off by default.</li><li>A calendar: this month and next as week grids, then every announced event as a list.</li><li>A page per event, with the organiser’s announcement and an .ics download.</li></ul>
 <h2>What is missing before it could replace the hub</h2><p>The hub goes when this takes over, so everything it does has to be here first:</p>
 <ul><li>The group filters the live calendar has, past events, and the statistics pages. The calendar’s own URLs would also need a decision: this page lives at /demo/calendar, and /calendar is already taken.</li>
 
-<li>The 404 page, robots.txt, sitemap.xml and .well-known/security.txt, which are all still in the hub’s directory.</li>
-<li>Dark mode, which the hub has and this design does not.</li>
-<li>Organisers’ approval of how their groups are described here, though every line of that is the hub’s own wording.</li>
+
+
+<li>Organisers’ approval of how their groups are described here. Every line of that is the hub’s own wording, but nobody has been asked.</li>
 <li>Removing the noindex, and the notice at the top of every page, once it is meant to be found.</li></ul>
-<p>Moving it is one constant: the pages are built with their prefix in one place, so /demo becomes / without touching a link.</p>
+<p>The URL prefix is in one place in the source, so /demo becomes / without changing a link.</p>
 <h2>Photo &amp; artwork credits</h2><p>The photograph shows Munich’s Englischer Garten; it is location imagery, not a photograph of the community.</p>
 <p><a href="https://commons.wikimedia.org/wiki/File:Monopteros_in_Englischer_Garten,_Munich.JPG">Monopteros in Englischer Garten, Munich</a> by High Contrast (2013), licensed under <a href="https://creativecommons.org/licenses/by/3.0/de/deed.en">CC BY 3.0 Germany</a>. Optimised and cropped for this layout.</p>
 <p>The social-sharing card is AI-generated typographic artwork made for this demo.</p></article>
@@ -805,8 +812,8 @@ mod tests {
         }
     }
 
-    /// Every link the demo makes to itself has to go through `AT`, or the day
-    /// it becomes the hub half of them will still point at /demo.
+    /// Every link the demo makes to itself goes through `AT`, so that setting
+    /// `AT` to "" moves all of them at once.
     #[test]
     fn nothing_spells_the_prefix_out_by_hand() {
         let events = sample();
@@ -834,8 +841,8 @@ mod tests {
                 if !link.starts_with('/') {
                     continue;
                 }
-                // /calendar is the other half of this program's output and
-                // keeps its own URLs; everything else is ours.
+                // /calendar is this program's other output and keeps its
+                // own URLs.
                 assert!(
                     link.starts_with(AT) || link.starts_with("/calendar"),
                     "{link} is not under {AT}"

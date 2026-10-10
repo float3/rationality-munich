@@ -1,16 +1,15 @@
 //! The group directory: the only part of /demo written by hand rather than
 //! read from the feeds.
 //!
-//! Every line here is the hub's own text for that group. Nothing is
-//! embroidered: a design with room for three sentences is not a reason to
-//! invent two, and a sentence about a group that nobody there has read is
-//! worse than a short one. Keys are the ones in `event::GROUPS`.
+//! Every line here is the hub's own text for that group, unchanged. Do not
+//! add to it: nobody from these groups has reviewed what this page says about
+//! them. Keys are the ones in `event::GROUPS`.
 
 use crate::event::Event;
 use crate::render::html_escape;
 
-/// A short label for an event, from the group running it. A heading for the
-/// design, not a claim about the event: the announcement is what knows.
+/// A short label for an event, from the group running it. For the design
+/// only; the announcement is the authority on what an event actually is.
 pub fn category(e: &Event) -> &'static str {
     for key in &e.groups {
         let label = match key.as_str() {
@@ -179,7 +178,7 @@ pub fn section() -> String {
         })
         .collect();
     format!(
-        r#"<section class="section wrap" id="community"><div class="section-heading"><div><p class="eyebrow">THE GROUPS</p><h2>Six groups in Munich</h2></div><p class="heading-aside">Each has its own organisers<br>and runs its own events.</p></div><div class="group-list">{rows}</div><p class="section-note">Events are in English; PauseAI Munich’s are sometimes in German. The groups announce their own events and this page only collects them, so the announcement is what to trust for cost, registration and access.</p></section>"#
+        r#"<section class="section wrap" id="community"><div class="section-heading"><div><p class="eyebrow">THE GROUPS</p><h2>Six groups in Munich</h2></div><p class="heading-aside">Each has its own organisers<br>and runs its own events.</p></div><div class="group-list">{rows}</div><p class="section-note">Events are in English; PauseAI Munich’s are sometimes in German. The groups announce their own events and this page only collects them, so check the announcement for cost, registration and access.</p></section>"#
     )
 }
 
@@ -250,7 +249,7 @@ pub fn more() -> String {
         })
         .collect();
     format!(
-        r#"<section class="section wrap" id="more-groups"><div class="section-heading"><div><p class="eyebrow">FURTHER AFIELD</p><h2>More groups in Munich</h2></div><p class="heading-aside">Their events are in the <a class="underlined" href="/calendar">calendar</a>,<br>switched off by default.</p></div><ul class="more-groups">{items}</ul><p class="section-note">Also: <a class="underlined" href="https://www.cas.lmu.de/de/veranstaltungen/">LMU CAS</a>, <a class="underlined" href="https://www.tedxmuenchen.com/">TEDxMünchen</a>, <a class="underlined" href="https://www.tedxtum.com/">TEDxTUM</a>, <a class="underlined" href="https://www.submuc.de/">submuc</a>. Via the <a class="underlined" href="https://recthink.substack.com/p/germany">Recreational Thinking directory</a>.</p></section>"#
+        r#"<section class="section wrap" id="more-groups"><div class="section-heading"><div><p class="eyebrow">ALSO IN MUNICH</p><h2>More groups in Munich</h2></div><p class="heading-aside">Their events are in the <a class="underlined" href="/calendar">calendar</a>,<br>switched off by default.</p></div><ul class="more-groups">{items}</ul><p class="section-note">Also: <a class="underlined" href="https://www.cas.lmu.de/de/veranstaltungen/">LMU CAS</a>, <a class="underlined" href="https://www.tedxmuenchen.com/">TEDxMünchen</a>, <a class="underlined" href="https://www.tedxtum.com/">TEDxTUM</a>, <a class="underlined" href="https://www.submuc.de/">submuc</a>. Via the <a class="underlined" href="https://recthink.substack.com/p/germany">Recreational Thinking directory</a>.</p></section>"#
     )
 }
 
@@ -281,7 +280,7 @@ mod tests {
         // Every secondary link and every further group, each once.
         let secondary: usize = GROUPS.iter().map(|g| g.links.len() - 1).sum();
         assert_eq!(html.matches("<li>").count(), secondary + MORE.len());
-        // The one thing newcomers ask that we actually know the answer to.
+        // The language question, which is the one we can answer.
         assert!(html.contains("sometimes in German"));
     }
 }

@@ -1,11 +1,10 @@
 //! The tools page: what this site hosts for other groups to use.
 //!
-//! Descriptions are each project's own — www/tools.html for the two
-//! ceremonies, AnkiQuest's README for AnkiQuest — for the same reason as the
-//! group directory: better a short true sentence than a long invented one.
+//! Each description is the project's own: www/tools.html for the two
+//! ceremonies, AnkiQuest's README for AnkiQuest.
 //!
-//! The rows borrow the directory's `group-*` classes. They are layout, not
-//! taxonomy: a numbered row with a description and some links.
+//! The rows reuse the directory's `group-*` classes, which style a numbered
+//! row with a description and some links.
 
 use crate::demo::AT;
 use crate::render::html_escape;
@@ -25,8 +24,8 @@ const TOOLS: &[Tool] = &[
         kind: "SPACED REPETITION",
         name: "AnkiQuest",
         what: "XP, streaks, daily quests, friends and leaderboards for Anki. Only the timing of your reviews is sent, never the content of your cards, unless you choose to show off a hard card you finally learned.",
-        // The server at ankiquest.rationality-munich.com has no DNS record
-        // yet; when it does, an ("Open", …) goes first in this list.
+        // ankiquest.rationality-munich.com has no DNS record yet. Once it
+        // does, put ("Open", …) first in this list.
         how: "An Anki add-on for desktop, an AnkiDroid build for Android, and a server you can run yourself",
         links: &[
             (
@@ -97,10 +96,10 @@ pub fn page() -> String {
         .collect();
     format!(
         r##"<main id="main" class="wrap tools-page">
-<div class="page-heading"><p class="eyebrow">TOOLS</p><h1>Things we <em>host.</em></h1><p>Written for this community and left running for anyone else’s. Free to use for your own group, and the source is there if you would rather run your own.</p></div>
+<div class="page-heading"><p class="eyebrow">TOOLS</p><h1>Things this site hosts</h1><p>Software this site runs for the community. All three are open source: use ours, or run your own.</p></div>
 <div class="group-list">{rows}</div>
-<p class="section-note">Questions, or something that breaks: <a class="underlined" href="mailto:rationality@hilll.dev">rationality@hilll.dev</a>. The ceremonies want two groups and a little setup beforehand, so give yourself a week.</p>
-<aside class="coverage-note"><h3>Running one yourself</h3><p>All three are open source and meant to be self-hosted; none of them needs anything from us to run. AnkiQuest is a single binary with a config file, and the ceremonies are one program serving both days.</p><div class="actions"><a class="text-link" href="{AT}/">Back to events ↗</a></div></aside>
+<p class="section-note">Questions and bug reports: <a class="underlined" href="mailto:rationality@hilll.dev">rationality@hilll.dev</a>. The ceremonies need two groups and some setup beforehand.</p>
+<aside class="coverage-note"><h3>Running one yourself</h3><p>All three can be self-hosted, and none of them needs anything from this server to run. AnkiQuest is a single binary with a config file; the ceremonies are one program serving both days.</p><div class="actions"><a class="text-link" href="{AT}/">Back to events</a></div></aside>
 </main>"##
     )
 }
@@ -127,8 +126,8 @@ mod tests {
         assert!(!html.contains("<script"));
     }
 
-    /// The server has no DNS record yet, so nothing here may point at it:
-    /// a link that does not resolve fails the link check and the visitor.
+    /// The server has no DNS record yet. A link to it would fail the link
+    /// check in CI and 404 for anyone who clicked it.
     #[test]
     fn nothing_links_to_a_host_that_does_not_exist() {
         assert!(!page().contains("ankiquest.rationality-munich.com"));
