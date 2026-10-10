@@ -1,16 +1,17 @@
-//! The /demo redesign: the same events as /calendar, in the proposed design.
+//! The redesign at /demo: the same events as /calendar, in the design meant
+//! to replace the hub. `AT` is the only place the prefix is written down.
 //!
 //! Written by the same hourly run, from the same merged `Event`s, so there is
 //! nothing to refresh and nothing to go stale. Plain HTML with one stylesheet
 //! and no script: the pages work the way the rest of the site does.
 //!
-//! Output, under `$STATE_DIRECTORY/demo/`, served at /demo/:
+//! Output, under `$STATE_DIRECTORY/demo/`, served at `AT`:
 //!
 //! - `index.html`: the hub — what is on, the groups, a first visit, the FAQ
 //! - `calendar/index.html`: this month and next as week grids, then the list
 //! - `events/<id>/index.html`: one page per upcoming event
 //! - `subscribe/`, `privacy/`, `about/`: the pages that are just words
-//! - `demo.css`, `og.png`, `munich.webp`, `favicon.svg`
+//! - `style.css`, `og.png`, `munich.webp`, `favicon.svg`
 
 mod groups;
 
@@ -23,10 +24,14 @@ use chrono_tz::Europe::Berlin;
 use crate::event::{DEFAULT_GROUPS, Event, group_name};
 use crate::render::html_escape;
 
-pub const BASE: &str = "https://rationality-munich.com/demo";
+/// Where this is served. `/demo` while it is a proposal; the day it replaces
+/// the hub, this becomes `""` and every link, canonical URL and asset path
+/// here follows. Nothing else in this module spells the prefix out.
+pub const AT: &str = "/demo";
+const SITE: &str = "https://rationality-munich.com";
 
 const PAGE: &str = include_str!("page.html");
-const CSS: &str = include_str!("demo.css");
+const CSS: &str = include_str!("style.css");
 const FAVICON: &str = include_str!("favicon.svg");
 const PHOTO: &[u8] = include_bytes!("munich.webp");
 const OG: &[u8] = include_bytes!("og.png");
@@ -150,7 +155,7 @@ fn month_grid(year: i32, month: u32, events: &[&Event], today: NaiveDate) -> Str
                 .iter()
                 .map(|e| {
                     format!(
-                        r#"<a class="day-event" href="/demo/events/{id}/"><b>{time}</b>{title}</a>"#,
+                        r#"<a class="day-event" href="{AT}/events/{id}/"><b>{time}</b>{title}</a>"#,
                         id = e.id,
                         time = html_escape(&clock(e)),
                         title = html_escape(&e.title),
@@ -200,7 +205,7 @@ fn event_row(e: &Event) -> String {
         format!("<p>{}</p>", html_escape(&e.excerpt))
     };
     format!(
-        r#"<article class="calendar-row"><time datetime="{iso}" class="calendar-date"><span>{wd}</span><strong>{d}</strong><span>{mon}</span></time><div class="calendar-row-content"><div class="calendar-row-labels"><span class="tag">{category}</span><span class="event-group">{groups}</span></div><h3><a href="/demo/events/{id}/">{title}</a></h3><div class="event-meta"><span>{time}</span><span>{place}</span></div>{text}</div><a class="text-link calendar-row-action" href="/demo/events/{id}/">Event details {ARROW}</a></article>"#,
+        r#"<article class="calendar-row"><time datetime="{iso}" class="calendar-date"><span>{wd}</span><strong>{d}</strong><span>{mon}</span></time><div class="calendar-row-content"><div class="calendar-row-labels"><span class="tag">{category}</span><span class="event-group">{groups}</span></div><h3><a href="{AT}/events/{id}/">{title}</a></h3><div class="event-meta"><span>{time}</span><span>{place}</span></div>{text}</div><a class="text-link calendar-row-action" href="{AT}/events/{id}/">Event details {ARROW}</a></article>"#,
         iso = start.format("%Y-%m-%d"),
         wd = start.format("%a").to_string().to_uppercase(),
         d = start.format("%-d"),
@@ -232,7 +237,8 @@ fn shell(s: Shell, now: DateTime<Utc>, stale: &[String]) -> String {
             stale.join(", ")
         )
     };
-    PAGE.replace("{{title}}", &html_escape(&s.title))
+    PAGE.replace("{{at}}", AT)
+        .replace("{{title}}", &html_escape(&s.title))
         .replace("{{description}}", &html_escape(&s.description))
         .replace("{{canonical}}", &s.canonical)
         .replace("{{body}}", &s.body)
@@ -249,7 +255,7 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
     let next = events.first();
     let hero_card = match next {
         Some(e) => format!(
-            r#"<a class="hero-event" href="/demo/events/{id}/"><span class="eyebrow">NEXT UP · {when}</span><strong>{title}</strong><span>{time} · {place} {ARROW}</span></a>"#,
+            r#"<a class="hero-event" href="{AT}/events/{id}/"><span class="eyebrow">NEXT UP · {when}</span><strong>{title}</strong><span>{time} · {place} {ARROW}</span></a>"#,
             id = e.id,
             when = e
                 .start
@@ -292,7 +298,7 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
     });
     let spotlight = match welcoming {
         Some(e) => format!(
-            r#"<div class="wrap"><div class="newcomer-spotlight"><div><p class="eyebrow">NEWCOMERS WELCOME</p><h3>{title} · {date}</h3><p>{text}</p></div><a class="text-link" href="/demo/events/{id}/">Event details {ARROW}</a></div></div>"#,
+            r#"<div class="wrap"><div class="newcomer-spotlight"><div><p class="eyebrow">NEWCOMERS WELCOME</p><h3>{title} · {date}</h3><p>{text}</p></div><a class="text-link" href="{AT}/events/{id}/">Event details {ARROW}</a></div></div>"#,
             title = html_escape(&e.title),
             date = e.start.with_timezone(&Berlin).format("%-d %B"),
             text = html_escape(&e.excerpt),
@@ -312,16 +318,16 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
 <div class="hero-copy"><p class="eyebrow"><span class="status-dot"></span> SIX GROUPS, ONE CALENDAR</p>
 <h1>Meetups in Munich for<br><em>rationality, EA and AI safety.</em></h1>
 <p class="hero-intro">Six independent groups run discussions, dinners, workshops and talks in Munich. This page collects them and their events in one place.</p>
-<div class="actions"><a class="button primary" href="/demo/calendar/">See the calendar {ARROW}</a><a class="text-link" href="/demo/#community">The groups →</a></div>
+<div class="actions"><a class="button primary" href="{AT}/calendar/">See the calendar {ARROW}</a><a class="text-link" href="{AT}/#community">The groups →</a></div>
 </div>
-<figure class="hero-image"><img src="/demo/munich.webp" alt="The Monopteros and green lawns in Munich’s Englischer Garten" width="1600" height="979" fetchpriority="high">{hero_card}<figcaption>Photograph: the Englischer Garten, Munich</figcaption></figure>
+<figure class="hero-image"><img src="{AT}/munich.webp" alt="The Monopteros and green lawns in Munich’s Englischer Garten" width="1600" height="979" fetchpriority="high">{hero_card}<figcaption>Photograph: the Englischer Garten, Munich</figcaption></figure>
 </section>
 <div class="topic-strip"><div class="wrap"><span>RATIONALITY</span><i>✳</i><span>EFFECTIVE ALTRUISM</span><i>✳</i><span>PHILOSOPHY</span><i>✳</i><span>AI SAFETY</span><i>✳</i><span>AI POLICY</span></div></div>
-<section class="section wrap" id="events"><div class="section-heading"><div><p class="eyebrow">THIS MONTH AND NEXT</p><h2>Coming up in Munich</h2></div><a href="/demo/calendar/" class="text-link">All events {ARROW}</a></div><div class="home-months">{grids}</div>{empty}<p class="section-note">All times Munich time. Check the organiser’s announcement before setting off.</p></section>
+<section class="section wrap" id="events"><div class="section-heading"><div><p class="eyebrow">THIS MONTH AND NEXT</p><h2>Coming up in Munich</h2></div><a href="{AT}/calendar/" class="text-link">All events {ARROW}</a></div><div class="home-months">{grids}</div>{empty}<p class="section-note">All times Munich time. Check the organiser’s announcement before setting off.</p></section>
 {spotlight}
 {groups}
 {more}
-<section class="wrap newsletter-section"><div class="newsletter-icon" aria-hidden="true">✉</div><div><p class="eyebrow">MAILING LIST</p><h2>Event invites<br><em>by email.</em></h2><p>Pick the topics you want to hear about. No open or click tracking, and you can unsubscribe or delete your data from any email.</p><a class="button primary" href="/demo/subscribe/">Get event invitations {ARROW}</a><a class="text-link" href="https://lists.rationality-munich.com/archive">See the archive →</a></div><div class="newsletter-note"><p>EA, RATIONALITY,<br>OR EVERYTHING.</p><span>Pick what you want invitations about. Unsubscribe at any time.</span></div></section>
+<section class="wrap newsletter-section"><div class="newsletter-icon" aria-hidden="true">✉</div><div><p class="eyebrow">MAILING LIST</p><h2>Event invites<br><em>by email.</em></h2><p>Pick the topics you want to hear about. No open or click tracking, and you can unsubscribe or delete your data from any email.</p><a class="button primary" href="{AT}/subscribe/">Get event invitations {ARROW}</a><a class="text-link" href="https://lists.rationality-munich.com/archive">See the archive →</a></div><div class="newsletter-note"><p>EA, RATIONALITY,<br>OR EVERYTHING.</p><span>Pick what you want invitations about. Unsubscribe at any time.</span></div></section>
 </main>"##,
         groups = groups::section(),
         more = groups::more(),
@@ -345,7 +351,7 @@ fn calendar(events: &[&Event], today: NaiveDate) -> String {
         .collect();
     let rows: String = events.iter().map(|e| event_row(e)).collect();
     let list = if events.is_empty() {
-        r#"<div class="empty-state"><h2>Nothing listed.</h2><p>No upcoming events are announced right now. The groups post as plans firm up, or ask them directly.</p><div class="actions"><a class="button primary" href="/demo/subscribe/">Get event invitations</a><a class="text-link" href="/demo/#community">Explore the groups ↗</a></div></div>"#.to_string()
+        r#"<div class="empty-state"><h2>Nothing listed.</h2><p>No upcoming events are announced right now. The groups post as plans firm up, or ask them directly.</p><div class="actions"><a class="button primary" href="{AT}/subscribe/">Get event invitations</a><a class="text-link" href="{AT}/#community">Explore the groups ↗</a></div></div>"#.to_string()
     } else {
         format!(
             r#"<section class="calendar-month"><div class="month-heading"><h2>Every upcoming event</h2><span>{n} event{s}</span></div>{rows}</section>"#,
@@ -364,7 +370,7 @@ fn calendar(events: &[&Event], today: NaiveDate) -> String {
 <div class="calendar-context"><span><span class="status-dot"></span> {n} upcoming event{s}</span><span>All times Munich local time</span></div>
 {grids}
 {list}
-<aside class="coverage-note"><h3>A note on coverage</h3><p>These are the events the groups have announced on LessWrong, the EA Forum, Meetup, Luma and their own pages. The original listing is the one to trust for registration, language and cost. Anything further off than next month is in the list above but not in the grids.</p><div class="actions"><a class="text-link" href="/demo/#community">Find another group ↗</a><a class="text-link" href="mailto:rationality@hilll.dev?subject=Event%20suggestion%20for%20Rationality%20Munich">Suggest an event ↗</a><a class="text-link" href="/calendar/past/">Past events ↗</a></div></aside>
+<aside class="coverage-note"><h3>A note on coverage</h3><p>These are the events the groups have announced on LessWrong, the EA Forum, Meetup, Luma and their own pages. The original listing is the one to trust for registration, language and cost. Anything further off than next month is in the list above but not in the grids.</p><div class="actions"><a class="text-link" href="{AT}/#community">Find another group ↗</a><a class="text-link" href="mailto:rationality@hilll.dev?subject=Event%20suggestion%20for%20Rationality%20Munich">Suggest an event ↗</a><a class="text-link" href="/calendar/past/">Past events ↗</a></div></aside>
 </main>"##,
         n = events.len(),
         s = plural(events.len()),
@@ -408,7 +414,7 @@ fn event_page(e: &Event, now: DateTime<Utc>) -> String {
     };
     format!(
         r##"<main id="main" class="wrap detail-page">
-<a class="text-link back-link" href="/demo/calendar/">← All events</a>
+<a class="text-link back-link" href="{AT}/calendar/">← All events</a>
 <div class="detail-grid"><article><div class="detail-labels"><span class="tag">{category}</span><span class="eyebrow">{groups}</span></div><h1>{title}</h1>{lede}
 <div class="detail-body"><h2>What to know before you go</h2><p>This event is organised by {groups}. The full announcement has the latest information and any registration instructions.</p>
 <p>Events are in English, unless the announcement says otherwise — PauseAI Munich’s are sometimes in German. Cost, registration, capacity, preparation and step-free access are all things only the organiser knows; ask the host if the announcement does not say.</p>
@@ -446,7 +452,7 @@ fn subscribe() -> String {
 <div class="signup-expectations"><h3>What to expect</h3><p>Invitations to community events, as often as there are events worth an email. No open or click tracking, and you can delete your data from any email.</p><a class="text-link" href="https://lists.rationality-munich.com/archive">Read the archive {ARROW}</a></div></div>
 <div class="signup-card"><h2>Sign up</h2><p class="form-intro">The list is run on the site’s own mail server; the form below is the real one.</p>
 <a class="button primary submit-button" href="https://lists.rationality-munich.com/subscription/form">Go to the signup form {ARROW}</a>
-<p class="small-note">This demo does not handle your address itself — it hands you to the mailing list the live site already runs, so nothing here collects anything. <a href="/demo/privacy/">Privacy details</a></p></div>
+<p class="small-note">This demo does not handle your address itself — it hands you to the mailing list the live site already runs, so nothing here collects anything. <a href="{AT}/privacy/">Privacy details</a></p></div>
 </main>"##
     )
 }
@@ -495,7 +501,14 @@ fn about(now: DateTime<Utc>) -> String {
 <article class="prose"><h2>It is the real calendar</h2><p>These pages are built by the same hourly job that builds <a href="/calendar">/calendar</a>, from the same events, merged across LessWrong, the EA Forum, Meetup, Luma and the groups’ own pages. Nothing here is a copy kept by hand: this page was written at {updated}, and will be written again within the hour.</p>
 <p>It is plain HTML and one stylesheet. No script runs, so it works the way the rest of the site does — with JavaScript off, in a text browser, and without waiting on anyone else’s API.</p>
 <h2>What is here</h2><ul><li>A hub page: what is on, the six groups, and the further Munich groups whose events are in the calendar but off by default.</li><li>A calendar: this month and next as week grids, then every announced event as a list.</li><li>A page per event, with the organiser’s announcement and an .ics download.</li></ul>
-<h2>What is missing before it could replace the hub</h2><ul><li>The group filters the live calendar has, past events and the statistics pages.</li><li>A decision about which groups show by default, and whether the hub keeps its plain list for people who prefer it.</li><li>Organisers’ approval of how their groups are described here.</li><li>Dark mode, which the live pages have and this design does not.</li><li>Removing the noindex once it is meant to be found.</li></ul>
+<h2>What is missing before it could replace the hub</h2><p>The hub goes when this takes over, so everything it does has to be here first:</p>
+<ul><li>The group filters the live calendar has, past events, and the statistics pages. The calendar’s own URLs would also need a decision: this page lives at /demo/calendar, and /calendar is already taken.</li>
+<li>The tools page — the Petrov and Arkhipov Day ceremonies this site hosts for other groups to use.</li>
+<li>The 404 page, robots.txt, sitemap.xml and .well-known/security.txt, which are all still in the hub’s directory.</li>
+<li>Dark mode, which the hub has and this design does not.</li>
+<li>Organisers’ approval of how their groups are described here, though every line of that is the hub’s own wording.</li>
+<li>Removing the noindex, and the notice at the top of every page, once it is meant to be found.</li></ul>
+<p>Moving it is one constant: the pages are built with their prefix in one place, so /demo becomes / without touching a link.</p>
 <h2>Photo &amp; artwork credits</h2><p>The photograph shows Munich’s Englischer Garten; it is location imagery, not a photograph of the community.</p>
 <p><a href="https://commons.wikimedia.org/wiki/File:Monopteros_in_Englischer_Garten,_Munich.JPG">Monopteros in Englischer Garten, Munich</a> by High Contrast (2013), licensed under <a href="https://creativecommons.org/licenses/by/3.0/de/deed.en">CC BY 3.0 Germany</a>. Optimised and cropped for this layout.</p>
 <p>The social-sharing card is AI-generated typographic artwork made for this demo.</p></article>
@@ -528,7 +541,7 @@ pub fn build(
         .filter(|e| e.end_or_default() >= now && e.in_any(DEFAULT_GROUPS))
         .collect();
 
-    write(&dir.join("demo.css"), CSS)?;
+    write(&dir.join("style.css"), CSS)?;
     write(&dir.join("favicon.svg"), FAVICON)?;
     fs::write(dir.join("munich.webp"), PHOTO)?;
     fs::write(dir.join("og.png"), OG)?;
@@ -539,7 +552,7 @@ pub fn build(
             Shell {
                 title: "Rationality Munich — events, groups and meetups".into(),
                 description: "Munich's rationality, effective altruism, philosophy and AI safety groups, and everything they have coming up.".into(),
-                canonical: format!("{BASE}/"),
+                canonical: format!("{SITE}{AT}/"),
                 body: home(&upcoming, today),
             },
         ),
@@ -548,7 +561,7 @@ pub fn build(
             Shell {
                 title: "Upcoming events · Rationality Munich".into(),
                 description: "Every event the Munich rationality, EA and AI safety groups have announced, this month and next as a calendar.".into(),
-                canonical: format!("{BASE}/calendar/"),
+                canonical: format!("{SITE}{AT}/calendar/"),
                 body: calendar(&upcoming, today),
             },
         ),
@@ -557,7 +570,7 @@ pub fn build(
             Shell {
                 title: "Event invitations · Rationality Munich".into(),
                 description: "Get an email when the Munich groups announce an event in the topics you pick.".into(),
-                canonical: format!("{BASE}/subscribe/"),
+                canonical: format!("{SITE}{AT}/subscribe/"),
                 body: subscribe(),
             },
         ),
@@ -566,7 +579,7 @@ pub fn build(
             Shell {
                 title: "Privacy · Rationality Munich".into(),
                 description: "No cookies, no analytics, no tracking. What the mailing list stores, and how to delete it.".into(),
-                canonical: format!("{BASE}/privacy/"),
+                canonical: format!("{SITE}{AT}/privacy/"),
                 body: privacy(),
             },
         ),
@@ -575,7 +588,7 @@ pub fn build(
             Shell {
                 title: "Impressum · Rationality Munich".into(),
                 description: "Legal notice for rationality-munich.com.".into(),
-                canonical: format!("{BASE}/impressum/"),
+                canonical: format!("{SITE}{AT}/impressum/"),
                 body: impressum(),
             },
         ),
@@ -584,7 +597,7 @@ pub fn build(
             Shell {
                 title: "About this demo · Rationality Munich".into(),
                 description: "A design proposal for rationality-munich.com, built from the live calendar every hour.".into(),
-                canonical: format!("{BASE}/about/"),
+                canonical: format!("{SITE}{AT}/about/"),
                 body: about(now),
             },
         ),
@@ -604,7 +617,7 @@ pub fn build(
                     } else {
                         e.excerpt.clone()
                     },
-                    canonical: format!("{BASE}/events/{}/", e.id),
+                    canonical: format!("{SITE}{AT}/events/{}/", e.id),
                     body: event_page(e, now),
                 },
                 now,
@@ -664,7 +677,9 @@ mod tests {
         let upcoming: Vec<&Event> = events.iter().collect();
         let today = NaiveDate::from_ymd_opt(2026, 9, 10).unwrap();
         let grid = month_grid(2026, 9, &upcoming, today);
-        assert!(grid.contains(r#"href="/demo/events/2026-09-26-community-dinner/""#));
+        assert!(grid.contains(&format!(
+            r#"href="{AT}/events/2026-09-26-community-dinner/""#
+        )));
         assert!(grid.contains(r#"<td class="day busy"><span class="day-number">26"#));
         // Today is marked, and only today.
         assert_eq!(grid.matches(r#"class="day today""#).count(), 1);
@@ -688,6 +703,45 @@ mod tests {
         ] {
             assert!(!html.contains("<script>alert"), "{html}");
             assert!(!html.contains("<img src=x"));
+        }
+    }
+
+    /// Every link the demo makes to itself has to go through `AT`, or the day
+    /// it becomes the hub half of them will still point at /demo.
+    #[test]
+    fn nothing_spells_the_prefix_out_by_hand() {
+        let events = sample();
+        let upcoming: Vec<&Event> = events.iter().collect();
+        let now = events[0].start;
+        let today = now.with_timezone(&Berlin).date_naive();
+        let pages = [
+            PAGE.replace("{{at}}", AT),
+            home(&upcoming, today),
+            calendar(&upcoming, today),
+            event_page(upcoming[0], now),
+            subscribe(),
+            privacy(),
+            impressum(),
+            about(now),
+            groups::section(),
+            groups::more(),
+        ];
+        for html in &pages {
+            for link in html
+                .split("href=\"")
+                .skip(1)
+                .filter_map(|s| s.split('"').next())
+            {
+                if !link.starts_with('/') {
+                    continue;
+                }
+                // /calendar is the other half of this program's output and
+                // keeps its own URLs; everything else is ours.
+                assert!(
+                    link.starts_with(AT) || link.starts_with("/calendar"),
+                    "{link} is not under {AT}"
+                );
+            }
         }
     }
 

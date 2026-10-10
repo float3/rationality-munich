@@ -114,5 +114,12 @@ location block is in float3/nixos, beside the one for `/calendar/`.
 here, and every line of it is the hub's own text — the demo must not say
 things about a group that its organisers have not. The privacy policy and
 Impressum are carried in `src/demo/mod.rs` rather than linked, because the
-hub's copies go when the hub does. The stylesheet is `src/demo/demo.css`, and
-the photograph and sharing card are compiled into the binary beside it.
+hub's copies go when the hub does. The stylesheet is `src/demo/style.css`,
+and the photograph and sharing card are compiled into the binary beside it.
+
+When the demo does replace the hub, the move is one constant: `AT` in
+`src/demo/mod.rs` goes from `"/demo"` to `""`, and every link, canonical URL
+and asset path follows. A test fails if anything spells the prefix out by
+hand. Point nginx's `/` at the output, and the things still only in `www/` —
+the tools page, 404, robots.txt, sitemap.xml, security.txt — have to come
+along; `/demo/about/` keeps that list.
