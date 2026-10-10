@@ -209,7 +209,7 @@ fn event_row(e: &Event) -> String {
         format!("<p>{}</p>", html_escape(&e.excerpt))
     };
     format!(
-        r#"<article class="calendar-row"><time datetime="{iso}" class="calendar-date"><span>{wd}</span><strong>{d}</strong><span>{mon}</span></time><div class="calendar-row-content"><div class="calendar-row-labels"><span class="tag">{category}</span><span class="event-group">{groups}</span></div><h3><a href="{AT}/events/{id}/">{title}</a></h3><div class="event-meta"><span>{time}</span><span>{place}</span></div>{text}</div><a class="text-link calendar-row-action" href="{AT}/events/{id}/">Event details {ARROW}</a></article>"#,
+        r#"<article id="{id}" class="calendar-row"><time datetime="{iso}" class="calendar-date"><span>{wd}</span><strong>{d}</strong><span>{mon}</span></time><div class="calendar-row-content"><div class="calendar-row-labels"><span class="tag">{category}</span><span class="event-group">{groups}</span></div><h3><a href="{AT}/events/{id}/">{title}</a></h3><div class="event-meta"><span>{time}</span><span>{place}</span></div>{text}</div><a class="text-link calendar-row-action" href="{AT}/events/{id}/">Event details {ARROW}</a></article>"#,
         iso = start.format("%Y-%m-%d"),
         wd = start.format("%a").to_string().to_uppercase(),
         d = start.format("%-d"),
@@ -849,6 +849,23 @@ mod tests {
                 // The old prefix, in case one got left behind.
                 assert!(!link.starts_with("/demo"), "{link} still says /demo");
             }
+        }
+    }
+
+    /// feed.xml, rss.xml and every .ics point at /calendar#<id>, and have for
+    /// as long as people have been subscribing. The rows keep those anchors.
+    #[test]
+    fn the_calendar_keeps_the_anchors_the_feeds_link_to() {
+        let events = sample();
+        let upcoming: Vec<&Event> = events.iter().collect();
+        let today = upcoming[0].start.with_timezone(&Berlin).date_naive();
+        let html = calendar(&upcoming, today);
+        for e in &upcoming {
+            assert!(
+                html.contains(&format!(r#"<article id="{}""#, e.id)),
+                "{} has no anchor",
+                e.id
+            );
         }
     }
 
