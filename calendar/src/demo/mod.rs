@@ -10,10 +10,12 @@
 //! - `index.html`: the hub — what is on, the groups, a first visit, the FAQ
 //! - `calendar/index.html`: this month and next as week grids, then the list
 //! - `events/<id>/index.html`: one page per upcoming event
-//! - `subscribe/`, `privacy/`, `about/`: the pages that are just words
+//! - `tools/`: what this site hosts for other groups to use
+//! - `subscribe/`, `privacy/`, `impressum/`, `about/`: the pages of words
 //! - `style.css`, `og.png`, `munich.webp`, `favicon.svg`
 
 mod groups;
+mod tools;
 
 use std::fs;
 use std::path::Path;
@@ -327,6 +329,7 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
 {spotlight}
 {groups}
 {more}
+<section class="section wrap" id="tools"><div class="section-heading"><div><p class="eyebrow">TOOLS</p><h2>Things we host</h2></div><a class="text-link" href="{AT}/tools/">All three {ARROW}</a></div><p class="section-note">AnkiQuest, and the Petrov and Arkhipov Day ceremonies. Written for this community, free to use for your own.</p></section>
 <section class="wrap newsletter-section"><div class="newsletter-icon" aria-hidden="true">✉</div><div><p class="eyebrow">MAILING LIST</p><h2>Event invites<br><em>by email.</em></h2><p>Pick the topics you want to hear about. No open or click tracking, and you can unsubscribe or delete your data from any email.</p><a class="button primary" href="{AT}/subscribe/">Get event invitations {ARROW}</a><a class="text-link" href="https://lists.rationality-munich.com/archive">See the archive →</a></div><div class="newsletter-note"><p>EA, RATIONALITY,<br>OR EVERYTHING.</p><span>Pick what you want invitations about. Unsubscribe at any time.</span></div></section>
 </main>"##,
         groups = groups::section(),
@@ -503,7 +506,7 @@ fn about(now: DateTime<Utc>) -> String {
 <h2>What is here</h2><ul><li>A hub page: what is on, the six groups, and the further Munich groups whose events are in the calendar but off by default.</li><li>A calendar: this month and next as week grids, then every announced event as a list.</li><li>A page per event, with the organiser’s announcement and an .ics download.</li></ul>
 <h2>What is missing before it could replace the hub</h2><p>The hub goes when this takes over, so everything it does has to be here first:</p>
 <ul><li>The group filters the live calendar has, past events, and the statistics pages. The calendar’s own URLs would also need a decision: this page lives at /demo/calendar, and /calendar is already taken.</li>
-<li>The tools page — the Petrov and Arkhipov Day ceremonies this site hosts for other groups to use.</li>
+
 <li>The 404 page, robots.txt, sitemap.xml and .well-known/security.txt, which are all still in the hub’s directory.</li>
 <li>Dark mode, which the hub has and this design does not.</li>
 <li>Organisers’ approval of how their groups are described here, though every line of that is the hub’s own wording.</li>
@@ -563,6 +566,15 @@ pub fn build(
                 description: "Every event the Munich rationality, EA and AI safety groups have announced, this month and next as a calendar.".into(),
                 canonical: format!("{SITE}{AT}/calendar/"),
                 body: calendar(&upcoming, today),
+            },
+        ),
+        (
+            "tools/index.html",
+            Shell {
+                title: "Tools · Rationality Munich".into(),
+                description: "AnkiQuest, and the Petrov and Arkhipov Day ceremonies: things this site hosts, free for other groups to use.".into(),
+                canonical: format!("{SITE}{AT}/tools/"),
+                body: tools::page(),
             },
         ),
         (

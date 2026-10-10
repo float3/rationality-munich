@@ -105,6 +105,7 @@ the site does.
 | `/demo` | the hub: what is on, the six groups, the further groups |
 | `/demo/calendar` | this month and next as week grids, then every announced event |
 | `/demo/events/<id>` | one event, with the organiser's announcement and an .ics |
+| `/demo/tools` | AnkiQuest and the Petrov and Arkhipov Day ceremonies |
 | `/demo/subscribe`, `/demo/privacy`, `/demo/impressum`, `/demo/about` | the pages that are only words |
 
 nginx serves `/demo/` from that directory rather than from `www/`; the
@@ -121,5 +122,5 @@ When the demo does replace the hub, the move is one constant: `AT` in
 `src/demo/mod.rs` goes from `"/demo"` to `""`, and every link, canonical URL
 and asset path follows. A test fails if anything spells the prefix out by
 hand. Point nginx's `/` at the output, and the things still only in `www/` —
-the tools page, 404, robots.txt, sitemap.xml, security.txt — have to come
-along; `/demo/about/` keeps that list.
+404, robots.txt, sitemap.xml, security.txt — have to come along;
+`/demo/about/` keeps that list.
