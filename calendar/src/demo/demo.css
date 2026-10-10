@@ -32,3 +32,8 @@
    showing a short list as if it were the whole truth. */
 .stale-note{background:#f6edce;border:1px solid #d6c07f;border-radius:4px;padding:14px 18px;font-size:.9rem;line-height:1.6;margin-top:22px}
 .updated-note{font-size:.8rem;color:var(--body)}
+.more-groups{margin:0;padding:0;list-style:none;border-top:1px solid var(--border)}
+.more-groups li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;padding:15px 0;border-bottom:1px solid var(--border)}
+.more-groups a{font-size:1.1rem;font-weight:600}
+.more-groups a:hover,.more-groups a:focus-visible{text-decoration:underline;text-underline-offset:5px}
+.more-groups span{font-size:.9rem;color:var(--body)}

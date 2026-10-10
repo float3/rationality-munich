@@ -1,14 +1,16 @@
-//! The group directory, and the labels the design hangs off it.
+//! The group directory: the only part of /demo written by hand rather than
+//! read from the feeds.
 //!
-//! The same six groups the hub lists, with the same links; the sentence under
-//! each name is longer here because the design has room for it. Keys are the
-//! ones in `event::GROUPS`.
+//! Every line here is the hub's own text for that group. Nothing is
+//! embroidered: a design with room for three sentences is not a reason to
+//! invent two, and a sentence about a group that nobody there has read is
+//! worse than a short one. Keys are the ones in `event::GROUPS`.
 
 use crate::event::Event;
 use crate::render::html_escape;
 
-/// A short label for an event, from the group running it. Decoration, not a
-/// claim about the event: the announcement is the one that knows.
+/// A short label for an event, from the group running it. A heading for the
+/// design, not a claim about the event: the announcement is what knows.
 pub fn category(e: &Event) -> &'static str {
     for key in &e.groups {
         let label = match key.as_str() {
@@ -25,27 +27,28 @@ pub fn category(e: &Event) -> &'static str {
 }
 
 struct Group {
-    number: &'static str,
     topic: &'static str,
     name: &'static str,
     what: &'static str,
-    formats: &'static str,
-    primary: (&'static str, &'static str),
+    /// What the group runs on a schedule, from the hub's "Regular events".
+    /// Empty where it has nothing regular.
+    regular: &'static str,
     links: &'static [(&'static str, &'static str)],
 }
 
+/// The six the hub lists, in its order. The first link is the one the row
+/// leads with.
 const GROUPS: &[Group] = &[
     Group {
-        number: "01",
         topic: "RATIONALITY",
         name: "LW/ACX Munich",
-        what: "Papers, essays and blog posts, discussed over dinner twice a month. The LessWrong and Astral Codex Ten community also runs a monthly estimation game with EA Munich.",
-        formats: "Dinner discussions · monthly thinking games",
-        primary: (
-            "LessWrong group page",
-            "https://www.lesswrong.com/groups/EBvaNj4oAn5nkkzbJ",
-        ),
+        what: "LessWrong and Astral Codex Ten meetups.",
+        regular: "Community dinner every second Wednesday · the Estimation Game in the last seven days of each month",
         links: &[
+            (
+                "LessWrong",
+                "https://www.lesswrong.com/groups/EBvaNj4oAn5nkkzbJ",
+            ),
             (
                 "WhatsApp",
                 "https://chat.whatsapp.com/JekHeDBFokxLlmceXsYhLv",
@@ -54,13 +57,12 @@ const GROUPS: &[Group] = &[
         ],
     },
     Group {
-        number: "02",
         topic: "EFFECTIVE ALTRUISM",
         name: "EA Munich",
-        what: "Socials, introductory programmes, workshops and talks on using evidence and careful reasoning to help others. Newcomers are welcome, including people coming on their own.",
-        formats: "Students & professionals · no prior knowledge needed",
-        primary: ("eamuenchen.de", "https://www.eamuenchen.de/"),
+        what: "Socials, intro programmes, workshops and talks.",
+        regular: "Community dinner monthly, near the end of the month",
         links: &[
+            ("Website", "https://www.eamuenchen.de/"),
             (
                 "EA Forum",
                 "https://forum.effectivealtruism.org/groups/E8ruG2KzaNpynpGXK",
@@ -81,73 +83,70 @@ const GROUPS: &[Group] = &[
         ],
     },
     Group {
-        number: "03",
-        topic: "AI SAFETY",
-        name: "Munich AI Safety",
-        what: "For people working on AI safety in Munich, technical or governance, and people upskilling in it.",
-        formats: "Working and upskilling · technical and governance",
-        primary: ("Upcoming on Luma", "https://luma.com/munich-ai-safety"),
-        links: &[(
-            "WhatsApp",
-            "https://chat.whatsapp.com/BAvF88QyfrDKZMKo7whRX7",
-        )],
-    },
-    Group {
-        number: "04",
-        topic: "AI SAFETY",
-        name: "AI Safety Munich Student Club",
-        what: "Reading groups, research and workshops on compute verification and AI governance. The club’s introduction lists its activities, branch leads and membership details.",
-        formats: "Student community · research · workshops",
-        primary: (
-            "The club’s info doc",
-            "https://docs.google.com/document/d/1jAWHNtcdX87Iaf55VynOcs-AEjwv_GOEkOO8V_Cef_U/view",
-        ),
-        links: &[(
-            "WhatsApp",
-            "https://chat.whatsapp.com/CpL5c6Ov7PS2OKr18Kvd2m",
-        )],
-    },
-    Group {
-        number: "05",
         topic: "AI POLICY",
         name: "PauseAI Munich",
-        what: "The Munich chapter of PauseAI, which campaigns on the risks of advanced AI. The chapter page describes the group’s approach and how to get involved.",
-        formats: "Local chapter · advocacy",
-        primary: (
-            "pause-ai.de",
-            "https://www.pause-ai.de/lokalgruppen#:~:text=M%C3%BCnchen",
-        ),
+        what: "The Munich chapter of PauseAI.",
+        regular: "",
         links: &[
+            (
+                "Website",
+                "https://www.pause-ai.de/lokalgruppen#:~:text=M%C3%BCnchen",
+            ),
             (
                 "WhatsApp",
                 "https://chat.whatsapp.com/DJh8ulxyBshLCkypMte7HR",
             ),
-            ("Email the chapter", "mailto:germany+munich@pauseai.info"),
+            ("Email", "mailto:germany+munich@pauseai.info"),
         ],
     },
     Group {
-        number: "06",
+        topic: "AI SAFETY",
+        name: "Munich AI Safety",
+        what: "For people working on AI safety in Munich, technical or governance, and people upskilling in it.",
+        regular: "",
+        links: &[
+            ("Luma", "https://luma.com/munich-ai-safety"),
+            (
+                "WhatsApp",
+                "https://chat.whatsapp.com/BAvF88QyfrDKZMKo7whRX7",
+            ),
+        ],
+    },
+    Group {
+        topic: "AI SAFETY",
+        name: "AI Safety Munich Student Club",
+        what: "A student club for AI safety in Munich.",
+        regular: "Compute verification discussion every Tuesday, 18:00, online; newcomers welcome",
+        links: &[
+            (
+                "Info doc",
+                "https://docs.google.com/document/d/1jAWHNtcdX87Iaf55VynOcs-AEjwv_GOEkOO8V_Cef_U/view",
+            ),
+            (
+                "WhatsApp",
+                "https://chat.whatsapp.com/CpL5c6Ov7PS2OKr18Kvd2m",
+            ),
+        ],
+    },
+    Group {
         topic: "PHILOSOPHY",
         name: "Philosophia Munich",
-        what: "A student-run philosophy society open to everyone, including non-students. Discussions are in English, usually after reading a paper. No academic philosophy background is required.",
-        formats: "English · weekly during semester · pre-reading",
-        primary: (
-            "philosophiamunich.org",
-            "https://www.philosophiamunich.org/",
-        ),
-        links: &[],
+        what: "Philosophy events and discussions in Munich.",
+        regular: "",
+        links: &[("Website", "https://www.philosophiamunich.org/")],
     },
 ];
 
 pub fn section() -> String {
     let rows: String = GROUPS
         .iter()
-        .map(|g| {
-            let more = if g.links.is_empty() {
+        .enumerate()
+        .map(|(i, g)| {
+            let (first, rest) = g.links.split_first().expect("every group has a link");
+            let more = if rest.is_empty() {
                 String::new()
             } else {
-                let items: String = g
-                    .links
+                let items: String = rest
                     .iter()
                     .map(|(label, url)| {
                         format!(
@@ -160,60 +159,98 @@ pub fn section() -> String {
                     .collect();
                 format!("<details><summary>More ways to connect</summary><ul>{items}</ul></details>")
             };
+            let regular = if g.regular.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    r#"<div class="group-formats">{}</div>"#,
+                    html_escape(g.regular)
+                )
+            };
             format!(
-                r#"<article class="group-row"><div class="group-number">{number}<span>↗</span></div><div class="group-info"><p class="eyebrow">{topic}</p><h3>{name}</h3><p>{what}</p><div class="group-formats">{formats}</div></div><div class="group-actions"><a class="text-link" href="{url}">{label}<span aria-hidden="true">↗</span></a>{more}</div></article>"#,
-                number = g.number,
+                r#"<article class="group-row"><div class="group-number">{number:02}<span>↗</span></div><div class="group-info"><p class="eyebrow">{topic}</p><h3>{name}</h3><p>{what}</p>{regular}</div><div class="group-actions"><a class="text-link" href="{url}">{label}<span aria-hidden="true">↗</span></a>{more}</div></article>"#,
+                number = i + 1,
                 topic = g.topic,
                 name = html_escape(g.name),
                 what = html_escape(g.what),
-                formats = html_escape(g.formats),
-                url = html_escape(g.primary.1),
-                label = html_escape(g.primary.0),
+                url = html_escape(first.1),
+                label = html_escape(first.0),
             )
         })
         .collect();
     format!(
-        r#"<section class="section wrap" id="community"><div class="section-heading"><div><p class="eyebrow">THE GROUPS</p><h2>Six groups in Munich</h2></div><p class="heading-aside">Each has its own organisers,<br>events and way of doing things.</p></div><div class="group-list">{rows}</div><p class="section-note">The groups announce their own events; this page only collects them. More Munich groups are <a class="underlined" href="/#more-groups">listed on the hub</a>.</p></section>"#
+        r#"<section class="section wrap" id="community"><div class="section-heading"><div><p class="eyebrow">THE GROUPS</p><h2>Six groups in Munich</h2></div><p class="heading-aside">Each has its own organisers<br>and runs its own events.</p></div><div class="group-list">{rows}</div><p class="section-note">Events are in English; PauseAI Munich’s are sometimes in German. The groups announce their own events and this page only collects them, so the announcement is what to trust for cost, registration and access.</p></section>"#
     )
 }
 
-/// What newcomers ask. `<details>` rather than a script: it opens either way.
-const QUESTIONS: &[(&str, &str)] = &[
+/// The further Munich groups the hub lists. Their events are in the calendar
+/// but off by default, so they are names and links here rather than rows.
+const MORE: &[(&str, &str, &str)] = &[
     (
-        "Do I need to know about rationality or effective altruism?",
-        "EA Munich explicitly welcomes people without prior knowledge, and the monthly estimation game needs none. Other events are more focused: Philosophia’s discussions usually expect you to have read a paper. The announcement for your event says which.",
+        "Philosophy of ML reading group",
+        "https://tomster.userweb.mwn.de/mlregr/",
+        "at the MCMP, every couple of weeks",
     ),
     (
-        "Can I come on my own?",
-        "Yes — most people at their first one did. A short message to the host beforehand makes it easier to find the group when you arrive. Each group organises its own events.",
+        "Gödel, Escher, Bach reading group",
+        "https://www.meetup.com/munich-weekly-activities/",
+        "through Munich Weekly Activities",
     ),
     (
-        "Are events in English or German?",
-        "Philosophia Munich holds its discussions in English. For the others it depends on who turns up: check the announcement or ask the host. An English listing does not guarantee the language in the room.",
+        "AGI Munich",
+        "https://www.meetup.com/munchen-artificial-general-intelligence-meetup-group/",
+        "talks on artificial general intelligence",
     ),
     (
-        "What does it cost, and do I need to register?",
-        "Check the original announcement for registration, capacity and any costs. Some gatherings are in cafés or private homes, so the host may need to hear from you first. Food and drink arrangements vary.",
+        "Skeptics in the Pub",
+        "https://www.meetup.com/skeptics-in-the-pub-munchen/",
+        "talks and discussion, in German",
     ),
     (
-        "What about accessibility or student eligibility?",
-        "Ask the organiser about step-free access, seating, noise, or anything else you need. For the AI Safety Munich Student Club, its info doc says who can join.",
+        "Science Club Munich",
+        "https://www.meetup.com/science-club-munich/",
+        "",
+    ),
+    (
+        "Minds in Motion",
+        "https://www.meetup.com/minds-in-motion-munich/",
+        "Socrates Café",
+    ),
+    (
+        "Lifelong Curious & Book Lovers",
+        "https://www.meetup.com/lifelong__curious/",
+        "book club",
+    ),
+    (
+        "Silent Book Club",
+        "https://www.meetup.com/silent-book-club/",
+        "",
+    ),
+    (
+        "Culture Club Munich",
+        "https://www.meetup.com/culture-club-munich/",
+        "",
     ),
 ];
 
-pub fn faq() -> String {
-    let items: String = QUESTIONS
+pub fn more() -> String {
+    let items: String = MORE
         .iter()
-        .map(|(q, a)| {
+        .map(|(name, url, note)| {
+            let note = if note.is_empty() {
+                String::new()
+            } else {
+                format!("<span>{}</span>", html_escape(note))
+            };
             format!(
-                r#"<details><summary class="faq-question">{q}</summary><div class="faq-answer"><p>{a}</p></div></details>"#,
-                q = html_escape(q),
-                a = html_escape(a),
+                r#"<li><a href="{url}">{name}</a>{note}</li>"#,
+                url = html_escape(url),
+                name = html_escape(name),
             )
         })
         .collect();
     format!(
-        r#"<section class="faq-section"><div class="wrap faq-grid"><div><p class="eyebrow">PRACTICAL QUESTIONS</p><h2>Before you<br><em>come along.</em></h2><p>The details vary between groups.</p></div><div class="faq-list">{items}</div></div></section>"#
+        r#"<section class="section wrap" id="more-groups"><div class="section-heading"><div><p class="eyebrow">FURTHER AFIELD</p><h2>More groups in Munich</h2></div><p class="heading-aside">Their events are in the <a class="underlined" href="/calendar">calendar</a>,<br>switched off by default.</p></div><ul class="more-groups">{items}</ul><p class="section-note">Also: <a class="underlined" href="https://www.cas.lmu.de/de/veranstaltungen/">LMU CAS</a>, <a class="underlined" href="https://www.tedxmuenchen.com/">TEDxMünchen</a>, <a class="underlined" href="https://www.tedxtum.com/">TEDxTUM</a>, <a class="underlined" href="https://www.submuc.de/">submuc</a>. Via the <a class="underlined" href="https://recthink.substack.com/p/germany">Recreational Thinking directory</a>.</p></section>"#
     )
 }
 
@@ -223,8 +260,7 @@ mod tests {
     use crate::event::GROUPS as KEYS;
 
     #[test]
-    fn every_group_on_the_hub_has_a_row_and_a_category() {
-        // The six the hub shows by default, by name.
+    fn every_group_the_hub_shows_has_a_row_and_a_category() {
         for key in ["acx", "ea", "mais", "aisafety", "philosophia", "pauseai"] {
             let name = KEYS.iter().find(|(k, _)| *k == key).expect("a known key").1;
             assert!(GROUPS.iter().any(|g| g.name == name), "{name} is missing");
@@ -235,13 +271,17 @@ mod tests {
     }
 
     #[test]
-    fn the_directory_and_the_faq_escape_what_they_print() {
-        let html = section() + &faq();
+    fn the_directory_escapes_what_it_prints_and_says_what_language() {
+        let html = section() + &more();
         assert!(!html.contains("<script"));
-        assert!(html.contains("Philosophia Munich"));
         assert_eq!(
             html.matches("<article class=\"group-row\">").count(),
             GROUPS.len()
         );
+        // Every secondary link and every further group, each once.
+        let secondary: usize = GROUPS.iter().map(|g| g.links.len() - 1).sum();
+        assert_eq!(html.matches("<li>").count(), secondary + MORE.len());
+        // The one thing newcomers ask that we actually know the answer to.
+        assert!(html.contains("sometimes in German"));
     }
 }

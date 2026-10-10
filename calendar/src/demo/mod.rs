@@ -312,20 +312,19 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
 <div class="hero-copy"><p class="eyebrow"><span class="status-dot"></span> SIX GROUPS, ONE CALENDAR</p>
 <h1>Meetups in Munich for<br><em>rationality, EA and AI safety.</em></h1>
 <p class="hero-intro">Six independent groups run discussions, dinners, workshops and talks in Munich. This page collects them and their events in one place.</p>
-<div class="actions"><a class="button primary" href="/demo/calendar/">See the calendar {ARROW}</a><a class="text-link" href="/demo/#first-visit">Your first visit →</a></div>
+<div class="actions"><a class="button primary" href="/demo/calendar/">See the calendar {ARROW}</a><a class="text-link" href="/demo/#community">The groups →</a></div>
 </div>
 <figure class="hero-image"><img src="/demo/munich.webp" alt="The Monopteros and green lawns in Munich’s Englischer Garten" width="1600" height="979" fetchpriority="high">{hero_card}<figcaption>Photograph: the Englischer Garten, Munich</figcaption></figure>
 </section>
 <div class="topic-strip"><div class="wrap"><span>RATIONALITY</span><i>✳</i><span>EFFECTIVE ALTRUISM</span><i>✳</i><span>PHILOSOPHY</span><i>✳</i><span>AI SAFETY</span><i>✳</i><span>AI POLICY</span></div></div>
 <section class="section wrap" id="events"><div class="section-heading"><div><p class="eyebrow">THIS MONTH AND NEXT</p><h2>Coming up in Munich</h2></div><a href="/demo/calendar/" class="text-link">All events {ARROW}</a></div><div class="home-months">{grids}</div>{empty}<p class="section-note">All times Munich time. Check the organiser’s announcement before setting off.</p></section>
 {spotlight}
-<section class="first-visit" id="first-visit"><div class="wrap first-grid"><div><p class="eyebrow">FIRST VISIT</p><h2>How a first visit<br><em>usually works.</em></h2><p>You don’t need to know the difference between the groups, or anything about rationality, to turn up at one of their events.</p><a class="text-link" href="mailto:rationality@hilll.dev?subject=My%20first%20Munich%20meetup">Ask about your first visit {ARROW}</a></div><ol class="steps"><li><span>01</span><div><h3>Pick an event</h3><p>A dinner, a discussion or a game. The calendar lists them all.</p></div></li><li><span>02</span><div><h3>Get the practical details</h3><p>Check the original announcement for language, preparation, price, access, and registration.</p></div></li><li><span>03</span><div><h3>Say hello to the host</h3><p>A short message beforehand makes it easier to find the group when you arrive.</p></div></li></ol></div></section>
 {groups}
-{faq}
+{more}
 <section class="wrap newsletter-section"><div class="newsletter-icon" aria-hidden="true">✉</div><div><p class="eyebrow">MAILING LIST</p><h2>Event invites<br><em>by email.</em></h2><p>Pick the topics you want to hear about. No open or click tracking, and you can unsubscribe or delete your data from any email.</p><a class="button primary" href="/demo/subscribe/">Get event invitations {ARROW}</a><a class="text-link" href="https://lists.rationality-munich.com/archive">See the archive →</a></div><div class="newsletter-note"><p>EA, RATIONALITY,<br>OR EVERYTHING.</p><span>Pick what you want invitations about. Unsubscribe at any time.</span></div></section>
 </main>"##,
         groups = groups::section(),
-        faq = groups::faq(),
+        more = groups::more(),
     )
 }
 
@@ -412,7 +411,7 @@ fn event_page(e: &Event, now: DateTime<Utc>) -> String {
 <a class="text-link back-link" href="/demo/calendar/">← All events</a>
 <div class="detail-grid"><article><div class="detail-labels"><span class="tag">{category}</span><span class="eyebrow">{groups}</span></div><h1>{title}</h1>{lede}
 <div class="detail-body"><h2>What to know before you go</h2><p>This event is organised by {groups}. The full announcement has the latest information and any registration instructions.</p>
-<dl class="practical-list"><div><dt>Language &amp; preparation</dt><dd>Check the organiser’s announcement, or ask the host what to expect.</dd></div><div><dt>Cost &amp; registration</dt><dd>Follow the original listing for any costs, capacity limits, and RSVP requirements.</dd></div><div><dt>Access &amp; arrival</dt><dd>Contact the host if you need venue accessibility information or help finding the group.</dd></div></dl>
+<p>Events are in English, unless the announcement says otherwise — PauseAI Munich’s are sometimes in German. Cost, registration, capacity, preparation and step-free access are all things only the organiser knows; ask the host if the announcement does not say.</p>
 <a class="text-link" href="mailto:rationality@hilll.dev?subject=Correction">Report a detail that needs updating ↗</a></div></article>
 <aside class="detail-aside"><p class="eyebrow">PRACTICAL DETAILS</p>
 <div class="detail-fact"><time datetime="{iso}">{long}</time></div>
@@ -453,14 +452,40 @@ fn subscribe() -> String {
 }
 
 fn privacy() -> String {
+    // www/privacy.html, which goes when the hub does. Same text, same
+    // date: it is a legal document, not copy to rewrite for a layout.
     r##"<main id="main" class="wrap reading-page">
-<div class="page-heading"><p class="eyebrow">PRIVACY</p><h1>What this demo<br><em>does with data.</em></h1><p>Short answer: it does not collect any.</p></div>
-<article class="prose"><h2>The short version</h2><p>These pages are plain files. There is no analytics, no cookie, no script, and no form that sends anything anywhere. The server keeps its own access logs, as the live site’s policy describes.</p>
-<h2>Where the events come from</h2><p>The same place the live calendar gets them: a job on this server reads the groups’ announcements on LessWrong, the EA Forum, Meetup, Luma and a few pages, once an hour, and writes these pages. Your browser only ever talks to rationality-munich.com.</p>
-<h2>External links</h2><p>Announcements, the mailing list, calendar subscription and contact links open other services or your own email and calendar apps. Their own policies apply.</p>
-<h2>Images and fonts</h2><p>The photograph is served from this site, with attribution. The pages use fonts already on your device, so nothing is fetched from a font service.</p>
-<a class="button secondary" href="/privacy.html">Read the live site’s privacy policy ↗</a></article>
-</main>"##.to_string()
+<div class="page-heading"><p class="eyebrow">PRIVACY</p><h1>Your data,<br><em>in short.</em></h1><p>Datenschutzerklärung · last updated 23 September 2026</p></div>
+<article class="prose"><p>This site has no cookies, no analytics and no tracking. The mailing list stores your email address and the lists you picked, and you can delete that yourself at any time.</p>
+<h2>Who is responsible</h2><p>L. David Weil, for Rationality Munich, an informal, non-commercial community group. Contact: <a href="mailto:rationality@hilll.dev">rationality@hilll.dev</a>.</p>
+<h2>Visiting this website</h2><p>When you load a page, the web server logs your IP address, the time, the page requested, the referring page and your browser’s user agent. We use these logs only to keep the server running and to deal with abuse, which is our legitimate interest (Art. 6(1)(f) GDPR). They are deleted after 7 days.</p>
+<p>The site sets no cookies and loads nothing from other servers: no fonts, no scripts, no analytics. The pages are plain files, written once an hour by a job on this server that reads the groups’ announcements; your browser only ever talks to rationality-munich.com.</p>
+<p>The links to other groups, such as LessWrong, the EA Forum, Luma, Meetup and WhatsApp, take you to services run by others, with their own privacy policies. Nothing is sent to them until you click.</p>
+<h2>The mailing list</h2><p>If you subscribe at <a href="https://lists.rationality-munich.com/subscription/form">lists.rationality-munich.com</a>, we store:</p>
+<ul><li>your email address, and your name if you give one</li><li>which lists you subscribed to (EA, rationality, other events)</li><li>when you subscribed and when you confirmed your subscription</li></ul>
+<p>We don’t store your IP address, and we don’t track whether you open our emails or click links in them.</p>
+<p>We use this only to send you invitations to events on the lists you picked. The legal basis is your consent (Art. 6(1)(a) GDPR). You can withdraw it at any time with the link at the bottom of every email. That link also lets you change your lists, download your data, or delete it completely.</p>
+<p>We keep your data until you unsubscribe or delete it. We remove addresses of people who have unsubscribed from time to time, and straight away if you ask.</p>
+<h2>Attendance reports</h2><p>On the <a href="/calendar/past/">past events page</a> you can say roughly how many people came to an event. We store the event, the number and the time, and nothing about you. Your IP address is used only briefly, in memory, to stop one address from sending too many reports, and is forgotten within a day.</p>
+<h2>Who else handles your data</h2><p>We don’t sell or share your data. Two companies process it for us, each under a data processing agreement (Art. 28 GDPR), and both keep it in the EU:</p>
+<ul><li>Hetzner Online GmbH, Gunzenhausen, Germany: hosts the server this website and the mailing list run on.</li><li>Lettermint, Netherlands: will deliver our emails once we start sending. For this it gets your email address and the content of each email.</li></ul>
+<h2>Your rights</h2><p>You can ask us for a copy of your data, to correct it, to delete it, to restrict how we use it, or to get it in a portable format. You can also object to how we process it (Art. 15–21 GDPR). Email <a href="mailto:rationality@hilll.dev">rationality@hilll.dev</a> and we’ll answer within a month.</p>
+<p>You also have the right to complain to a data protection authority. Ours is the Bayerisches Landesamt für Datenschutzaufsicht (BayLDA) in Ansbach.</p></article>
+</main>"##
+        .to_string()
+}
+
+fn impressum() -> String {
+    // www/impressum.html. Required by § 5 DDG, so the demo carries its own
+    // rather than pointing at a page that is going away.
+    r##"<main id="main" class="wrap reading-page">
+<div class="page-heading"><p class="eyebrow">LEGAL NOTICE</p><h1>Impressum</h1></div>
+<article class="prose"><h2>Angaben gemäß § 5 DDG</h2><p>L. David Weil</p>
+<h2>Kontakt</h2><p>E-Mail: <a href="mailto:rationality@hilll.dev">rationality@hilll.dev</a></p>
+<h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2><p>L. David Weil</p>
+<p>Rationality Munich is an informal, non-commercial community of people interested in rationality, effective altruism and AI safety. It is not a registered association. The external groups linked from this site are run by their own organisers, who are responsible for their content.</p></article>
+</main>"##
+        .to_string()
 }
 
 fn about(now: DateTime<Utc>) -> String {
@@ -469,7 +494,7 @@ fn about(now: DateTime<Utc>) -> String {
 <div class="page-heading"><p class="eyebrow">ABOUT</p><h1>About <em>this demo.</em></h1><p>A design proposal for rationality-munich.com, parked at /demo on the real site. It is not the live site, and the groups listed here have not endorsed it.</p></div>
 <article class="prose"><h2>It is the real calendar</h2><p>These pages are built by the same hourly job that builds <a href="/calendar">/calendar</a>, from the same events, merged across LessWrong, the EA Forum, Meetup, Luma and the groups’ own pages. Nothing here is a copy kept by hand: this page was written at {updated}, and will be written again within the hour.</p>
 <p>It is plain HTML and one stylesheet. No script runs, so it works the way the rest of the site does — with JavaScript off, in a text browser, and without waiting on anyone else’s API.</p>
-<h2>What is here</h2><ul><li>A hub page: what is on, the six groups, a first visit, and the questions newcomers ask.</li><li>A calendar: this month and next as week grids, then every announced event as a list.</li><li>A page per event, with the organiser’s announcement and an .ics download.</li></ul>
+<h2>What is here</h2><ul><li>A hub page: what is on, the six groups, and the further Munich groups whose events are in the calendar but off by default.</li><li>A calendar: this month and next as week grids, then every announced event as a list.</li><li>A page per event, with the organiser’s announcement and an .ics download.</li></ul>
 <h2>What is missing before it could replace the hub</h2><ul><li>The group filters the live calendar has, past events and the statistics pages.</li><li>A decision about which groups show by default, and whether the hub keeps its plain list for people who prefer it.</li><li>Organisers’ approval of how their groups are described here.</li><li>Dark mode, which the live pages have and this design does not.</li><li>Removing the noindex once it is meant to be found.</li></ul>
 <h2>Photo &amp; artwork credits</h2><p>The photograph shows Munich’s Englischer Garten; it is location imagery, not a photograph of the community.</p>
 <p><a href="https://commons.wikimedia.org/wiki/File:Monopteros_in_Englischer_Garten,_Munich.JPG">Monopteros in Englischer Garten, Munich</a> by High Contrast (2013), licensed under <a href="https://creativecommons.org/licenses/by/3.0/de/deed.en">CC BY 3.0 Germany</a>. Optimised and cropped for this layout.</p>
@@ -540,9 +565,18 @@ pub fn build(
             "privacy/index.html",
             Shell {
                 title: "Privacy · Rationality Munich".into(),
-                description: "What this demo does with your data: nothing.".into(),
+                description: "No cookies, no analytics, no tracking. What the mailing list stores, and how to delete it.".into(),
                 canonical: format!("{BASE}/privacy/"),
                 body: privacy(),
+            },
+        ),
+        (
+            "impressum/index.html",
+            Shell {
+                title: "Impressum · Rationality Munich".into(),
+                description: "Legal notice for rationality-munich.com.".into(),
+                canonical: format!("{BASE}/impressum/"),
+                body: impressum(),
             },
         ),
         (
