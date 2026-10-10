@@ -10,7 +10,7 @@ program that builds its calendar.
 | --- | --- | --- |
 | `www/` | the hub, privacy page and Impressum | push to `master`; the server pulls within five minutes |
 | `calendar/` | the Rust program behind `/calendar` | bump this flake in float3/nixos and rebuild the server |
-| `demo/` | a design proposal for the hub, served at `/demo` | `pnpm publish-demo` writes `www/demo/`; commit that too |
+| `demo/` | a design proposal for the hub, served at `/demo` | `pnpm publish-demo` takes a fresh snapshot and writes `www/demo/`; commit that too |
 
 ## The calendar
 
@@ -89,12 +89,14 @@ Plain HTML, no build step. Each page carries its own CSS and a dark mode via
 
 ## The /demo redesign
 
-`/demo` is a second, much larger take on the same material: a hero, event
-cards, a first-visit guide, a group directory, an FAQ, and a mailing-list
-signup that does nothing. It is a proposal to look at and argue about, not a
+`/demo` is a second, much larger take on the same material: a hero, the months
+as week grids, a first-visit guide, a group directory, an FAQ, and a
+mailing-list signup that does nothing. It is a proposal to look at and argue about, not a
 replacement; nothing links to it from the hub and every page is `noindex`.
 
-Its events are a snapshot from 22 September 2026 and never update. The source
-is a Next.js app in `demo/`; `pnpm publish-demo` builds it and writes the
-static files to `www/demo/`, which is what goes live. See
-[demo/README.md](demo/README.md).
+Its months are this one and the next, and its events are whatever the live
+calendar held when the demo was last published — a static export cannot know
+what day someone visits. The source is a Next.js app in `demo/`;
+`pnpm publish-demo` reads the live calendar, builds, and writes the static
+files to `www/demo/`, which is what goes live, and is also how the demo
+catches up with the calendar. See [demo/README.md](demo/README.md).

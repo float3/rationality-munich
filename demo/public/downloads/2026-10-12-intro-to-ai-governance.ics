@@ -1,0 +1,23 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Rationality Munich Demo//Events//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Munich events — snapshot of 10 October 2026
+X-WR-TIMEZONE:Europe/Berlin
+BEGIN:VEVENT
+UID:demo-2026-10-12-intro-to-ai-governance@rationality-munich.com
+DTSTAMP:20261010T120000Z
+DTSTART:20261012T164500Z
+DTEND:20261012T181500Z
+SUMMARY:Intro to AI Governance
+LOCATION:Location in the announcement
+DESCRIPTION:The AI Safety Munich Student Club's first AI governance meetin
+ g: recent case studies\, discussed in groups. No reading needed. In perso
+ n\; the location will be posted in the club's WhatsApp group.\nSaved 10 O
+ ctober 2026. Check the original announcement for changes: https://docs.go
+ ogle.com/document/d/1jAWHNtcdX87Iaf55VynOcs-AEjwv_GOEkOO8V_Cef_U/view
+URL:https://docs.google.com/document/d/1jAWHNtcdX87Iaf55VynOcs-AEjwv_GOEkO
+ O8V_Cef_U/view
+END:VEVENT
+END:VCALENDAR

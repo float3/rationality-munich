@@ -1,0 +1,24 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Rationality Munich Demo//Events//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Munich events — snapshot of 10 October 2026
+X-WR-TIMEZONE:Europe/Berlin
+BEGIN:VEVENT
+UID:demo-2026-12-19-secular-solstice-munich-2026@rationality-munich.com
+DTSTAMP:20261010T120000Z
+DTSTART:20261219T170000Z
+DTEND:20261219T220000Z
+SUMMARY:Secular Solstice Munich 2026
+LOCATION:Munich
+DESCRIPTION:Hi\, this is a calendar blocker for the Secular Solstice in Mu
+ nich. I will figure out the location and schedule closer to the date\, ch
+ eck this post again or check the WhatsApp group. If you've never been to 
+ one: Secular Solstice is a …\nSaved 10 October 2026. Check the original
+  announcement for changes: https://www.lesswrong.com/events/CkzztgWMfDryp
+ 3Kg7/secular-solstice-munich-2026-1
+URL:https://www.lesswrong.com/events/CkzztgWMfDryp3Kg7/secular-solstice-mu
+ nich-2026-1
+END:VEVENT
+END:VCALENDAR

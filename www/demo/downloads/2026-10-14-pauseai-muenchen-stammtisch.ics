@@ -1,0 +1,21 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Rationality Munich Demo//Events//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Munich events — snapshot of 10 October 2026
+X-WR-TIMEZONE:Europe/Berlin
+BEGIN:VEVENT
+UID:demo-2026-10-14-pauseai-muenchen-stammtisch@rationality-munich.com
+DTSTAMP:20261010T120000Z
+DTSTART:20261014T170000Z
+SUMMARY:PauseAI München Stammtisch
+LOCATION:Bellevue di Monaco\, Müllerstraße 2\, München
+DESCRIPTION:Our Stammtisch is on again\, table reserved. News and whatever
+  topics you bring\, in German and English. On Saturday the 17th we go fly
+ ering in the city centre\, and we can prepare a bit on Wednesday. Newcome
+ rs very welcome!\nSaved 10 October 2026. Check the original announcement 
+ for changes: https://www.pause-ai.de/lokalgruppen
+URL:https://www.pause-ai.de/lokalgruppen
+END:VEVENT
+END:VCALENDAR

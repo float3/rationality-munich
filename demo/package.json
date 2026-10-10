@@ -12,8 +12,9 @@
     "format": "oxfmt",
     "assets": "node --experimental-strip-types tools/prepare-assets.mjs",
     "stage": "node tools/stage.mjs",
-    "publish-demo": "pnpm build && pnpm stage && pnpm verify",
-    "verify": "node --experimental-strip-types tools/verify-content.mjs && node tools/verify-build.mjs"
+    "publish-demo": "pnpm snapshot && pnpm build && pnpm stage && pnpm verify",
+    "verify": "node --experimental-strip-types tools/verify-content.mjs && node tools/verify-build.mjs",
+    "snapshot": "node --experimental-strip-types tools/snapshot.mjs && pnpm assets"
   },
   "dependencies": {
     "react": "19.2.6",

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { events as allEvents, type CommunityEvent } from '@/lib/content';
+import { events as allEvents, SNAPSHOT, type CommunityEvent } from '@/lib/content';
 
 /** Monday first, the way a wall calendar runs here. */
 const WEEKDAYS = [
@@ -16,12 +16,6 @@ export const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ] as const;
-
-/**
- * The day the event list was saved. The grid marks it, so the weeks have an
- * anchor where a live calendar would show today.
- */
-export const SNAPSHOT = '2026-09-22';
 
 /** Dates are plain YYYY-MM-DD, so the arithmetic stays in UTC and out of trouble. */
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -40,11 +34,23 @@ function weeksOf(year: number, month: number) {
   );
 }
 
-/** The months these events fall in, earliest first. */
-export function monthsOf(events: CommunityEvent[] = allEvents) {
-  return [...new Set(events.map((e) => e.date.slice(0, 7)))]
-    .sort()
-    .map((key) => ({ year: Number(key.slice(0, 4)), month: Number(key.slice(5)) - 1 }));
+/**
+ * The window both pages show: the month we are in and the one after it. A
+ * static export cannot know what day it is when someone visits, so "now" is
+ * the day `pnpm snapshot` last ran — which `pnpm publish-demo` does every time.
+ */
+export function currentAndNext(from: string = SNAPSHOT) {
+  const year = Number(from.slice(0, 4));
+  const month = Number(from.slice(5, 7)) - 1;
+  return [
+    { year, month },
+    { year: month === 11 ? year + 1 : year, month: (month + 1) % 12 },
+  ];
+}
+
+/** How many of these events fall in a given month. */
+export function countIn(events: CommunityEvent[], year: number, month: number) {
+  return events.filter((e) => e.date.startsWith(stamp(year, month))).length;
 }
 
 function monthName({ year, month }: { year: number; month: number }) {
