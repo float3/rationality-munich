@@ -1,12 +1,13 @@
-//! The redesign at /demo: the same events as /calendar, in the design meant
-//! to replace the hub. `AT` is the only place the prefix is written down.
+//! The site itself: the hub, the calendar and a page per event, from the
+//! same merged `Event`s as /calendar. `AT` is the only place a URL prefix is
+//! written down, so these pages can also be served under one.
 //!
 //! Written by the same hourly run, from the same merged `Event`s, so there is
 //! nothing to refresh by hand. Plain HTML with one stylesheet and no script.
 //!
-//! Output, under `$STATE_DIRECTORY/demo/`, served at `AT`:
+//! Output, under `$STATE_DIRECTORY/demo/`, served at the root:
 //!
-//! - `index.html`: the hub — what is on, the groups, a first visit, the FAQ
+//! - `index.html`: the hub — what is on, the groups, what is being planned
 //! - `calendar/index.html`: this month and next as week grids, then the list
 //! - `events/<id>/index.html`: one page per upcoming event
 //! - `tools/`: what this site hosts for other groups to use
@@ -15,6 +16,7 @@
 //! - `style.css`, `og.png`, `munich.webp`, `favicon.svg`
 
 mod groups;
+mod plans;
 mod tools;
 
 use std::fs;
@@ -26,10 +28,10 @@ use chrono_tz::Europe::Berlin;
 use crate::event::{DEFAULT_GROUPS, Event, group_name};
 use crate::render::html_escape;
 
-/// Where this is served. `/demo` while it is a proposal; set it to `""` to
-/// serve the same pages at the root. Every link, canonical URL and asset path
-/// is built from it, and a test checks nothing writes the prefix out by hand.
-pub const AT: &str = "/demo";
+/// Where this is served. Empty: these are the site's own pages, at the
+/// root. Every link, canonical URL and asset path is built from it, and a
+/// test checks nothing writes a prefix out by hand.
+pub const AT: &str = "";
 const SITE: &str = "https://rationality-munich.com";
 
 const PAGE: &str = include_str!("page.html");
@@ -334,12 +336,14 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
 <div class="topic-strip"><div class="wrap"><span>RATIONALITY</span><i>✳</i><span>EFFECTIVE ALTRUISM</span><i>✳</i><span>PHILOSOPHY</span><i>✳</i><span>AI SAFETY</span><i>✳</i><span>AI POLICY</span></div></div>
 <section class="section wrap" id="events"><div class="section-heading"><div><p class="eyebrow">THIS MONTH AND NEXT</p><h2>Coming up in Munich</h2></div><a href="{AT}/calendar/" class="text-link">All events {ARROW}</a></div><div class="home-months">{grids}</div>{empty}<p class="section-note">All times Munich time. Check the organiser’s announcement before you go.</p></section>
 {spotlight}
+{plans}
 {groups}
 {more}
 <section class="section wrap" id="tools"><div class="section-heading"><div><p class="eyebrow">TOOLS</p><h2>Things this site hosts</h2></div><a class="text-link" href="{AT}/tools/">All three {ARROW}</a></div><p class="section-note">AnkiQuest, and the Petrov and Arkhipov Day ceremonies. All three are open source and free to use.</p></section>
 <section class="wrap newsletter-section"><div class="newsletter-icon" aria-hidden="true">✉</div><div><p class="eyebrow">MAILING LIST</p><h2>Event invites by email</h2><p>Pick the topics you want to hear about. No open or click tracking, and you can unsubscribe or delete your data from any email.</p><a class="button primary" href="{AT}/subscribe/">Get event invitations {ARROW}</a><a class="text-link" href="https://lists.rationality-munich.com/archive">See the archive →</a></div><div class="newsletter-note"><p>EA, RATIONALITY,<br>OR EVERYTHING.</p><span>Pick what you want invitations about. Unsubscribe at any time.</span></div></section>
 </main>"##,
         count = count,
+        plans = plans::section(),
         groups = groups::section(),
         more = groups::more(),
     )
@@ -381,7 +385,7 @@ fn calendar(events: &[&Event], today: NaiveDate) -> String {
 <div class="calendar-context"><span><span class="status-dot"></span> {n} upcoming event{s}</span><span>All times Munich local time</span></div>
 {grids}
 {list}
-<aside class="coverage-note"><h3>A note on coverage</h3><p>These are the events the groups have announced on LessWrong, the EA Forum, Meetup, Luma and their own pages. Check the original listing for registration, language and cost. Events later than next month are in the list above but not in the grids.</p><div class="actions"><a class="text-link" href="{AT}/#community">Find another group ↗</a><a class="text-link" href="mailto:rationality@hilll.dev?subject=Event%20suggestion%20for%20Rationality%20Munich">Suggest an event ↗</a><a class="text-link" href="/calendar/past/">Past events ↗</a></div></aside>
+<aside class="coverage-note"><h3>A note on coverage</h3><p>These are the events the groups have announced on LessWrong, the EA Forum, Meetup, Luma and their own pages. Check the original listing for registration, language and cost. Events later than next month are in the list above but not in the grids.</p><div class="actions"><a class="text-link" href="/calendar/past/">Past events</a><a class="text-link" href="/calendar/stats/">Statistics</a><a class="text-link" href="mailto:rationality@hilll.dev?subject=Event%20suggestion%20for%20Rationality%20Munich">Suggest an event</a></div></aside>
 </main>"##,
         n = events.len(),
         s = plural(events.len()),
@@ -578,18 +582,13 @@ fn impressum() -> String {
 fn about(now: DateTime<Utc>) -> String {
     format!(
         r##"<main id="main" class="wrap reading-page">
-<div class="page-heading"><p class="eyebrow">ABOUT</p><h1>About this demo</h1><p>A design proposal for rationality-munich.com, served at /demo on this site. It is not the live site, and the groups listed here have not endorsed it.</p></div>
-<article class="prose"><h2>It is the real calendar</h2><p>These pages are built by the same hourly job that builds <a href="/calendar">/calendar</a>, from the same events, merged across LessWrong, the EA Forum, Meetup, Luma and the groups’ own pages. Nothing here is a copy kept by hand. This page was written at {updated} and will be written again within the hour.</p>
+<div class="page-heading"><p class="eyebrow">ABOUT</p><h1>About this demo</h1><p>A hub for the rationality, effective altruism, AI safety and philosophy groups in Munich, and a calendar of everything they have announced.</p></div>
+<article class="prose"><h2>Where the events come from</h2><p>A job on this server reads the groups’ announcements on LessWrong, the EA Forum, Meetup, Luma, Philosophia’s calendar and a couple of pages, once an hour, merges the ones that were posted in several places, and writes these pages. Nothing here is a copy kept by hand. This page was written at {updated} and will be written again within the hour.</p>
 <p>It is plain HTML and one stylesheet, with no script. The pages work with JavaScript off and in a text browser, and loading one never waits on another site.</p>
-<h2>What is here</h2><ul><li>A hub page: what is on, the six groups, and the further Munich groups whose events are in the calendar but off by default.</li><li>A calendar: this month and next as week grids, then every announced event as a list.</li><li>A page per event, with the organiser’s announcement and an .ics download.</li></ul>
-<h2>What is missing before it could replace the hub</h2><p>The hub goes when this takes over, so everything it does has to be here first:</p>
-<ul><li>The group filters the live calendar has, past events, and the statistics pages. The calendar’s own URLs would also need a decision: this page lives at /demo/calendar, and /calendar is already taken.</li>
-
-
-
-<li>Organisers’ approval of how their groups are described here. Every line of that is the hub’s own wording, but nobody has been asked.</li>
-<li>Removing the noindex, and the notice at the top of every page, once it is meant to be found.</li></ul>
-<p>The URL prefix is in one place in the source, so /demo becomes / without changing a link.</p>
+<h2>What is here</h2><ul><li>This page: what is on, the six groups, and the further Munich groups whose events are in the calendar but off by default.</li><li>A calendar: this month and next as week grids, then every announced event as a list.</li><li>A page per event, with the organiser’s announcement and an .ics download.</li></ul>
+<h2>What is not here yet</h2>
+<ul><li>Filtering the calendar by group. <a href="/calendar/past/">Past events</a> and the <a href="/calendar/stats/">statistics</a> are still in the previous design.</li>
+<li>Organisers’ approval of how their groups are described. Every line of that was written for the previous version of this site, but nobody from the groups has been asked to check it.</li></ul>
 <h2>Photo &amp; artwork credits</h2><p>The photograph shows Munich’s Englischer Garten; it is location imagery, not a photograph of the community.</p>
 <p><a href="https://commons.wikimedia.org/wiki/File:Monopteros_in_Englischer_Garten,_Munich.JPG">Monopteros in Englischer Garten, Munich</a> by High Contrast (2013), licensed under <a href="https://creativecommons.org/licenses/by/3.0/de/deed.en">CC BY 3.0 Germany</a>. Optimised and cropped for this layout.</p>
 <p>The social-sharing card is AI-generated typographic artwork made for this demo.</p></article>
@@ -847,6 +846,8 @@ mod tests {
                     link.starts_with(AT) || link.starts_with("/calendar"),
                     "{link} is not under {AT}"
                 );
+                // The old prefix, in case one got left behind.
+                assert!(!link.starts_with("/demo"), "{link} still says /demo");
             }
         }
     }

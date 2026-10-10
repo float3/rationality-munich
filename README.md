@@ -2,15 +2,18 @@
 
 [![CI](https://github.com/float3/rationality-munich/actions/workflows/ci.yml/badge.svg)](https://github.com/float3/rationality-munich/actions/workflows/ci.yml)
 
-The pages behind [rationality-munich.com](https://rationality-munich.com): a hub
-for the EA, ACX, LessWrong, AI safety and philosophy groups in Munich, and the
-program that builds its calendar.
+[rationality-munich.com](https://rationality-munich.com) is a hub for the EA,
+ACX, LessWrong, AI safety and philosophy groups in Munich, and a calendar of
+everything they announce. One program writes all of it.
 
-| Path | What it is | How it goes live |
-| --- | --- | --- |
-| `www/` | the hub, privacy page and Impressum | push to `master`; the server pulls within five minutes |
-| `calendar/` | the Rust program behind `/calendar` | bump this flake in float3/nixos and rebuild the server |
-| `calendar/src/demo/` | the redesign, served at `/demo` | the same program writes it; the same flake bump deploys it |
+| Path | What it is |
+| --- | --- |
+| `calendar/` | the program: fetches the events, merges them, writes the site |
+| `calendar/src/demo/` | the pages at the root — the hub, the calendar, a page per event |
+
+Nothing here is served from the repository. Every page is written by the
+program on the server, once an hour, so a change goes live by bumping this
+flake in float3/nixos and rebuilding.
 
 ## The calendar
 
@@ -73,46 +76,35 @@ cargo run      # writes out/site/ and out/demo/ from the live feeds
 Every push, and weekly in case a source changes its format or a link dies:
 
 - **Rust**: `cargo fmt --check`, `clippy -D warnings`, `cargo test`
-- **Nix**: alejandra, `nix flake check`, `nix build .#default` (what the server runs).
-  The flake check includes `checks.links`: links between the pages in `www/`,
-  offline, since Nix builds have no network
-- **HTML**: the pages in `www/` and the generated calendar and `/demo` pages
-  through [html-validate](https://html-validate.org) (rules in
-  `.htmlvalidate.json`), plus well-formed XML and calendar files, and every
-  link between the pages, calendar and demo included
+- **Nix**: alejandra, `nix flake check`, `nix build .#default` (what the server runs)
+- **HTML**: every generated page through
+  [html-validate](https://html-validate.org) (rules in `.htmlvalidate.json`),
+  plus well-formed XML and calendar files, and every link between the pages,
+  laid out the way nginx serves them
 - **Links**: every link to another site, with [lychee](https://lychee.cli.rs),
   and that the WhatsApp invites have not been reset
 
-## Editing the pages
+## The pages
 
-Plain HTML, no build step. Each page carries its own CSS and a dark mode via
-`prefers-color-scheme`. Open the file in a browser to check a change.
-
-## The /demo redesign
-
-`/demo` is a second, much larger take on the same material, meant to replace
-the hub once it is good enough: a hero, this month and next as week grids, the
-group directory, and the further Munich groups. Nothing links to it from the
-hub yet and every page is `noindex`.
-
-It is **the same events as `/calendar`**, not a copy of them. `calendar/`
-writes it in the same hourly run, from the same merged events, into
-`$STATE_DIRECTORY/demo/`, so there is nothing to refresh by hand. Plain HTML,
-one stylesheet, no script, light and dark.
+`calendar/src/demo/` writes the site itself, into `$STATE_DIRECTORY/demo/`,
+from the same merged events as `/calendar`. Plain HTML, one stylesheet, no
+script, light and dark.
 
 | URL | What |
 | --- | --- |
-| `/demo` | the hub: what is on, the six groups, the further groups |
-| `/demo/calendar` | this month and next as week grids, then every announced event |
-| `/demo/events/<id>` | one event, with the organiser's announcement and an .ics |
-| `/demo/tools` | AnkiQuest and the Petrov and Arkhipov Day ceremonies |
-| `/demo/subscribe`, `/demo/privacy`, `/demo/impressum`, `/demo/about` | the text pages |
+| `/` | the hub: what is on, the six groups, what is being planned, the further groups |
+| `/calendar` | this month and next as week grids, then every announced event |
+| `/events/<id>` | one event, with the organiser's announcement and an .ics |
+| `/tools` | AnkiQuest and the Petrov and Arkhipov Day ceremonies |
+| `/subscribe`, `/privacy`, `/impressum`, `/about` | the text pages |
 | `404.html`, `robots.txt`, `sitemap.xml`, `.well-known/security.txt` | generated with the rest |
 
-nginx serves `/demo/` from that directory rather than from `www/`; the
-location block is in float3/nixos, beside the one for `/calendar/`.
+`/calendar/past/` and `/calendar/stats/` are still the older design, served
+from `site/` alongside the feeds and the per-event `.ics` files; this design
+has no filters, past events or statistics yet.
 
-`src/demo/groups.rs` holds the group directory, the only text kept by hand.
+`src/demo/groups.rs` holds the group directory and `src/demo/plans.rs` the
+things that are happening but have no date yet: the only text kept by hand.
 Every line of it is copied from the hub; do not add to it, because nobody from
 these groups has reviewed what the page says about them. The privacy policy
 and Impressum are in `src/demo/mod.rs` rather than linked, since the hub's
@@ -121,9 +113,9 @@ photograph and sharing card are compiled into the binary beside it.
 
 When the demo does replace the hub, the move is one constant: `AT` in
 `src/demo/mod.rs` goes from `"/demo"` to `""`, and every link, canonical URL
-and asset path follows. A test fails if anything spells the prefix out by
-hand. Point nginx's `/` at the output and the move is done; `/demo/about/`
-keeps the list of what is still missing.
+and asset path follows. A test fails if anything spells a prefix out by hand.
+Setting it back to `"/demo"` puts the whole site under that path again, which
+is how it was reviewed before it went live.
 
 Every colour in the stylesheet goes through one of eighteen role variables,
 so dark mode is a second `:root` block rather than a second stylesheet. The

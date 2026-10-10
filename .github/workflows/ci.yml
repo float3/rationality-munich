@@ -66,7 +66,6 @@ jobs:
       - name: Validate HTML
         run: >-
           npx --yes html-validate@9
-          www/*.html
           calendar/out/site/index.html
           calendar/out/site/past/index.html
           calendar/out/site/stats/index.html
@@ -76,31 +75,30 @@ jobs:
           calendar/out/demo/events/*/index.html
       - name: XML is well-formed
         run: |
-          python3 - www/sitemap.xml www/favicon.svg calendar/out/site/feed.xml calendar/out/site/rss.xml calendar/out/demo/sitemap.xml <<'EOF'
+          python3 - calendar/out/site/feed.xml calendar/out/site/rss.xml \
+            calendar/out/demo/sitemap.xml calendar/out/demo/favicon.svg <<'EOF'
           import sys, xml.dom.minidom
           for f in sys.argv[1:]:
               xml.dom.minidom.parse(f)
               print("ok", f)
           EOF
       - uses: cachix/install-nix-action@v31
-      # Offline, laid out the way nginx serves it: the static pages link into
-      # /calendar/, and the calendar to its own pages, anchors and files.
-      - name: Links between the pages, calendar included
+      # Offline, laid out the way nginx serves it: the pages at the root, and
+      # the calendar pages this design does not have yet under /calendar/.
+      - name: Links between the pages
         run: |
           W="$RUNNER_TEMP/web"
           mkdir -p "$W"
-          cp -r www/. "$W"
-          cp -r calendar/out/site "$W/calendar"
-          # /demo comes from the generator too, not from www/.
-          rm -rf "$W/demo"
-          cp -r calendar/out/demo "$W/demo"
+          cp -r calendar/out/demo/. "$W"
+          cp calendar/out/site/feed.xml calendar/out/site/rss.xml "$W/calendar/"
+          cp -r calendar/out/site/past calendar/out/site/stats \
+            calendar/out/site/e calendar/out/site/feeds "$W/calendar/"
           nix shell --inputs-from . nixpkgs#lychee -c lychee --offline --no-progress \
             --include-fragments --index-files index.html --root-dir "$W" \
             --remap "https://rationality-munich\.com/(.*) file://$W/\$1" \
-            "$W"/*.html "$W"/sitemap.xml "$W"/robots.txt "$W"/calendar/feed.xml "$W"/calendar/rss.xml \
-            "$W"/calendar/index.html "$W"/calendar/past/index.html "$W"/calendar/stats/index.html \
-            "$W"/demo/index.html "$W"/demo/404.html "$W"/demo/*/index.html \
-            "$W"/demo/events/*/index.html "$W"/demo/robots.txt "$W"/demo/sitemap.xml
+            "$W"/index.html "$W"/404.html "$W"/*/index.html "$W"/events/*/index.html \
+            "$W"/robots.txt "$W"/sitemap.xml "$W"/calendar/feed.xml "$W"/calendar/rss.xml \
+            "$W"/calendar/past/index.html "$W"/calendar/stats/index.html
       - name: Calendar files are well-formed
         run: |
           for f in calendar/out/site/feeds/*.ics calendar/out/site/e/*.ics; do
@@ -126,17 +124,14 @@ jobs:
         run: >-
           nix shell --inputs-from . nixpkgs#lychee -c lychee --no-progress
           --max-concurrency 8 --max-retries 3 --accept '200..=299,403,429,502..=504'
-          --root-dir "$PWD/www"
-          --remap "https://rationality-munich\.com/(.*) file://$PWD/www/\$1"
-          --exclude '/calendar'
-          www/*.html www/sitemap.xml www/robots.txt www/.well-known/security.txt
-          calendar/data/*.json calendar/src/demo/groups.rs README.md
+          --exclude '\{' --exclude '^/' --exclude '^webcal:'
+          calendar/data/*.json calendar/src/demo/*.rs README.md
       # A revoked or reset WhatsApp invite still answers 200, but its preview
       # has no group name.
       - name: WhatsApp invites are live
         run: |
           fail=0
-          for url in $(grep -ohE 'https://chat\.whatsapp\.com/[A-Za-z0-9]+' www/*.html | sort -u); do
+          for url in $(grep -ohE 'https://chat\.whatsapp\.com/[A-Za-z0-9]+' calendar/src/demo/groups.rs | sort -u); do
             title=$(curl -sL -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36' "$url" \
               | grep -oE '<meta property="og:title" content="[^"]*' | sed 's/.*content="//')
             if [ -z "$title" ]; then
