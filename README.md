@@ -25,8 +25,8 @@ Philosophia's Google Calendar, the MCMP reading group's schedule page, and
 weekly series kept by hand in `calendar/data/series.ics`.
 
 Groups: LW/ACX, EA Munich, Munich AI Safety, the AI Safety Munich Student
-Club and PauseAI Munich are shown by default; Philosophia and the
-further Munich groups from the
+Club, PauseAI Munich and Rationality Munich's own events are shown by
+default; Philosophia and the further Munich groups from the
 [Recreational Thinking directory](https://recthink.substack.com/p/germany)
 are one click away.
 
@@ -38,7 +38,7 @@ are one click away.
 | `/calendar#<id>` | one event, e.g. `#2026-09-26-petrov-day-ritual-munich-multiplayer-petrov` |
 | `/calendar/e/<id>.ics` | one event, for "Add to calendar" |
 | `/calendar/feeds/all.ics` | subscription feed of everything (also `/calendar.ics`) |
-| `/calendar/feeds/acx+ea.ics` | a feed per combination of `acx`, `ea`, `mais`, `aisafety`, `philosophia`, `pauseai` |
+| `/calendar/feeds/acx+ea.ics` | a feed per combination of `acx`, `ea`, `mais`, `aisafety`, `philosophia`, `pauseai`, `rm` |
 | `/calendar/feeds/agi.ics` | one feed for each further group (`mlphil`, `geb`, `agi`, …) |
 | `/calendar/feed.xml` | Atom feed of upcoming events, for feed readers |
 

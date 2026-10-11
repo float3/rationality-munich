@@ -72,13 +72,13 @@ pub fn all() -> Vec<Source> {
             "luma-rm",
             "cal-yoGq50p8rzvmi1p",
             "calendar/cal-yoGq50p8rzvmi1p",
-            "acx",
+            "rm",
         ),
         luma_calendar(
             "luma-rm2",
             "cal-yIpr0wsy5lDeTtI",
             "calendar/cal-yIpr0wsy5lDeTtI",
-            "acx",
+            "rm",
         ),
         Source {
             key: "philosophia",

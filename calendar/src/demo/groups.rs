@@ -13,7 +13,7 @@ use crate::render::html_escape;
 pub fn category(e: &Event) -> &'static str {
     for key in &e.groups {
         let label = match key.as_str() {
-            "acx" => "Rationality",
+            "acx" | "rm" => "Rationality",
             "ea" => "Effective altruism",
             "mais" | "aisafety" => "AI safety",
             "pauseai" => "AI policy",

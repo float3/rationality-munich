@@ -194,6 +194,23 @@ fn month_count(events: &[&Event], year: i32, month: u32) -> usize {
         .count()
 }
 
+/// How many are coming, the way /calendar has always put it: a turnout
+/// estimate from how this group's past events went, and the sign-ups it is
+/// drawn from. The headline, and the line that goes under it if there is one.
+fn turnout(e: &Event) -> (String, Option<String>) {
+    match (e.attended, e.expected.filter(|&m| m != e.signed_up())) {
+        (Some(c), _) if c.at_least => (format!("At least {} came", c.n), None),
+        (Some(c), _) => (format!("About {} came", c.n), None),
+        (None, Some(m)) if e.signed_up() > 0 => (
+            format!("About {m} expected"),
+            Some(format!("{} signed up so far", e.signed_up())),
+        ),
+        (None, Some(m)) => (format!("About {m} expected"), None),
+        (None, None) if e.signed_up() > 0 => (format!("{} signed up so far", e.signed_up()), None),
+        (None, None) => (String::new(), None),
+    }
+}
+
 fn plural(n: usize) -> &'static str {
     if n == 1 { "" } else { "s" }
 }
@@ -208,7 +225,7 @@ fn event_row(e: &Event) -> String {
         format!("<p>{}</p>", html_escape(&e.excerpt))
     };
     format!(
-        r#"<article id="{id}" class="calendar-row"><time datetime="{iso}" class="calendar-date"><span>{wd}</span><strong>{d}</strong><span>{mon}</span></time><div class="calendar-row-content"><div class="calendar-row-labels"><span class="tag">{category}</span><span class="event-group">{groups}</span></div><h3><a href="{AT}/events/{id}/">{title}</a></h3><div class="event-meta"><span>{time}</span><span>{place}</span></div>{text}</div><a class="text-link calendar-row-action" href="{AT}/events/{id}/">Event details {ARROW}</a></article>"#,
+        r#"<article id="{id}" class="calendar-row"><time datetime="{iso}" class="calendar-date"><span>{wd}</span><strong>{d}</strong><span>{mon}</span></time><div class="calendar-row-content"><div class="calendar-row-labels"><span class="tag">{category}</span><span class="event-group">{groups}</span></div><h3><a href="{AT}/events/{id}/">{title}</a></h3><div class="event-meta"><span>{time}</span><span>{place}</span>{coming}</div>{text}</div><a class="text-link calendar-row-action" href="{AT}/events/{id}/">Event details {ARROW}</a></article>"#,
         iso = start.format("%Y-%m-%d"),
         wd = start.format("%a").to_string().to_uppercase(),
         d = start.format("%-d"),
@@ -219,6 +236,11 @@ fn event_row(e: &Event) -> String {
         title = html_escape(&e.title),
         time = html_escape(&clock(e)),
         place = html_escape(place(e)),
+        coming = match turnout(e) {
+            (head, _) if head.is_empty() => String::new(),
+            (head, Some(note)) => format!("<span>{head}, {}</span>", note.to_lowercase()),
+            (head, None) => format!("<span>{head}</span>"),
+        },
     )
 }
 
@@ -240,7 +262,8 @@ fn shell(s: Shell, now: DateTime<Utc>, stale: &[String]) -> String {
             stale.join(", ")
         )
     };
-    PAGE.replace("{{at}}", AT)
+    PAGE.replace("{{feed}}", &DEFAULT_GROUPS.join("+"))
+        .replace("{{at}}", AT)
         .replace("{{title}}", &html_escape(&s.title))
         .replace("{{description}}", &html_escape(&s.description))
         .replace("{{canonical}}", &s.canonical)
@@ -391,6 +414,12 @@ fn calendar(events: &[&Event], today: NaiveDate) -> String {
 
 fn event_page(e: &Event, now: DateTime<Utc>) -> String {
     let start = e.start.with_timezone(&Berlin);
+    // The one thing we know about language, said only where it applies.
+    let language = if e.groups.iter().any(|g| g == "pauseai") {
+        "Sometimes in German."
+    } else {
+        "In English."
+    };
     let more: String = e
         .links
         .iter()
@@ -411,13 +440,12 @@ fn event_page(e: &Event, now: DateTime<Utc>) -> String {
         ),
         None => r#"<p class="small-note">This one is organised in a group chat; there is no public announcement to link to.</p>"#.to_string(),
     };
-    let signups = if e.signed_up() > 0 {
-        format!(
-            r#"<div class="detail-fact"><span>{} signed up so far</span></div>"#,
-            e.signed_up()
-        )
-    } else {
-        String::new()
+    let signups = match turnout(e) {
+        (head, _) if head.is_empty() => String::new(),
+        (head, Some(note)) => {
+            format!(r#"<div class="detail-fact"><span>{head}<small>{note}</small></span></div>"#)
+        }
+        (head, None) => format!(r#"<div class="detail-fact"><span>{head}</span></div>"#),
     };
     let lede = if e.excerpt.is_empty() {
         String::new()
@@ -428,9 +456,8 @@ fn event_page(e: &Event, now: DateTime<Utc>) -> String {
         r##"<main id="main" class="wrap detail-page">
 <a class="text-link back-link" href="{AT}/calendar/">← All events</a>
 <div class="detail-grid"><article><div class="detail-labels"><span class="tag">{category}</span><span class="eyebrow">{groups}</span></div><h1>{title}</h1>{lede}
-<div class="detail-body"><h2>What to know before you go</h2><p>This event is organised by {groups}. The full announcement has the latest information and any registration instructions.</p>
-<p>Events are in English, unless the announcement says otherwise; PauseAI Munich’s are sometimes in German. Check the announcement for cost, registration, capacity, preparation and step-free access, or ask the host.</p>
-<a class="text-link" href="mailto:rationality@hilll.dev?subject=Correction">Report a detail that needs updating ↗</a></div></article>
+<div class="detail-body"><p>{language} The announcement is the place for anything else: cost, registration, capacity, what to read beforehand, and getting in.</p>
+<a class="text-link" href="mailto:rationality@hilll.dev?subject=Correction">Report a detail that needs updating</a></div></article>
 <aside class="detail-aside"><p class="eyebrow">PRACTICAL DETAILS</p>
 <div class="detail-fact"><time datetime="{iso}">{long}</time></div>
 <div class="detail-fact"><span>{time}<small>Munich local time · Europe/Berlin</small></span></div>
