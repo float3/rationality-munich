@@ -103,8 +103,7 @@ script, light and dark.
 from `site/` alongside the feeds and the per-event `.ics` files; this design
 has no filters, past events or statistics yet.
 
-`src/demo/groups.rs` holds the group directory and `src/demo/plans.rs` the
-things that are happening but have no date yet: the only text kept by hand.
+`src/demo/groups.rs` holds the group directory, the only text kept by hand.
 Every line of it is copied from the hub; do not add to it, because nobody from
 these groups has reviewed what the page says about them. The privacy policy
 and Impressum are in `src/demo/mod.rs` rather than linked, since the hub's

@@ -7,7 +7,7 @@
 //!
 //! Output, under `$STATE_DIRECTORY/demo/`, served at the root:
 //!
-//! - `index.html`: the hub — what is on, the groups, what is being planned
+//! - `index.html`: the hub — what is on, the groups, the further groups
 //! - `calendar/index.html`: this month and next as week grids, then the list
 //! - `events/<id>/index.html`: one page per upcoming event
 //! - `tools/`: what this site hosts for other groups to use
@@ -16,7 +16,6 @@
 //! - `style.css`, `og.png`, `munich.webp`, `favicon.svg`
 
 mod groups;
-mod plans;
 mod tools;
 
 use std::fs;
@@ -336,14 +335,12 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
 <div class="topic-strip"><div class="wrap"><span>RATIONALITY</span><i>✳</i><span>EFFECTIVE ALTRUISM</span><i>✳</i><span>PHILOSOPHY</span><i>✳</i><span>AI SAFETY</span><i>✳</i><span>AI POLICY</span></div></div>
 <section class="section wrap" id="events"><div class="section-heading"><div><p class="eyebrow">THIS MONTH AND NEXT</p><h2>Coming up in Munich</h2></div><a href="{AT}/calendar/" class="text-link">All events {ARROW}</a></div><div class="home-months">{grids}</div>{empty}<p class="section-note">All times Munich time. Check the organiser’s announcement before you go.</p></section>
 {spotlight}
-{plans}
 {groups}
 {more}
 <section class="section wrap" id="tools"><div class="section-heading"><div><p class="eyebrow">TOOLS</p><h2>Things this site hosts</h2></div><a class="text-link" href="{AT}/tools/">All three {ARROW}</a></div><p class="section-note">AnkiQuest, and the Petrov and Arkhipov Day ceremonies. All three are open source and free to use.</p></section>
 <section class="wrap newsletter-section"><div class="newsletter-icon" aria-hidden="true">✉</div><div><p class="eyebrow">MAILING LIST</p><h2>Event invites by email</h2><p>Pick the topics you want to hear about. No open or click tracking, and you can unsubscribe or delete your data from any email.</p><a class="button primary" href="{AT}/subscribe/">Get event invitations {ARROW}</a><a class="text-link" href="https://lists.rationality-munich.com/archive">See the archive →</a></div><div class="newsletter-note"><p>EA, RATIONALITY,<br>OR EVERYTHING.</p><span>Pick what you want invitations about. Unsubscribe at any time.</span></div></section>
 </main>"##,
         count = count,
-        plans = plans::section(),
         groups = groups::section(),
         more = groups::more(),
     )
