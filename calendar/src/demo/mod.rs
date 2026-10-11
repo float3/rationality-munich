@@ -89,6 +89,11 @@ fn place(e: &Event) -> &str {
     }
 }
 
+/// Sources whose event pages take an RSVP. A weekly series kept in
+/// data/series.ics links to the group's own page instead, where there is
+/// nothing to sign up to, so those get "Details on" and no promise.
+const RSVP_SITES: &[&str] = &["LessWrong", "EA Forum", "Meetup", "Luma"];
+
 /// The organiser's own announcement.
 fn source(e: &Event) -> Option<&(String, String)> {
     e.links.first()
@@ -414,12 +419,6 @@ fn calendar(events: &[&Event], today: NaiveDate) -> String {
 
 fn event_page(e: &Event, now: DateTime<Utc>) -> String {
     let start = e.start.with_timezone(&Berlin);
-    // The one thing we know about language, said only where it applies.
-    let language = if e.groups.iter().any(|g| g == "pauseai") {
-        "Sometimes in German."
-    } else {
-        "In English."
-    };
     let more: String = e
         .links
         .iter()
@@ -434,7 +433,12 @@ fn event_page(e: &Event, now: DateTime<Utc>) -> String {
         .collect();
     let announcement = match source(e) {
         Some((label, url)) => format!(
-            r#"<a class="button primary" href="{url}">Details &amp; RSVP on {label} {ARROW}</a>"#,
+            r#"<a class="button primary" href="{url}">{what} on {label} {ARROW}</a>"#,
+            what = if RSVP_SITES.contains(&label.as_str()) {
+                "Details &amp; RSVP"
+            } else {
+                "Details"
+            },
             url = html_escape(url),
             label = html_escape(label),
         ),
@@ -456,8 +460,7 @@ fn event_page(e: &Event, now: DateTime<Utc>) -> String {
         r##"<main id="main" class="wrap detail-page">
 <a class="text-link back-link" href="{AT}/calendar/">← All events</a>
 <div class="detail-grid"><article><div class="detail-labels"><span class="tag">{category}</span><span class="eyebrow">{groups}</span></div><h1>{title}</h1>{lede}
-<div class="detail-body"><p>{language} The announcement is the place for anything else: cost, registration, capacity, what to read beforehand, and getting in.</p>
-<a class="text-link" href="mailto:rationality@hilll.dev?subject=Correction">Report a detail that needs updating</a></div></article>
+<div class="detail-body"><a class="text-link" href="mailto:rationality@hilll.dev?subject=Correction">Report a detail that needs updating</a></div></article>
 <aside class="detail-aside"><p class="eyebrow">PRACTICAL DETAILS</p>
 <div class="detail-fact"><time datetime="{iso}">{long}</time></div>
 <div class="detail-fact"><span>{time}<small>Munich local time · Europe/Berlin</small></span></div>
