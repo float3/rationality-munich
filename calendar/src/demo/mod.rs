@@ -74,6 +74,15 @@ fn day(e: &Event) -> NaiveDate {
     e.start.with_timezone(&Berlin).date_naive()
 }
 
+/// One class per group, so the stylesheet can switch rows on and off.
+pub fn group_classes(e: &Event) -> String {
+    e.groups
+        .iter()
+        .map(|g| format!("g-{g}"))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 fn group_list(e: &Event) -> String {
     e.groups
         .iter()
@@ -166,7 +175,8 @@ fn month_grid(year: i32, month: u32, events: &[&Event], today: NaiveDate) -> Str
                 .iter()
                 .map(|e| {
                     format!(
-                        r#"<a class="day-event" href="{AT}/events/{id}/"><b>{time}</b>{title}</a>"#,
+                        r#"<a class="day-event {classes}" href="{AT}/events/{id}/"><b>{time}</b>{title}</a>"#,
+                        classes = group_classes(e),
                         id = e.id,
                         time = html_escape(&clock(e)),
                         title = html_escape(&e.title),
@@ -190,16 +200,6 @@ fn month_grid(year: i32, month: u32, events: &[&Event], today: NaiveDate) -> Str
 fn current_and_next(today: NaiveDate) -> [(i32, u32); 2] {
     let after = next_month(today.year(), today.month());
     [(today.year(), today.month()), (after.year(), after.month())]
-}
-
-fn month_count(events: &[&Event], year: i32, month: u32) -> usize {
-    events
-        .iter()
-        .filter(|e| {
-            let d = day(e);
-            d.year() == year && d.month() == month
-        })
-        .count()
 }
 
 /// How many are coming, worded as /calendar has always worded it: an
@@ -233,7 +233,8 @@ fn event_row(e: &Event) -> String {
         format!("<p>{}</p>", html_escape(&e.excerpt))
     };
     format!(
-        r#"<article id="{id}" class="calendar-row"><time datetime="{iso}" class="calendar-date"><span>{wd}</span><strong>{d}</strong><span>{mon}</span></time><div class="calendar-row-content"><div class="calendar-row-labels"><span class="tag">{category}</span><span class="event-group">{groups}</span></div><h3><a href="{AT}/events/{id}/">{title}</a></h3><div class="event-meta"><span>{time}</span><span>{place}</span>{coming}</div>{text}</div><a class="text-link calendar-row-action" href="{AT}/events/{id}/">Event details {ARROW}</a></article>"#,
+        r#"<article id="{id}" class="calendar-row {classes}"><time datetime="{iso}" class="calendar-date"><span>{wd}</span><strong>{d}</strong><span>{mon}</span></time><div class="calendar-row-content"><div class="calendar-row-labels"><span class="tag">{category}</span><span class="event-group">{groups}</span></div><h3><a href="{AT}/events/{id}/">{title}</a></h3><div class="event-meta"><span>{time}</span><span>{place}</span>{coming}</div>{text}</div><a class="text-link calendar-row-action" href="{AT}/events/{id}/">Event details {ARROW}</a></article>"#,
+        classes = group_classes(e),
         iso = start.format("%Y-%m-%d"),
         wd = start.format("%a").to_string().to_uppercase(),
         d = start.format("%-d"),
@@ -377,33 +378,31 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
     )
 }
 
-/// The upcoming events of the groups that are off by default:
-/// Philosophia and the further Munich groups. They are listed in their own
-/// section rather than filtered in the browser, because these pages run no
-/// script.
-fn other_groups(events: &[&Event]) -> String {
-    if events.is_empty() {
-        return String::new();
-    }
-    let rows: String = events.iter().map(|e| event_row(e)).collect();
-    format!(
-        r##"<section class="calendar-month"><div class="month-heading"><h2>The further groups</h2><span>{n} event{s}</span></div><p class="section-note">Philosophia and the groups from the <a class="underlined" href="https://recthink.substack.com/p/germany">Recreational Thinking directory</a>. Their events are not in the subscription feed above; each has its own feed under <code>/calendar/feeds/</code>.</p>{rows}</section>"##,
-        n = events.len(),
-        s = plural(events.len()),
-    )
+/// How many upcoming events each group has, in the order of `GROUPS`, so
+/// that the switches can say.
+fn counts<'a>(events: &[&Event]) -> Vec<(&'a str, &'a str, usize)> {
+    crate::event::GROUPS
+        .iter()
+        .map(|(key, name)| {
+            (
+                *key,
+                *name,
+                events.iter().filter(|e| e.in_any(&[key])).count(),
+            )
+        })
+        .filter(|(_, _, n)| *n > 0)
+        .collect()
 }
 
-fn calendar(events: &[&Event], others: &[&Event], today: NaiveDate) -> String {
+fn calendar(events: &[&Event], today: NaiveDate) -> String {
     let grids: String = current_and_next(today)
         .iter()
         .map(|&(year, month)| {
-            let n = month_count(events, year, month);
             format!(
-                r#"<section class="calendar-month"><div class="month-heading"><h2>{label}</h2><span>{n} event{s}</span></div>{grid}</section>"#,
+                r#"<section class="calendar-month"><div class="month-heading"><h2>{label}</h2></div>{grid}</section>"#,
                 label = NaiveDate::from_ymd_opt(year, month, 1)
                     .expect("a first of the month is real")
                     .format("%B <span>%Y</span>"),
-                s = plural(n),
                 grid = month_grid(year, month, events, today),
             )
         })
@@ -417,9 +416,7 @@ fn calendar(events: &[&Event], others: &[&Event], today: NaiveDate) -> String {
         )
     } else {
         format!(
-            r#"<section class="calendar-month"><div class="month-heading"><h2>Every upcoming event</h2><span>{n} event{s}</span></div>{rows}</section>"#,
-            n = events.len(),
-            s = plural(events.len()),
+            r#"<section class="calendar-month event-list"><div class="month-heading"><h2>Every upcoming event</h2></div>{rows}</section>"#
         )
     };
     let feed = format!(
@@ -431,14 +428,13 @@ fn calendar(events: &[&Event], others: &[&Event], today: NaiveDate) -> String {
 <div class="page-heading"><p class="eyebrow">CALENDAR</p><div class="title-actions"><h1>Upcoming events</h1></div><p>Discussions, dinners, games and talks in Munich.</p>
 <details class="subscribe-box"><summary>Subscribe to the calendar</summary><div><p>Every event below, in your own calendar app, updated automatically.</p><a class="button primary" href="webcal://{feed}">Open in Apple Calendar or Outlook {ARROW}</a><h3>Google Calendar</h3><p>Other calendars → + → From URL, then paste this address.</p><h3>Outlook on the web</h3><p>Add calendar → Subscribe from web, then paste this address.</p><code>https://{feed}</code><p><a class="text-link" href="/calendar/rss.xml">RSS</a> and <a class="text-link" href="/calendar/feed.xml">Atom</a> feeds too.</p></div></details></div>
 <div class="calendar-context"><span><span class="status-dot"></span> {n} upcoming event{s}</span><span>All times Munich local time</span></div>
-{grids}
-{list}
-{others}
+<div class="filtered">{switches}<div class="listing"><p class="none-on">No groups switched on.</p>{grids}
+{list}</div></div>
 <aside class="coverage-note"><h3>A note on coverage</h3><p>These are the events the groups have announced on LessWrong, the EA Forum, Meetup, Luma and their own pages. Check the original listing for registration, language and cost. Events later than next month are in the list above but not in the grids.</p><div class="actions"><a class="text-link" href="/calendar/past/">Past events</a><a class="text-link" href="/calendar/stats/">Statistics</a><a class="text-link" href="mailto:rationality@hilll.dev?subject=Event%20suggestion%20for%20Rationality%20Munich">Suggest an event</a></div></aside>
 </main>"##,
         n = events.len(),
         s = plural(events.len()),
-        others = other_groups(others),
+        switches = groups::switches(&counts(events), false),
     )
 }
 
@@ -707,7 +703,10 @@ pub fn build(
     // Oldest first, as they arrive; the past page turns them round.
     let past: Vec<&Event> = events.iter().filter(|e| e.end_or_default() < now).collect();
 
-    write(&dir.join("style.css"), CSS)?;
+    write(
+        &dir.join("style.css"),
+        &format!("{CSS}{}", groups::switch_css()),
+    )?;
     write(&dir.join("robots.txt"), &robots())?;
     write(&dir.join("sitemap.xml"), &sitemap(&every_upcoming, now))?;
     write(&dir.join(".well-known/security.txt"), &security(now))?;
@@ -744,7 +743,7 @@ pub fn build(
                 title: "Upcoming events · Rationality Munich".into(),
                 description: "Every event the Munich rationality, EA and AI safety groups have announced, this month and next as a calendar.".into(),
                 canonical: format!("{SITE}{AT}/calendar/"),
-                body: calendar(&upcoming, &others, today),
+                body: calendar(&every_upcoming, today),
             },
         ),
         (
@@ -907,7 +906,7 @@ mod tests {
         let today = now.with_timezone(&Berlin).date_naive();
         for html in [
             home(&upcoming, today),
-            calendar(&upcoming, &[], today),
+            calendar(&upcoming, today),
             event_page(upcoming[0], now),
         ] {
             assert!(!html.contains("<script>alert"), "{html}");
@@ -926,7 +925,7 @@ mod tests {
         let pages = [
             PAGE.replace("{{at}}", AT),
             home(&upcoming, today),
-            calendar(&upcoming, &[], today),
+            calendar(&upcoming, today),
             event_page(upcoming[0], now),
             subscribe(),
             privacy(),
@@ -963,7 +962,7 @@ mod tests {
         let events = sample();
         let upcoming: Vec<&Event> = events.iter().collect();
         let today = upcoming[0].start.with_timezone(&Berlin).date_naive();
-        let html = calendar(&upcoming, &[], today);
+        let html = calendar(&upcoming, today);
         for e in &upcoming {
             assert!(
                 html.contains(&format!(r#"<article id="{}""#, e.id)),
@@ -973,29 +972,64 @@ mod tests {
         }
     }
 
-    /// The groups that start off used to vanish from the site: the old
-    /// page kept them in the markup and filtered in the browser, and these
-    /// pages run no script.
+    /// The groups that start off had been dropped from the page
+    /// altogether. They are in the one list now, with a switch that starts
+    /// off, so their events have a row and nothing is missing from the
+    /// markup.
     #[test]
-    fn the_further_groups_are_listed_rather_than_dropped() {
-        let events = sample();
+    fn the_further_groups_are_listed_behind_a_switch_that_starts_off() {
+        let mut events = sample();
         let mut reading = events[0].clone();
         reading.id = "2026-10-20-left-hand-of-darkness".into();
         reading.title = "The Left Hand of Darkness".into();
         reading.groups = vec!["philosophia".into()];
-        let upcoming: Vec<&Event> = events.iter().collect();
         let today = events[0].start.with_timezone(&Berlin).date_naive();
+        events.push(reading);
+        let upcoming: Vec<&Event> = events.iter().collect();
 
-        let html = calendar(&upcoming, &[&reading], today);
-        assert!(html.contains("The further groups"), "no section for them");
+        let html = calendar(&upcoming, today);
         assert!(
             html.contains("The Left Hand of Darkness"),
             "the event is missing"
         );
         assert!(
-            !calendar(&upcoming, &[], today).contains("The further groups"),
-            "the section is only there when they have something on"
+            html.contains(r#"class="calendar-row g-philosophia""#),
+            "the row carries its group"
         );
+        assert!(
+            html.contains(r#"<input type="checkbox" class="pick" id="g-philosophia">"#),
+            "Philosophia starts off"
+        );
+        assert!(
+            html.contains(r#"<input type="checkbox" class="pick" id="g-ea" checked>"#),
+            "the default groups start on"
+        );
+        // A group with nothing on gets no switch.
+        assert!(!html.contains(r#"id="g-pauseai""#), "{html}");
+    }
+
+    /// The switches are a stylesheet and a checkbox each. Both ends have to
+    /// be there, or the page shows nothing at all.
+    #[test]
+    fn every_group_with_a_switch_has_rules_to_go_with_it() {
+        let events = sample();
+        let upcoming: Vec<&Event> = events.iter().collect();
+        let today = upcoming[0].start.with_timezone(&Berlin).date_naive();
+        let html = calendar(&upcoming, today);
+        let css = groups::switch_css();
+        for (key, _) in crate::event::GROUPS {
+            if html.contains(&format!(r#"id="g-{key}""#)) {
+                assert!(
+                    css.contains(&format!("#g-{key}:checked~.listing .calendar-row.g-{key}")),
+                    "no rule for {key}"
+                );
+            }
+        }
+        assert!(
+            html.contains(r#"<div class="listing">"#),
+            "nothing to filter"
+        );
+        assert!(!html.contains("<script"), "the page runs no script");
     }
 
     /// html-validate refuses a title over 70 characters, and the further
@@ -1018,7 +1052,7 @@ mod tests {
         let today = NaiveDate::from_ymd_opt(2026, 10, 10).unwrap();
         let home = home(&[], today);
         assert!(home.contains("Nothing is announced"));
-        assert!(calendar(&[], &[], today).contains("Nothing listed."));
+        assert!(calendar(&[], today).contains("Nothing listed."));
     }
 
     /// A page built with `to_string` instead of `format!` prints its
@@ -1032,9 +1066,9 @@ mod tests {
         let today = now.with_timezone(&Berlin).date_naive();
         let pages = [
             ("home", home(&upcoming, today)),
-            ("calendar", calendar(&upcoming, &[], today)),
+            ("calendar", calendar(&upcoming, today)),
             ("empty home", home(&[], today)),
-            ("empty calendar", calendar(&[], &[], today)),
+            ("empty calendar", calendar(&[], today)),
             ("event", event_page(upcoming[0], now)),
             ("subscribe", subscribe()),
             ("privacy", privacy()),
