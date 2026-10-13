@@ -62,8 +62,8 @@ const TOOLS: &[Tool] = &[
     Tool {
         kind: "GROUP GAME",
         name: "Estimation game",
-        what: "One question with a number for an answer. Everyone sends the range they are ninety per cent sure it falls in, from their own phone. Then the room talks it over and answers again, and everybody sees how far the discussion moved them — who narrowed, who widened, and whether any of it brought the room closer to the answer.",
-        how: "",
+        what: "One question with a number for an answer. Everyone sends the range they are ninety per cent sure it falls in, from their own phone. The room then discusses it and answers again, so you can see who narrowed their range, who widened it, and whether the second answers were closer to the truth.",
+        how: "Nothing to install: the host opens a room and everyone else scans a QR code",
         links: &[
             ("Open", "https://estimate.rationality-munich.com/"),
             ("Source", "https://github.com/float3/estimate"),
@@ -73,7 +73,7 @@ const TOOLS: &[Tool] = &[
         kind: "GROUP GAME",
         name: "Number games",
         what: "Everyone picks a number and the rule decides who wins: closest to a third of the average, the lowest number nobody else picked, the number the most people picked, the highest number that keeps the room's total under a limit, and seven more. Nobody sees a number, the host included, until the round is revealed.",
-        how: "",
+        how: "Eleven rules, played in rounds; nothing to install",
         links: &[
             ("Open", "https://numbers.rationality-munich.com/"),
             ("Source", "https://github.com/float3/numbers"),
@@ -119,7 +119,7 @@ pub fn page() -> String {
 <div class="page-heading"><p class="eyebrow">TOOLS</p><h1>Things this site hosts</h1><p>Software this site runs for the community. All of it is open source: use ours, or run your own.</p></div>
 <div class="group-list">{rows}</div>
 <p class="section-note">Questions and bug reports: <a class="underlined" href="mailto:rationality@hilll.dev">rationality@hilll.dev</a>. The ceremonies need two groups and some setup beforehand.</p>
-<aside class="coverage-note"><h3>Running one yourself</h3><p>All of these can be self-hosted, and none of them needs anything from this server to run. AnkiQuest is a single binary with a config file; the ceremonies are one program serving both days; the two group games are a binary each.</p><div class="actions"><a class="text-link" href="{AT}/">Back to events</a></div></aside>
+<aside class="coverage-note"><h3>Running one yourself</h3><p>All of these can be self-hosted, and none of them needs anything from this server. AnkiQuest is a single binary with a config file. The ceremonies are one program that serves both days, and the two group games are one binary each.</p><div class="actions"><a class="text-link" href="{AT}/">Back to events</a></div></aside>
 </main>"##
     )
 }
