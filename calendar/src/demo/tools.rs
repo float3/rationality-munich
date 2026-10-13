@@ -1,7 +1,7 @@
 //! The tools page: what this site hosts for other groups to use.
 //!
 //! Each description is the project's own: www/tools.html for the two
-//! ceremonies, AnkiQuest's README for AnkiQuest.
+//! ceremonies, and each repository's README for the rest.
 //!
 //! The rows reuse the directory's `group-*` classes, which style a numbered
 //! row with a description and some links.
@@ -59,6 +59,26 @@ const TOOLS: &[Tool] = &[
             ("Source", "https://github.com/float3/petrov"),
         ],
     },
+    Tool {
+        kind: "GROUP GAME",
+        name: "Estimation game",
+        what: "One question with a number for an answer. Everyone sends the range they are ninety per cent sure it falls in, from their own phone. The room then discusses it and answers again, so you can see who narrowed their range, who widened it, and whether the second answers were closer to the truth.",
+        how: "Nothing to install: the host opens a room and everyone else scans a QR code",
+        links: &[
+            ("Open", "https://estimate.rationality-munich.com/"),
+            ("Source", "https://github.com/float3/estimate"),
+        ],
+    },
+    Tool {
+        kind: "GROUP GAME",
+        name: "Number games",
+        what: "Everyone picks a number and the rule decides who wins: closest to a third of the average, the lowest number nobody else picked, the number the most people picked, the highest number that keeps the room's total under a limit, and seven more. Nobody sees a number, the host included, until the round is revealed.",
+        how: "Eleven rules, played in rounds; nothing to install",
+        links: &[
+            ("Open", "https://numbers.rationality-munich.com/"),
+            ("Source", "https://github.com/float3/numbers"),
+        ],
+    },
 ];
 
 pub fn page() -> String {
@@ -96,10 +116,10 @@ pub fn page() -> String {
         .collect();
     format!(
         r##"<main id="main" class="wrap tools-page">
-<div class="page-heading"><p class="eyebrow">TOOLS</p><h1>Things this site hosts</h1><p>Software this site runs for the community. All three are open source: use ours, or run your own.</p></div>
+<div class="page-heading"><p class="eyebrow">TOOLS</p><h1>Things this site hosts</h1><p>Software this site runs for the community. All of it is open source: use ours, or run your own.</p></div>
 <div class="group-list">{rows}</div>
 <p class="section-note">Questions and bug reports: <a class="underlined" href="mailto:rationality@hilll.dev">rationality@hilll.dev</a>. The ceremonies need two groups and some setup beforehand.</p>
-<aside class="coverage-note"><h3>Running one yourself</h3><p>All three can be self-hosted, and none of them needs anything from this server to run. AnkiQuest is a single binary with a config file; the ceremonies are one program serving both days.</p><div class="actions"><a class="text-link" href="{AT}/">Back to events</a></div></aside>
+<aside class="coverage-note"><h3>Running one yourself</h3><p>All of these can be self-hosted, and none of them needs anything from this server. AnkiQuest is a single binary with a config file. The ceremonies are one program that serves both days, and the two group games are one binary each.</p><div class="actions"><a class="text-link" href="{AT}/">Back to events</a></div></aside>
 </main>"##
     )
 }
