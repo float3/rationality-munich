@@ -62,7 +62,7 @@ const TOOLS: &[Tool] = &[
     Tool {
         kind: "GROUP GAME",
         name: "Estimation game",
-        what: "One question with a number for an answer. Everyone sends the range they are ninety per cent sure it falls in, from their own phone. The host sees what the room thinks: the median bounds, the average bounds, how low and how high anyone went, the widest range and the tightest, and how many of them contained the answer.",
+        what: "One question with a number for an answer. Everyone sends the range they are ninety per cent sure it falls in, from their own phone. Then the room talks it over and answers again, and everybody sees how far the discussion moved them — who narrowed, who widened, and whether any of it brought the room closer to the answer.",
         how: "",
         links: &[
             ("Open", "https://estimate.rationality-munich.com/"),
@@ -72,7 +72,7 @@ const TOOLS: &[Tool] = &[
     Tool {
         kind: "GROUP GAME",
         name: "Number games",
-        what: "Everyone picks a number and the rule decides who wins: closest to a third of the average, the lowest number nobody else picked, the highest number below the average, and five more. Nobody sees a number, the host included, until the round is revealed.",
+        what: "Everyone picks a number and the rule decides who wins: closest to a third of the average, the lowest number nobody else picked, the number the most people picked, the highest number that keeps the room's total under a limit, and seven more. Nobody sees a number, the host included, until the round is revealed.",
         how: "",
         links: &[
             ("Open", "https://numbers.rationality-munich.com/"),
