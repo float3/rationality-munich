@@ -1,5 +1,5 @@
-//! The group directory: the only part of /demo written by hand rather than
-//! read from the feeds.
+//! The group directory: the only part of the site written by hand rather
+//! than read from the feeds.
 //!
 //! Every line here is the hub's own text for that group, unchanged. Do not
 //! add to it: nobody from these groups has reviewed what this page says about
@@ -8,8 +8,8 @@
 use crate::event::Event;
 use crate::render::html_escape;
 
-/// A short label for an event, from the group running it. For the design
-/// only; the announcement is the authority on what an event actually is.
+/// A short label for an event, from the group running it. A label only;
+/// the announcement says what an event actually is.
 pub fn category(e: &Event) -> &'static str {
     for key in &e.groups {
         let label = match key.as_str() {
@@ -141,9 +141,9 @@ pub fn section() -> String {
         .iter()
         .enumerate()
         .map(|(i, g)| {
-            // All of them, in the hub's order. For several of these groups
-            // WhatsApp is where everything actually happens, so nothing here
-            // goes behind a dropdown.
+            // All of them, in the hub's order. Several of these groups
+            // organise everything in WhatsApp, so no link here is hidden
+            // behind a dropdown.
             let links: String = g
                 .links
                 .iter()
@@ -278,7 +278,8 @@ mod tests {
         assert_eq!(html.matches("<li>").count(), links + MORE.len());
         // Nothing a group is reached through may be hidden behind a dropdown.
         assert!(!section().contains("<details"), "a group link is hidden");
-        // The language question, which is the one we can answer.
+        // The language note, which is the one question this page can
+        // answer from the groups' own text.
         assert!(html.contains("sometimes in German"));
     }
 }

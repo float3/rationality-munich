@@ -190,8 +190,8 @@ fn swap(state: &Path, name: &str, build: impl FnOnce(&Path) -> Res<()>) -> Res<(
 }
 
 fn publish(state: &Path, events: &[Event], stale: &[String], now: DateTime<Utc>) -> Res<()> {
-    // `site` is served at /calendar, `demo` at /demo: the same events, read
-    // once, written twice. See demo::build.
+    // `site` is served at /calendar and `demo` at the root. The same
+    // events, written into both sets of pages. See demo::build.
     swap(state, "site", |dir| build_site(dir, events, stale, now))?;
     swap(state, "demo", |dir| {
         demo::build(dir, events, stale, now).map_err(Into::into)

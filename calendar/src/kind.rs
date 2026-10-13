@@ -1,6 +1,7 @@
 //! What sort of event something is, read from its title: a dinner, a talk,
-//! a hike. Turnout differs a lot between them, so forecasts compare like
-//! with like, and the statistics page counts them apart.
+//! a hike. Turnout differs a lot between them, so a forecast only uses
+//! earlier events of the same kind, and the statistics page counts the
+//! kinds separately.
 
 /// Checked in order, first match wins: specific phrases before general
 /// ones ("Estimation Game" before games, "Dine and Discuss" as a dinner),
