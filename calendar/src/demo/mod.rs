@@ -548,20 +548,27 @@ fn privacy() -> String {
         .to_string()
 }
 
-/// A page title with the site's name after it, kept inside the 70
-/// characters a search result shows. Long event titles are cut at a word.
+/// A page title with the site's name after it, kept inside the seventy
+/// characters a validator and a search result allow. Measured after
+/// escaping, because a title with two quotation marks in it grows by ten
+/// characters on the way into the page.
 fn titled(what: &str) -> String {
     const TAIL: &str = " · Rationality Munich";
-    const ROOM: usize = 70 - TAIL.len() - 1;
+    let fits = |s: &str| html_escape(s).chars().count() <= 70;
     let what = what.trim();
-    if what.chars().count() <= ROOM {
-        return format!("{what}{TAIL}");
+    let whole = format!("{what}{TAIL}");
+    if fits(&whole) {
+        return whole;
     }
-    let mut cut: String = what.chars().take(ROOM).collect();
-    if let Some(space) = cut.rfind(' ') {
+    let mut cut = what.to_string();
+    while let Some(space) = cut.rfind(' ') {
         cut.truncate(space);
+        let shorter = format!("{}…{TAIL}", cut.trim_end_matches([' ', ',', '–', '-', '"']));
+        if fits(&shorter) {
+            return shorter;
+        }
     }
-    format!("{}…{TAIL}", cut.trim_end_matches([' ', ',', '–', '-']))
+    format!("Event{TAIL}")
 }
 
 /// The 404 page. nginx serves it for anything missing under `AT`.
@@ -996,7 +1003,11 @@ mod tests {
     #[test]
     fn a_long_event_title_is_cut_rather_than_overflowing_the_page_title() {
         let long = titled("Discussion of \"The Left Hand of Darkness\" by Ursula K. Le Guin");
-        assert!(long.chars().count() <= 70, "{long}");
+        assert!(
+            html_escape(&long).chars().count() <= 70,
+            "{long} is {} characters once escaped",
+            html_escape(&long).chars().count()
+        );
         assert!(long.ends_with(" · Rationality Munich"));
         assert!(long.contains('…'));
         assert_eq!(titled("Petrov Day"), "Petrov Day · Rationality Munich");
