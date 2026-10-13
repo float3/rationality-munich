@@ -96,12 +96,20 @@ script, light and dark.
 | `/calendar` | this month and next as week grids, then every announced event |
 | `/events/<id>` | one event, with the organiser's announcement and an .ics |
 | `/tools` | AnkiQuest, the Petrov and Arkhipov Day ceremonies, the estimation game, the number games |
+| `/calendar/past` | every past event, newest first, with the headcount form |
+| `/calendar/stats` | how often the groups meet and how many come, charted server-side |
 | `/subscribe`, `/privacy`, `/impressum`, `/about` | the text pages |
 | `404.html`, `robots.txt`, `sitemap.xml`, `.well-known/security.txt` | generated with the rest |
 
-`/calendar/past/` and `/calendar/stats/` are still the older design, served
-from `site/` alongside the feeds and the per-event `.ics` files; this design
-has no filters, past events or statistics yet.
+`site/` still holds the feeds and the per-event `.ics` files, which calendar
+apps and feed readers hold links to. Its own pages are no longer served.
+
+The groups that are off by default have their own section on `/calendar`
+rather than a filter: these pages run no script, and a section nobody has to
+switch on is simpler than one they do. The headcount form on `/calendar/past`
+posts to the attendance service, which redirects the browser back to the
+event with `#r-<id>` or `#x-<id>`; both lines are in the page already, hidden
+until the fragment points at one.
 
 `src/demo/groups.rs` holds the group directory, the only text kept by hand.
 Every line of it is copied from the hub; do not add to it, because nobody from

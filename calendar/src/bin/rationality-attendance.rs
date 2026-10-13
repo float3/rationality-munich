@@ -5,6 +5,10 @@
 //! A report stores the event, the number and the time; nothing about who sent
 //! it. The client address (nginx's X-Real-IP) only ever lives in memory, to
 //! limit how often one address can report, and is forgotten within a day.
+//!
+//! The page sends a plain form, so a browser gets a redirect back to the
+//! event it reported on, where the page says whether it was counted. Anything
+//! that asked for JSON gets JSON.
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -98,6 +102,24 @@ fn save(file: &Path, reports: &Reports) -> std::io::Result<()> {
     fs::rename(&tmp, file)
 }
 
+/// Where the past events page says what happened: `#r-<id>` if it was
+/// counted, `#x-<id>` if it was not. Both are in the page already, hidden
+/// until the fragment points at one, so the answer needs no script.
+fn back(id: &str, counted: bool) -> Response<std::io::Cursor<Vec<u8>>> {
+    let mark = if counted { "r" } else { "x" };
+    Response::from_string("").with_status_code(303).with_header(
+        Header::from_bytes("Location", format!("/calendar/past/#{mark}-{id}"))
+            .expect("a header built from an event id"),
+    )
+}
+
+/// Whether this request came from a form rather than from a script.
+fn from_a_browser(req: &Request) -> bool {
+    req.headers()
+        .iter()
+        .any(|h| h.field.equiv("Accept") && h.value.as_str().contains("text/html"))
+}
+
 fn reply(status: u16, message: &str) -> Response<std::io::Cursor<Vec<u8>>> {
     let body = serde_json::json!({ "ok": status == 200, "message": message }).to_string();
     Response::from_string(body)
@@ -125,8 +147,13 @@ fn handle(state: &mut State, req: &mut Request) -> Response<std::io::Cursor<Vec<
     let Some((id, n)) = parse(&body) else {
         return reply(400, "Send a number between 1 and 1000 for an event.");
     };
+    let html = from_a_browser(req);
     if !has_started(&state.known, &id, Utc::now()) {
-        return reply(404, "No such event, or it has not started yet.");
+        return if html {
+            back(&id, false)
+        } else {
+            reply(404, "No such event, or it has not started yet.")
+        };
     }
 
     let address = req
@@ -151,20 +178,39 @@ fn handle(state: &mut State, req: &mut Request) -> Response<std::io::Cursor<Vec<
         *count = 0;
     }
     if *count >= PER_HOUR {
-        return reply(429, "That's a lot of reports; try again in an hour.");
+        return if html {
+            back(&id, false)
+        } else {
+            reply(429, "That's a lot of reports; try again in an hour.")
+        };
     }
     if !state.seen.insert(hash(&format!("{address} {id}"))) {
-        return reply(409, "Already counted, thanks!");
+        return if html {
+            back(&id, false)
+        } else {
+            reply(409, "Already counted, thanks!")
+        };
     }
-    let list = state.reports.entry(id).or_default();
+    let list = state.reports.entry(id.clone()).or_default();
     if list.len() >= PER_EVENT {
-        return reply(429, "This event has enough reports, thanks!");
+        return if html {
+            back(&id, false)
+        } else {
+            reply(429, "This event has enough reports, thanks!")
+        };
     }
     *count += 1;
     list.push(Report { n, at: Utc::now() });
     if let Err(err) = save(&state.file, &state.reports) {
         eprintln!("saving reports: {err}");
-        return reply(500, "Could not save; please try later.");
+        return if html {
+            back(&id, false)
+        } else {
+            reply(500, "Could not save; please try later.")
+        };
+    }
+    if html {
+        return back(&id, true);
     }
     reply(200, "Thanks! It shows on the page within the hour.")
 }

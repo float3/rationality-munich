@@ -46,3 +46,38 @@
 .group-links a:hover,.group-links a:focus-visible{background:var(--card);border-color:var(--mark)}
 @media(max-width:1050px){.directory .group-row{grid-template-columns:45px 1fr}}
 @media(max-width:760px){.directory .group-row{grid-template-columns:30px 1fr}.group-links{gap:7px;margin-top:15px}.group-links a{padding:6px 13px;font-size:.85rem}}
+.year-nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.year-nav a{text-decoration:none}
+.year-nav a:hover{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.year-heading{font-size:1.7rem;margin-top:40px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.past-year .calendar-month:first-of-type .month-heading{margin-top:18px}
+.past-row h3{font-size:1.4rem;margin-bottom:10px}
+.past-links{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:12px;font-size:.875rem}
+.report{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px;font-size:.85rem;color:var(--body)}
+.report input{width:96px;min-height:44px;padding:8px 11px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--ink);font:inherit}
+.report button{min-height:44px;padding:8px 18px;border:1px solid var(--ink);border-radius:4px;background:transparent;color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+.report button:hover{background:var(--ink);color:var(--on-ink)}
+.said{display:none;margin-top:10px;font-size:.875rem}
+.said:target{display:block}
+.said.ok{color:var(--mark)}
+.said.no{color:var(--focus)}
+.chart{margin:24px 0 0}
+.chart svg{display:block;width:100%;height:auto}
+.chart .bars rect{fill:var(--mark)}
+.chart .dots circle{fill:var(--mark)}
+.chart .trend{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
+.chart .axis{stroke:var(--border)}
+.chart .tick{fill:var(--body);font:11px Arial,sans-serif}
+.chart figcaption{font-size:.85rem;line-height:1.6;color:var(--body);margin-top:12px}
+.scroll{overflow-x:auto;margin-top:16px}
+table.figures{border-collapse:collapse;width:100%;font-size:.9rem}
+.figures th,.figures td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+.figures th[scope=row]{text-align:left;font-weight:400}
+.figures thead th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--body);font-weight:700}
+.figures .total{font-weight:700}
+.figures .zero{color:var(--border)}
+.figures .wide{width:38%;min-width:120px}
+.figures.months td{padding:7px 6px;text-align:center}
+.meter{display:block;height:9px;background:var(--tint);border-radius:5px;overflow:hidden}
+.meter span{display:block;height:100%;background:var(--mark)}
+@media(max-width:760px){.figures .wide{display:none}.year-heading{font-size:1.5rem;margin-top:30px}.past-row h3{font-size:1.25rem}}
