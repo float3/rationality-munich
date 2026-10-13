@@ -548,6 +548,22 @@ fn privacy() -> String {
         .to_string()
 }
 
+/// A page title with the site's name after it, kept inside the 70
+/// characters a search result shows. Long event titles are cut at a word.
+fn titled(what: &str) -> String {
+    const TAIL: &str = " · Rationality Munich";
+    const ROOM: usize = 70 - TAIL.len() - 1;
+    let what = what.trim();
+    if what.chars().count() <= ROOM {
+        return format!("{what}{TAIL}");
+    }
+    let mut cut: String = what.chars().take(ROOM).collect();
+    if let Some(space) = cut.rfind(' ') {
+        cut.truncate(space);
+    }
+    format!("{}…{TAIL}", cut.trim_end_matches([' ', ',', '–', '-']))
+}
+
 /// The 404 page. nginx serves it for anything missing under `AT`.
 fn not_found() -> String {
     format!(
@@ -796,7 +812,7 @@ pub fn build(
             &dir.join(format!("events/{}/index.html", e.id)),
             &shell(
                 Shell {
-                    title: format!("{} · Rationality Munich", e.title),
+                    title: titled(&e.title),
                     description: if e.excerpt.is_empty() {
                         "An event from one of Munich's rationality, EA and AI safety groups"
                             .to_string()
@@ -973,6 +989,17 @@ mod tests {
             !calendar(&upcoming, &[], today).contains("The further groups"),
             "the section is only there when they have something on"
         );
+    }
+
+    /// html-validate refuses a title over 70 characters, and the further
+    /// groups read books with long names.
+    #[test]
+    fn a_long_event_title_is_cut_rather_than_overflowing_the_page_title() {
+        let long = titled("Discussion of \"The Left Hand of Darkness\" by Ursula K. Le Guin");
+        assert!(long.chars().count() <= 70, "{long}");
+        assert!(long.ends_with(" · Rationality Munich"));
+        assert!(long.contains('…'));
+        assert_eq!(titled("Petrov Day"), "Petrov Day · Rationality Munich");
     }
 
     #[test]
