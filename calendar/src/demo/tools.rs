@@ -63,7 +63,7 @@ const TOOLS: &[Tool] = &[
         kind: "GROUP GAME",
         name: "Estimation game",
         what: "One question with a number for an answer. Everyone sends the range they are ninety per cent sure it falls in, from their own phone. The room then discusses it and answers again, so you can see who narrowed their range, who widened it, and whether the second answers were closer to the truth.",
-        how: "Nothing to install: the host opens a room and everyone else scans a QR code",
+        how: "",
         links: &[
             ("Open", "https://estimate.rationality-munich.com/"),
             ("Source", "https://github.com/float3/estimate"),
@@ -73,7 +73,7 @@ const TOOLS: &[Tool] = &[
         kind: "GROUP GAME",
         name: "Number games",
         what: "Everyone picks a number and the rule decides who wins: closest to a third of the average, the lowest number nobody else picked, the number the most people picked, the highest number that keeps the room's total under a limit, and seven more. Nobody sees a number, the host included, until the round is revealed.",
-        how: "Eleven rules, played in rounds; nothing to install",
+        how: "",
         links: &[
             ("Open", "https://numbers.rationality-munich.com/"),
             ("Source", "https://github.com/float3/numbers"),
