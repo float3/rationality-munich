@@ -10,7 +10,7 @@
 use chrono::{DateTime, Datelike, Utc};
 use chrono_tz::Europe::Berlin;
 
-use super::{clock, group_list, groups, place, plural, turnout};
+use super::{clock, counts, group_classes, group_list, groups, place, plural, turnout};
 use crate::event::Event;
 use crate::render::html_escape;
 
@@ -54,8 +54,9 @@ fn row(e: &Event, reportable: bool) -> String {
         String::new()
     };
     format!(
-        r#"<article id="{id}" class="calendar-row past-row"><time datetime="{iso}" class="calendar-date"><span>{wd}</span><strong>{d}</strong><span>{mon}</span></time><div class="calendar-row-content"><div class="calendar-row-labels"><span class="tag">{category}</span><span class="event-group">{groups}</span></div><h3>{title}</h3><div class="event-meta"><span>{time}</span><span>{place}</span>{coming}</div>{text}<div class="past-links">{links}</div>{report}</div></article>"#,
+        r#"<article id="{id}" class="calendar-row past-row {classes}"><time datetime="{iso}" class="calendar-date"><span>{wd}</span><strong>{d}</strong><span>{mon}</span></time><div class="calendar-row-content"><div class="calendar-row-labels"><span class="tag">{category}</span><span class="event-group">{groups}</span></div><h3>{title}</h3><div class="event-meta"><span>{time}</span><span>{place}</span>{coming}</div>{text}<div class="past-links">{links}</div>{report}</div></article>"#,
         id = e.id,
+        classes = group_classes(e),
         iso = start.format("%Y-%m-%d"),
         wd = start.format("%a").to_string().to_uppercase(),
         d = start.format("%-d"),
@@ -96,9 +97,7 @@ pub fn page(events: &[&Event], now: DateTime<Utc>) -> String {
     let flush = |rows: &mut String, month: &Option<String>, count: &mut usize, out: &mut String| {
         if let Some(label) = month {
             out.push_str(&format!(
-                r#"<section class="calendar-month"><div class="month-heading"><h2>{label}</h2><span>{n} event{s}</span></div>{rows}</section>"#,
-                n = count,
-                s = plural(*count),
+                r#"<section class="calendar-month past-month"><div class="month-heading"><h2>{label}</h2></div>{rows}</section>"#,
             ));
         }
         rows.clear();
@@ -136,12 +135,13 @@ pub fn page(events: &[&Event], now: DateTime<Utc>) -> String {
 <div class="page-heading"><p class="eyebrow">PAST EVENTS</p><div class="title-actions"><h1>Everything that has happened</h1></div><p>{n} event{s} the Munich groups have held, newest first. Several of them were organised only in a group chat and were added by hand.</p>
 <nav class="year-nav" aria-label="Jump to a year">{nav}</nav></div>
 <div class="calendar-context"><span><span class="status-dot"></span> {n} event{s}</span><span>All times Munich local time</span></div>
-{sections}
+<div class="filtered">{switches}<div class="listing"><p class="none-on">No groups switched on.</p>{sections}</div></div>
 <aside class="coverage-note"><h3>How many came</h3><p>Events from the last {days} days take a headcount from anyone who was there. The number shown is the middle of what people reported, unless an organiser gave a count. Nothing about you is stored with it.</p><div class="actions"><a class="text-link" href="/calendar/">Upcoming events</a><a class="text-link" href="/calendar/stats/">Statistics</a></div></aside>
 </main>"##,
         n = events.len(),
         s = plural(events.len()),
         days = REPORT_DAYS,
+        switches = groups::switches(&counts(events), true),
     )
 }
 

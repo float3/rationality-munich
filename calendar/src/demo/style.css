@@ -46,6 +46,14 @@
 .group-links a:hover,.group-links a:focus-visible{background:var(--card);border-color:var(--mark)}
 @media(max-width:1050px){.directory .group-row{grid-template-columns:45px 1fr}}
 @media(max-width:760px){.directory .group-row{grid-template-columns:30px 1fr}.group-links{gap:7px;margin-top:15px}.group-links a{padding:6px 13px;font-size:.85rem}}
+.none-on{display:none;color:var(--body);padding:30px 0;font-size:.95rem}
+.pick{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%)}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:9px 16px;padding:17px 0;border-bottom:1px solid var(--border)}
+.filters .eyebrow{font-size:.72rem;color:var(--body)}
+.filters .chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:7px 14px;border:1px solid var(--border);border-radius:30px;background:var(--tint);font-size:.8rem;color:var(--body);cursor:pointer;user-select:none}
+.chip span{font-size:.72rem;opacity:.75}
+.chip:hover{border-color:var(--ink);color:var(--ink)}
 .year-nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
 .year-nav a{text-decoration:none}
 .year-nav a:hover{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}

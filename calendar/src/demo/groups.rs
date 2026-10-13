@@ -5,8 +5,79 @@
 //! add to it: nobody from these groups has reviewed what this page says about
 //! them. Keys are the ones in `event::GROUPS`.
 
-use crate::event::Event;
+use crate::event::{DEFAULT_GROUPS, Event};
 use crate::render::html_escape;
+
+/// The switches above a listing: one per group, with the number of
+/// events it has.
+///
+/// A hidden checkbox per group, labelled by a chip. Every row carries a
+/// class per group it belongs to, and `switch_css` hides all rows and then
+/// shows the ones whose group is ticked, so a row held by two groups
+/// appears if either is on. Nothing here runs a script; the browser
+/// remembers which boxes are ticked by itself.
+pub fn switches(counts: &[(&str, &str, usize)], all_on: bool) -> String {
+    let boxes: String = counts
+        .iter()
+        .map(|(key, _, _)| {
+            format!(
+                r#"<input type="checkbox" class="pick" id="g-{key}"{checked}>"#,
+                checked = if all_on || DEFAULT_GROUPS.contains(key) {
+                    " checked"
+                } else {
+                    ""
+                },
+            )
+        })
+        .collect();
+    let chips: String = counts
+        .iter()
+        .map(|(key, name, n)| {
+            format!(
+                r#"<label class="chip" for="g-{key}">{name} <span>{n}</span></label>"#,
+                name = html_escape(name),
+            )
+        })
+        .collect();
+    format!(
+        r#"{boxes}<div class="filters"><p class="eyebrow">Groups</p><div class="chips">{chips}</div></div>"#
+    )
+}
+
+/// The rules the switches need. They are generated from `GROUPS` and
+/// appended to the stylesheet, so the list in `event.rs` stays the only
+/// list of groups.
+pub fn switch_css() -> String {
+    let mut css = String::from(
+        ".filtered .calendar-row,.filtered .day-event,\
+         .filtered .event-list,.filtered .past-year,\
+         .filtered .past-month{display:none}\
+         .filtered .month-grid .busy{background:var(--paper)}\
+         .filtered .month-grid .busy.outside{background:var(--tint-dim)}\
+         .filtered .none-on{display:block}\
+         .filtered:has(.pick:checked) .none-on{display:none}",
+    );
+    for (key, _) in crate::event::GROUPS {
+        css += &format!(
+            "#g-{key}:checked~.listing .calendar-row.g-{key}{{display:grid}}\
+             #g-{key}:checked~.listing .day-event.g-{key},\
+             #g-{key}:checked~.listing .event-list:has(.calendar-row.g-{key}),\
+             #g-{key}:checked~.listing .past-year:has(.calendar-row.g-{key}),\
+             #g-{key}:checked~.listing .past-month:has(.calendar-row.g-{key}){{display:block}}\
+             #g-{key}:checked~.listing .month-grid td:has(.day-event.g-{key}){{background:var(--tint)}}\
+             #g-{key}:checked~.filters label[for=g-{key}]{{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}}\
+             #g-{key}:focus-visible~.filters label[for=g-{key}]{{outline:3px solid var(--focus);outline-offset:3px}}"
+        );
+    }
+    // Without `:has` the switches would hide every event and show none, so
+    // a browser that lacks it gets the plain list and no switches.
+    css += "@supports not selector(:has(*)){.filtered .calendar-row,\
+            .filtered .day-event,.filtered .event-list,.filtered .past-year,\
+            .filtered .past-month{display:revert}\
+            .filtered .month-grid .busy{background:var(--tint)}\
+            .filters,.filtered .none-on{display:none}}";
+    css
+}
 
 /// A short label for an event, from the group running it. A label only;
 /// the announcement says what an event actually is.
