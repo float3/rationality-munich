@@ -1025,7 +1025,10 @@ mod tests {
                 );
             }
         }
-        assert!(html.contains(r#"<div class="listing">"#), "nothing to filter");
+        assert!(
+            html.contains(r#"<div class="listing">"#),
+            "nothing to filter"
+        );
         assert!(!html.contains("<script"), "the page runs no script");
     }
 
