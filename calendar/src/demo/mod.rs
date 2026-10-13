@@ -692,7 +692,7 @@ pub fn build(
             "tools/index.html",
             Shell {
                 title: "Tools · Rationality Munich".into(),
-                description: "AnkiQuest, and the Petrov and Arkhipov Day ceremonies: things this site hosts, free for other groups to use.".into(),
+                description: "AnkiQuest, the Petrov and Arkhipov Day ceremonies, the estimation game and the number games: things this site hosts, free for other groups to use.".into(),
                 canonical: format!("{SITE}{AT}/tools/"),
                 body: tools::page(),
             },
