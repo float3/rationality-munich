@@ -11,7 +11,7 @@
 //! - `calendar/index.html`: this month and next as week grids, then the list
 //! - `events/<id>/index.html`: one page per upcoming event
 //! - `tools/`: what this site hosts for other groups to use
-//! - `subscribe/`, `privacy/`, `impressum/`, `about/`: the pages of words
+//! - `subscribe/`, `privacy/`, `impressum/`, `about/`: the text pages
 //! - `404.html`, `robots.txt`, `sitemap.xml`, `.well-known/security.txt`
 //! - `style.css`, `og.png`, `munich.webp`, `favicon.svg`
 
@@ -41,7 +41,7 @@ const OG: &[u8] = include_bytes!("og.png");
 
 const ARROW: &str = r#"<span class="arrow" aria-hidden="true">↗</span>"#;
 
-/// Monday first, the way a wall calendar runs here.
+/// Monday first, as calendars in Germany start the week.
 const WEEKDAYS: [(&str, &str); 7] = [
     ("Mon", "Monday"),
     ("Tue", "Tuesday"),
@@ -91,7 +91,8 @@ fn place(e: &Event) -> &str {
 
 /// Sources whose event pages take an RSVP. A weekly series kept in
 /// data/series.ics links to the group's own page instead, where there is
-/// nothing to sign up to, so those get "Details on" and no promise.
+/// nothing to sign up to, so those say "Details on" rather than offering
+/// an RSVP that is not there.
 const RSVP_SITES: &[&str] = &["LessWrong", "EA Forum", "Meetup", "Luma"];
 
 /// The organiser's own announcement.
@@ -199,9 +200,9 @@ fn month_count(events: &[&Event], year: i32, month: u32) -> usize {
         .count()
 }
 
-/// How many are coming, the way /calendar has always put it: a turnout
-/// estimate from how this group's past events went, and the sign-ups it is
-/// drawn from. The headline, and the line that goes under it if there is one.
+/// How many are coming, worded as /calendar has always worded it: an
+/// estimate from how this group's past events went, and the sign-ups that
+/// estimate is drawn from. Returns the headline and the line below it.
 fn turnout(e: &Event) -> (String, Option<String>) {
     match (e.attended, e.expected.filter(|&m| m != e.signed_up())) {
         (Some(c), _) if c.at_least => (format!("At least {} came", c.n), None),
@@ -345,7 +346,7 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
         None => String::new(),
     };
     let empty = if events.is_empty() {
-        r#"<p class="section-note">Nothing is announced for the next two months yet. The groups post as plans firm up.</p>"#
+        r#"<p class="section-note">Nothing is announced for the next two months yet. The groups post events once they are arranged.</p>"#
     } else {
         ""
     };
@@ -391,7 +392,11 @@ fn calendar(events: &[&Event], today: NaiveDate) -> String {
         .collect();
     let rows: String = events.iter().map(|e| event_row(e)).collect();
     let list = if events.is_empty() {
-        r#"<div class="empty-state"><h2>Nothing listed.</h2><p>No upcoming events are announced right now. The groups post as plans firm up, or ask them directly.</p><div class="actions"><a class="button primary" href="{AT}/subscribe/">Get event invitations</a><a class="text-link" href="{AT}/#community">Explore the groups ↗</a></div></div>"#.to_string()
+        // format!, not to_string: these two links carry `{AT}`, and a raw
+        // string would print the placeholder.
+        format!(
+            r#"<div class="empty-state"><h2>Nothing listed.</h2><p>No upcoming events are announced right now. The groups post events once they are arranged, or you can ask them directly.</p><div class="actions"><a class="button primary" href="{AT}/subscribe/">Get event invitations</a><a class="text-link" href="{AT}/#community">See the groups ↗</a></div></div>"#
+        )
     } else {
         format!(
             r#"<section class="calendar-month"><div class="month-heading"><h2>Every upcoming event</h2><span>{n} event{s}</span></div>{rows}</section>"#,
@@ -534,8 +539,7 @@ fn not_found() -> String {
     )
 }
 
-/// Ignored while this sits under /demo, since crawlers only read the one at
-/// the site root, and correct once it moves.
+/// Served at the site root, which is the only place a crawler reads it.
 fn robots() -> String {
     format!(
         "User-agent: *\n\
@@ -609,7 +613,7 @@ fn impressum() -> String {
 fn about(now: DateTime<Utc>) -> String {
     format!(
         r##"<main id="main" class="wrap reading-page">
-<div class="page-heading"><p class="eyebrow">ABOUT</p><h1>About this demo</h1><p>A hub for the rationality, effective altruism, AI safety and philosophy groups in Munich, and a calendar of everything they have announced.</p></div>
+<div class="page-heading"><p class="eyebrow">ABOUT</p><h1>About this site</h1><p>A hub for the rationality, effective altruism, AI safety and philosophy groups in Munich, and a calendar of everything they have announced.</p></div>
 <article class="prose"><h2>Where the events come from</h2><p>A job on this server reads the groups’ announcements on LessWrong, the EA Forum, Meetup, Luma, Philosophia’s calendar and a couple of pages, once an hour, merges the ones that were posted in several places, and writes these pages. Nothing here is a copy kept by hand. This page was written at {updated} and will be written again within the hour.</p>
 <p>It is plain HTML and one stylesheet, with no script. The pages work with JavaScript off and in a text browser, and loading one never waits on another site.</p>
 <h2>What is here</h2><ul><li>This page: what is on, the six groups, and the further Munich groups whose events are in the calendar but off by default.</li><li>A calendar: this month and next as week grids, then every announced event as a list.</li><li>A page per event, with the organiser’s announcement and an .ics download.</li></ul>
@@ -618,7 +622,7 @@ fn about(now: DateTime<Utc>) -> String {
 <li>Organisers’ approval of how their groups are described. Every line of that was written for the previous version of this site, but nobody from the groups has been asked to check it.</li></ul>
 <h2>Photo &amp; artwork credits</h2><p>The photograph shows Munich’s Englischer Garten; it is location imagery, not a photograph of the community.</p>
 <p><a href="https://commons.wikimedia.org/wiki/File:Monopteros_in_Englischer_Garten,_Munich.JPG">Monopteros in Englischer Garten, Munich</a> by High Contrast (2013), licensed under <a href="https://creativecommons.org/licenses/by/3.0/de/deed.en">CC BY 3.0 Germany</a>. Optimised and cropped for this layout.</p>
-<p>The social-sharing card is AI-generated typographic artwork made for this demo.</p></article>
+<p>The social-sharing card is AI-generated typographic artwork made for this site.</p></article>
 </main>"##,
         updated = now.with_timezone(&Berlin).format("%-d %b %Y, %H:%M"),
     )
@@ -633,7 +637,7 @@ fn write(path: &Path, text: &str) -> std::io::Result<()> {
     fs::write(path, text)
 }
 
-/// Writes the whole demo into `dir`. `events` is every event the run knows
+/// Writes the whole site into `dir`. `events` is every event the run knows
 /// about, in start order.
 pub fn build(
     dir: &Path,
@@ -727,7 +731,7 @@ pub fn build(
         (
             "about/index.html",
             Shell {
-                title: "About this demo · Rationality Munich".into(),
+                title: "About this site · Rationality Munich".into(),
                 description: "A design proposal for rationality-munich.com, built from the live calendar every hour.".into(),
                 canonical: format!("{SITE}{AT}/about/"),
                 body: about(now),
@@ -838,7 +842,7 @@ mod tests {
         }
     }
 
-    /// Every link the demo makes to itself goes through `AT`, so that setting
+    /// Every link the site makes to itself goes through `AT`, so that setting
     /// `AT` to "" moves all of them at once.
     #[test]
     fn nothing_spells_the_prefix_out_by_hand() {
@@ -902,5 +906,39 @@ mod tests {
         let home = home(&[], today);
         assert!(home.contains("Nothing is announced"));
         assert!(calendar(&[], today).contains("Nothing listed."));
+    }
+
+    /// A page built with `to_string` instead of `format!` prints its
+    /// placeholders. The empty calendar did exactly that, and nobody saw
+    /// it because the page only appears when nothing is announced.
+    #[test]
+    fn no_page_ships_an_unfilled_placeholder() {
+        let events = sample();
+        let upcoming: Vec<&Event> = events.iter().collect();
+        let now = events[0].start;
+        let today = now.with_timezone(&Berlin).date_naive();
+        let pages = [
+            ("home", home(&upcoming, today)),
+            ("calendar", calendar(&upcoming, today)),
+            ("empty home", home(&[], today)),
+            ("empty calendar", calendar(&[], today)),
+            ("event", event_page(upcoming[0], now)),
+            ("subscribe", subscribe()),
+            ("privacy", privacy()),
+            ("impressum", impressum()),
+            ("about", about(now)),
+            ("tools", tools::page()),
+            ("404", not_found()),
+            ("groups", groups::section()),
+            ("more groups", groups::more()),
+        ];
+        for (name, html) in &pages {
+            for placeholder in ["{AT}", "{SITE}", "{ARROW}", "{{at}}"] {
+                assert!(
+                    !html.contains(placeholder),
+                    "the {name} page prints {placeholder}"
+                );
+            }
+        }
     }
 }

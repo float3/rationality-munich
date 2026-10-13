@@ -92,10 +92,10 @@ script, light and dark.
 
 | URL | What |
 | --- | --- |
-| `/` | the hub: what is on, the six groups, what is being planned, the further groups |
+| `/` | the hub: what is on, the six groups, the further groups |
 | `/calendar` | this month and next as week grids, then every announced event |
 | `/events/<id>` | one event, with the organiser's announcement and an .ics |
-| `/tools` | AnkiQuest and the Petrov and Arkhipov Day ceremonies |
+| `/tools` | AnkiQuest, the Petrov and Arkhipov Day ceremonies, the estimation game, the number games |
 | `/subscribe`, `/privacy`, `/impressum`, `/about` | the text pages |
 | `404.html`, `robots.txt`, `sitemap.xml`, `.well-known/security.txt` | generated with the rest |
 
@@ -106,15 +106,16 @@ has no filters, past events or statistics yet.
 `src/demo/groups.rs` holds the group directory, the only text kept by hand.
 Every line of it is copied from the hub; do not add to it, because nobody from
 these groups has reviewed what the page says about them. The privacy policy
-and Impressum are in `src/demo/mod.rs` rather than linked, since the hub's
-copies go when the hub does. The stylesheet is `src/demo/style.css`, and the
+and Impressum are in `src/demo/mod.rs` rather than linked, because the hub
+they were copied from has been deleted. The stylesheet is `src/demo/style.css`, and the
 photograph and sharing card are compiled into the binary beside it.
 
-When the demo does replace the hub, the move is one constant: `AT` in
-`src/demo/mod.rs` goes from `"/demo"` to `""`, and every link, canonical URL
-and asset path follows. A test fails if anything spells a prefix out by hand.
-Setting it back to `"/demo"` puts the whole site under that path again, which
-is how it was reviewed before it went live.
+These pages replaced the earlier hand-written hub in October 2026. Where
+they are served is one constant: `AT` in `src/demo/mod.rs` is `""` for the
+root, and every link, canonical URL and asset path is built from it. A test
+fails if anything spells a prefix out by hand. Setting `AT` to `"/demo"`
+puts the whole site back under that path, which is how it was reviewed
+before it went live.
 
 Every colour in the stylesheet goes through one of eighteen role variables,
 so dark mode is a second `:root` block rather than a second stylesheet. The
