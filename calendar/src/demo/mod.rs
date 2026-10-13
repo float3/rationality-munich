@@ -15,7 +15,9 @@
 //! - `404.html`, `robots.txt`, `sitemap.xml`, `.well-known/security.txt`
 //! - `style.css`, `og.png`, `munich.webp`, `favicon.svg`
 
+mod figures;
 mod groups;
+mod past;
 mod tools;
 
 use std::fs;
@@ -375,7 +377,23 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
     )
 }
 
-fn calendar(events: &[&Event], today: NaiveDate) -> String {
+/// The upcoming events of the groups that are off by default:
+/// Philosophia and the further Munich groups. They are listed in their own
+/// section rather than filtered in the browser, because these pages run no
+/// script.
+fn other_groups(events: &[&Event]) -> String {
+    if events.is_empty() {
+        return String::new();
+    }
+    let rows: String = events.iter().map(|e| event_row(e)).collect();
+    format!(
+        r##"<section class="calendar-month"><div class="month-heading"><h2>The further groups</h2><span>{n} event{s}</span></div><p class="section-note">Philosophia and the groups from the <a class="underlined" href="https://recthink.substack.com/p/germany">Recreational Thinking directory</a>. Their events are not in the subscription feed above; each has its own feed under <code>/calendar/feeds/</code>.</p>{rows}</section>"##,
+        n = events.len(),
+        s = plural(events.len()),
+    )
+}
+
+fn calendar(events: &[&Event], others: &[&Event], today: NaiveDate) -> String {
     let grids: String = current_and_next(today)
         .iter()
         .map(|&(year, month)| {
@@ -415,10 +433,12 @@ fn calendar(events: &[&Event], today: NaiveDate) -> String {
 <div class="calendar-context"><span><span class="status-dot"></span> {n} upcoming event{s}</span><span>All times Munich local time</span></div>
 {grids}
 {list}
+{others}
 <aside class="coverage-note"><h3>A note on coverage</h3><p>These are the events the groups have announced on LessWrong, the EA Forum, Meetup, Luma and their own pages. Check the original listing for registration, language and cost. Events later than next month are in the list above but not in the grids.</p><div class="actions"><a class="text-link" href="/calendar/past/">Past events</a><a class="text-link" href="/calendar/stats/">Statistics</a><a class="text-link" href="mailto:rationality@hilll.dev?subject=Event%20suggestion%20for%20Rationality%20Munich">Suggest an event</a></div></aside>
 </main>"##,
         n = events.len(),
         s = plural(events.len()),
+        others = other_groups(others),
     )
 }
 
@@ -528,6 +548,29 @@ fn privacy() -> String {
         .to_string()
 }
 
+/// A page title with the site's name after it, kept inside the seventy
+/// characters a validator and a search result allow. Measured after
+/// escaping, because a title with two quotation marks in it grows by ten
+/// characters on the way into the page.
+fn titled(what: &str) -> String {
+    const TAIL: &str = " · Rationality Munich";
+    let fits = |s: &str| html_escape(s).chars().count() <= 70;
+    let what = what.trim();
+    let whole = format!("{what}{TAIL}");
+    if fits(&whole) {
+        return whole;
+    }
+    let mut cut = what.to_string();
+    while let Some(space) = cut.rfind(' ') {
+        cut.truncate(space);
+        let shorter = format!("{}…{TAIL}", cut.trim_end_matches([' ', ',', '–', '-', '"']));
+        if fits(&shorter) {
+            return shorter;
+        }
+    }
+    format!("Event{TAIL}")
+}
+
 /// The 404 page. nginx serves it for anything missing under `AT`.
 fn not_found() -> String {
     format!(
@@ -559,6 +602,8 @@ fn sitemap(events: &[&Event], now: DateTime<Utc>) -> String {
     let mut urls = vec![
         (String::new(), "hourly"),
         ("calendar/".to_string(), "hourly"),
+        ("calendar/past/".to_string(), "daily"),
+        ("calendar/stats/".to_string(), "daily"),
         ("tools/".to_string(), "monthly"),
         ("subscribe/".to_string(), "monthly"),
         ("about/".to_string(), "monthly"),
@@ -651,10 +696,20 @@ pub fn build(
         .iter()
         .filter(|e| e.end_or_default() >= now && e.in_any(DEFAULT_GROUPS))
         .collect();
+    // The groups that are off by default. Their events have pages and a
+    // section of their own on the calendar, so nothing announced is missing
+    // from the site.
+    let others: Vec<&Event> = events
+        .iter()
+        .filter(|e| e.end_or_default() >= now && !e.in_any(DEFAULT_GROUPS))
+        .collect();
+    let every_upcoming: Vec<&Event> = upcoming.iter().chain(others.iter()).copied().collect();
+    // Oldest first, as they arrive; the past page turns them round.
+    let past: Vec<&Event> = events.iter().filter(|e| e.end_or_default() < now).collect();
 
     write(&dir.join("style.css"), CSS)?;
     write(&dir.join("robots.txt"), &robots())?;
-    write(&dir.join("sitemap.xml"), &sitemap(&upcoming, now))?;
+    write(&dir.join("sitemap.xml"), &sitemap(&every_upcoming, now))?;
     write(&dir.join(".well-known/security.txt"), &security(now))?;
     write(
         &dir.join("404.html"),
@@ -689,7 +744,7 @@ pub fn build(
                 title: "Upcoming events · Rationality Munich".into(),
                 description: "Every event the Munich rationality, EA and AI safety groups have announced, this month and next as a calendar.".into(),
                 canonical: format!("{SITE}{AT}/calendar/"),
-                body: calendar(&upcoming, today),
+                body: calendar(&upcoming, &others, today),
             },
         ),
         (
@@ -699,6 +754,24 @@ pub fn build(
                 description: "AnkiQuest, the Petrov and Arkhipov Day ceremonies, the estimation game and the number games: things this site hosts, free for other groups to use.".into(),
                 canonical: format!("{SITE}{AT}/tools/"),
                 body: tools::page(),
+            },
+        ),
+        (
+            "calendar/past/index.html",
+            Shell {
+                title: "Past events · Rationality Munich".into(),
+                description: "Every event the Munich rationality, EA, AI safety and philosophy groups have held, newest first.".into(),
+                canonical: format!("{SITE}{AT}/calendar/past/"),
+                body: past::page(&past, now),
+            },
+        ),
+        (
+            "calendar/stats/index.html",
+            Shell {
+                title: "Statistics · Rationality Munich".into(),
+                description: "How often the Munich groups meet, how many come, and how that has changed.".into(),
+                canonical: format!("{SITE}{AT}/calendar/stats/"),
+                body: figures::page(&past),
             },
         ),
         (
@@ -741,12 +814,12 @@ pub fn build(
         write(&dir.join(path), &shell(shell_args, now, stale))?;
     }
 
-    for e in &upcoming {
+    for e in &every_upcoming {
         write(
             &dir.join(format!("events/{}/index.html", e.id)),
             &shell(
                 Shell {
-                    title: format!("{} · Rationality Munich", e.title),
+                    title: titled(&e.title),
                     description: if e.excerpt.is_empty() {
                         "An event from one of Munich's rationality, EA and AI safety groups"
                             .to_string()
@@ -834,7 +907,7 @@ mod tests {
         let today = now.with_timezone(&Berlin).date_naive();
         for html in [
             home(&upcoming, today),
-            calendar(&upcoming, today),
+            calendar(&upcoming, &[], today),
             event_page(upcoming[0], now),
         ] {
             assert!(!html.contains("<script>alert"), "{html}");
@@ -853,7 +926,7 @@ mod tests {
         let pages = [
             PAGE.replace("{{at}}", AT),
             home(&upcoming, today),
-            calendar(&upcoming, today),
+            calendar(&upcoming, &[], today),
             event_page(upcoming[0], now),
             subscribe(),
             privacy(),
@@ -890,7 +963,7 @@ mod tests {
         let events = sample();
         let upcoming: Vec<&Event> = events.iter().collect();
         let today = upcoming[0].start.with_timezone(&Berlin).date_naive();
-        let html = calendar(&upcoming, today);
+        let html = calendar(&upcoming, &[], today);
         for e in &upcoming {
             assert!(
                 html.contains(&format!(r#"<article id="{}""#, e.id)),
@@ -900,12 +973,52 @@ mod tests {
         }
     }
 
+    /// The groups that start off used to vanish from the site: the old
+    /// page kept them in the markup and filtered in the browser, and these
+    /// pages run no script.
+    #[test]
+    fn the_further_groups_are_listed_rather_than_dropped() {
+        let events = sample();
+        let mut reading = events[0].clone();
+        reading.id = "2026-10-20-left-hand-of-darkness".into();
+        reading.title = "The Left Hand of Darkness".into();
+        reading.groups = vec!["philosophia".into()];
+        let upcoming: Vec<&Event> = events.iter().collect();
+        let today = events[0].start.with_timezone(&Berlin).date_naive();
+
+        let html = calendar(&upcoming, &[&reading], today);
+        assert!(html.contains("The further groups"), "no section for them");
+        assert!(
+            html.contains("The Left Hand of Darkness"),
+            "the event is missing"
+        );
+        assert!(
+            !calendar(&upcoming, &[], today).contains("The further groups"),
+            "the section is only there when they have something on"
+        );
+    }
+
+    /// html-validate refuses a title over 70 characters, and the further
+    /// groups read books with long names.
+    #[test]
+    fn a_long_event_title_is_cut_rather_than_overflowing_the_page_title() {
+        let long = titled("Discussion of \"The Left Hand of Darkness\" by Ursula K. Le Guin");
+        assert!(
+            html_escape(&long).chars().count() <= 70,
+            "{long} is {} characters once escaped",
+            html_escape(&long).chars().count()
+        );
+        assert!(long.ends_with(" · Rationality Munich"));
+        assert!(long.contains('…'));
+        assert_eq!(titled("Petrov Day"), "Petrov Day · Rationality Munich");
+    }
+
     #[test]
     fn an_empty_calendar_still_renders_both_pages() {
         let today = NaiveDate::from_ymd_opt(2026, 10, 10).unwrap();
         let home = home(&[], today);
         assert!(home.contains("Nothing is announced"));
-        assert!(calendar(&[], today).contains("Nothing listed."));
+        assert!(calendar(&[], &[], today).contains("Nothing listed."));
     }
 
     /// A page built with `to_string` instead of `format!` prints its
@@ -919,9 +1032,9 @@ mod tests {
         let today = now.with_timezone(&Berlin).date_naive();
         let pages = [
             ("home", home(&upcoming, today)),
-            ("calendar", calendar(&upcoming, today)),
+            ("calendar", calendar(&upcoming, &[], today)),
             ("empty home", home(&[], today)),
-            ("empty calendar", calendar(&[], today)),
+            ("empty calendar", calendar(&[], &[], today)),
             ("event", event_page(upcoming[0], now)),
             ("subscribe", subscribe()),
             ("privacy", privacy()),

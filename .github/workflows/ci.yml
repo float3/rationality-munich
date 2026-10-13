@@ -72,6 +72,7 @@ jobs:
           calendar/out/demo/index.html
           calendar/out/demo/404.html
           calendar/out/demo/*/index.html
+          calendar/out/demo/calendar/*/index.html
           calendar/out/demo/events/*/index.html
       - name: XML is well-formed
         run: |
