@@ -112,7 +112,7 @@ event with `#r-<id>` or `#x-<id>`; both lines are in the page already, hidden
 until the fragment points at one.
 
 `src/demo/groups.rs` holds the group directory, the only text kept by hand.
-Every line of it is copied from the hub; do not add to it, because nobody from
+every line of it is copied from the hub; do not add to it, because nobody from
 these groups has reviewed what the page says about them. the privacy policy
 and Impressum are in `src/demo/mod.rs` rather than linked, because the hub
 they were copied from has been deleted. the stylesheet is `src/demo/style.css`, and the

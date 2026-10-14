@@ -53,7 +53,7 @@ to, and counted in the statistics like any other event.
 sign-ups for events whose pages had none, or fewer: each poll's event time,
 its group, and per answer the votes and how likely those voters were to come
 ("definitely" 1, "probably" 0.75, "maybe" or "50%" 0.5, a range its middle).
-The expected number of people, rounded, goes to the group's event that day
+the expected number of people, rounded, goes to the group's event that day
 starting nearest that time, so `start` is the start of the event the poll
 was about (the 11 April dinner poll counts for that day's meetup). polls about topics or dates, and polls for
 events that were then cancelled, are left out. only counts: the export does
