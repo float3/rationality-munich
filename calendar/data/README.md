@@ -1,27 +1,27 @@
 # Hand-kept event data
 
-All six files are compiled into the calendar binary.
+all six files are compiled into the calendar binary.
 
 ## series.ics: weekly series from the group chats
 
-Regular meetings a group announces only in its chat, as iCal events with a
+regular meetings a group announces only in its chat, as iCal events with a
 weekly RRULE; a cancelled meeting is an EXDATE, an ended series an UNTIL.
 `CATEGORIES` is the group key and `URL` the link shown. Open-ended series
-are listed four weeks ahead. An event without an RRULE is a single meeting
-announced the same way. So far: the AI Safety Munich Student Club's
+are listed four weeks ahead. an event without an RRULE is a single meeting
+announced the same way. so far: the AI Safety Munich Student Club's
 Tuesday discussion on compute verification, which its organiser agreed to
 have listed (their Thursday course is left out at their request), and the
-club's first AI governance meeting on 12 October 2026. Also PauseAI Munich's Stammtisch on 14 October 2026,
+club's first AI governance meeting on 12 October 2026. also PauseAI Munich's Stammtisch on 14 October 2026,
 announced in the group's WhatsApp chat, whose organiser agreed to have it
 listed.
 
 ## history.json: past events worth listing
 
-Events that were announced publicly but that no feed we read still carries:
+events that were announced publicly but that no feed we read still carries:
 
 - the Munich ACX meetups announced on
   [acxmeetup.substack.com](https://acxmeetup.substack.com) between 2023 and
-  2025, whose posts give the date only in prose. Left out on purpose: the two
+  2025, whose posts give the date only in prose. left out on purpose: the two
   cancelled meetups (14 September 2024), a duplicate announcement of the June
   2023 meetup, and the organisers' names, phone numbers and home addresses
   some posts contained;
@@ -29,50 +29,50 @@ Events that were announced publicly but that no feed we read still carries:
   [recthink.substack.com](https://recthink.substack.com);
 - a New Year's event on a personal Luma calendar.
 
-Each entry needs `title`, `start` (RFC 3339 with offset), `groups` (keys from
+each entry needs `title`, `start` (RFC 3339 with offset), `groups` (keys from
 `GROUPS` in `src/event.rs`), `label` and `url`; `end`, `location` and
-`excerpt` are optional. These are listed on /calendar/past/ like any other
+`excerpt` are optional. these are listed on /calendar/past/ like any other
 event.
 
 ## unannounced.json: past events from the group chats
 
-Events organised only in the groups' WhatsApp chats and EA Munich's
+events organised only in the groups' WhatsApp chats and EA Munich's
 announcements channel since spring 2023, read from exported chat histories: the fortnightly ACX community dinners, Intro
-Fellowship sessions, the Ideas Forum and the like. Cancelled ones are left
+Fellowship sessions, the Ideas Forum and the like. cancelled ones are left
 out, and so are casual meetups (lunch and coworking, bouldering, ...), which
 are arranged in the EA community's spontaneous events chat and are not events
-in this sense. Only a date, a generic title and the group are
+in this sense. only a date, a generic title and the group are
 kept: no names, no message text.
 
-Each entry needs `title`, `start` and `groups`. They are listed on
+each entry needs `title`, `start` and `groups`. they are listed on
 /calendar/past/, marked "In the group chat" since there is nothing to link
 to, and counted in the statistics like any other event.
 
 ## polls.json: "who's coming?" polls from the group chats
 
-Sign-ups for events whose pages had none, or fewer: each poll's event time,
+sign-ups for events whose pages had none, or fewer: each poll's event time,
 its group, and per answer the votes and how likely those voters were to come
 ("definitely" 1, "probably" 0.75, "maybe" or "50%" 0.5, a range its middle).
 The expected number of people, rounded, goes to the group's event that day
 starting nearest that time, so `start` is the start of the event the poll
-was about (the 11 April dinner poll counts for that day's meetup). Polls about topics or dates, and polls for
-events that were then cancelled, are left out. Only counts: the export does
+was about (the 11 April dinner poll counts for that day's meetup). polls about topics or dates, and polls for
+events that were then cancelled, are left out. only counts: the export does
 not say who voted, and nothing else from the chat is kept.
 
 ## headcounts.json: how many came, by the organisers' count
 
-Per event: its start, its group and how many came, with `"at_least": true`
-where only a floor is known. Matched like the polls. An organiser's count
+per event: its start, its group and how many came, with `"at_least": true`
+where only a floor is known. matched like the polls. an organiser's count
 beats visitors' reports on /calendar/past/; a floor gives way to a report
-above it. So far: the ACX Meetups Everywhere day on 11 April 2026 (at least
+above it. so far: the ACX Meetups Everywhere day on 11 April 2026 (at least
 40) and its Estimation Game (30), every Estimation Game since (at least 10
 each), the dinner with a visiting rationalist from Tokyo (4), and both EA
 Munich Speaker Series talks (at least 20 each).
 
 ## ranges.json: how many usually came to a series
 
-What the organisers know about a series as a whole rather than per event:
+what the organisers know about a series as a whole rather than per event:
 its groups, words every title has, the range of headcounts, and the date up
-to which that holds. Each event of the series that nobody counted gets its
-sign-ups kept inside the range, or the middle of it. So far: the ACX
+to which that holds. each event of the series that nobody counted gets its
+sign-ups kept inside the range, or the middle of it. so far: the ACX
 community dinners, 5 to 12 people each, up to September 2026.
