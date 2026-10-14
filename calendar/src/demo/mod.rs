@@ -15,6 +15,7 @@
 //! - `404.html`, `robots.txt`, `sitemap.xml`, `.well-known/security.txt`
 //! - `style.css`, `og.png`, `munich.webp`, `favicon.svg`
 
+mod feeds;
 mod figures;
 mod groups;
 mod past;
@@ -419,14 +420,9 @@ fn calendar(events: &[&Event], today: NaiveDate) -> String {
             r#"<section class="calendar-month event-list"><div class="month-heading"><h2>Every upcoming event</h2></div>{rows}</section>"#
         )
     };
-    let feed = format!(
-        "rationality-munich.com/calendar/feeds/{}.ics",
-        DEFAULT_GROUPS.join("+")
-    );
     format!(
         r##"<main id="main" class="wrap calendar-page">
-<div class="page-heading"><p class="eyebrow">CALENDAR</p><div class="title-actions"><h1>Upcoming events</h1></div><p>Discussions, dinners, games and talks in Munich.</p>
-<details class="subscribe-box"><summary>Subscribe to the calendar</summary><div><p>Every event below, in your own calendar app, updated automatically.</p><a class="button primary" href="webcal://{feed}">Open in Apple Calendar or Outlook {ARROW}</a><h3>Google Calendar</h3><p>Other calendars → + → From URL, then paste this address.</p><h3>Outlook on the web</h3><p>Add calendar → Subscribe from web, then paste this address.</p><code>https://{feed}</code><p><a class="text-link" href="/calendar/rss.xml">RSS</a> and <a class="text-link" href="/calendar/feed.xml">Atom</a> feeds too.</p></div></details></div>
+<div class="page-heading"><p class="eyebrow">CALENDAR</p><div class="title-actions"><h1>Upcoming events</h1><a class="button primary" href="/calendar/subscribe/">Subscribe {ARROW}</a></div><p>Discussions, dinners, games and talks in Munich.</p></div>
 <div class="calendar-context"><span><span class="status-dot"></span> {n} upcoming event{s}</span><span>All times Munich local time</span></div>
 <div class="filtered">{switches}<div class="listing"><p class="none-on">No groups switched on.</p>{grids}
 {list}</div></div>
@@ -598,6 +594,7 @@ fn sitemap(events: &[&Event], now: DateTime<Utc>) -> String {
     let mut urls = vec![
         (String::new(), "hourly"),
         ("calendar/".to_string(), "hourly"),
+        ("calendar/subscribe/".to_string(), "monthly"),
         ("calendar/past/".to_string(), "daily"),
         ("calendar/stats/".to_string(), "daily"),
         ("tools/".to_string(), "monthly"),
@@ -657,10 +654,9 @@ fn about(now: DateTime<Utc>) -> String {
 <div class="page-heading"><p class="eyebrow">ABOUT</p><h1>About this site</h1><p>A hub for the rationality, effective altruism, AI safety and philosophy groups in Munich, and a calendar of everything they have announced.</p></div>
 <article class="prose"><h2>Where the events come from</h2><p>A job on this server reads the groups’ announcements on LessWrong, the EA Forum, Meetup, Luma, Philosophia’s calendar and a couple of pages, once an hour, merges the ones that were posted in several places, and writes these pages. Nothing here is a copy kept by hand. This page was written at {updated} and will be written again within the hour.</p>
 <p>It is plain HTML and one stylesheet, with no script. The pages work with JavaScript off and in a text browser, and loading one never waits on another site.</p>
-<h2>What is here</h2><ul><li>This page: what is on, the six groups, and the further Munich groups whose events are in the calendar but off by default.</li><li>A calendar: this month and next as week grids, then every announced event as a list.</li><li>A page per event, with the organiser’s announcement and an .ics download.</li></ul>
+<h2>What is here</h2><ul><li>This page: what is on, the six groups, and the further Munich groups whose events are in the calendar but off by default.</li><li>A calendar: this month and next as week grids, then every announced event as a list, with a switch per group.</li><li>A page per event, with the organiser’s announcement and an .ics download.</li><li><a href="/calendar/past/">Every past event</a>, where you can say how many came, and <a href="/calendar/stats/">what the numbers look like</a> over the years.</li><li><a href="/calendar/subscribe/">A feed per combination of groups</a>, for your own calendar app.</li></ul>
 <h2>What is not here yet</h2>
-<ul><li>Filtering the calendar by group. <a href="/calendar/past/">Past events</a> and the <a href="/calendar/stats/">statistics</a> are still in the previous design.</li>
-<li>Organisers’ approval of how their groups are described. Every line of that was written for the previous version of this site, but nobody from the groups has been asked to check it.</li></ul>
+<ul><li>Organisers’ approval of how their groups are described. Every line of that was written for the previous version of this site, but nobody from the groups has been asked to check it.</li></ul>
 <h2>Photo &amp; artwork credits</h2><p>The photograph shows Munich’s Englischer Garten; it is location imagery, not a photograph of the community.</p>
 <p><a href="https://commons.wikimedia.org/wiki/File:Monopteros_in_Englischer_Garten,_Munich.JPG">Monopteros in Englischer Garten, Munich</a> by High Contrast (2013), licensed under <a href="https://creativecommons.org/licenses/by/3.0/de/deed.en">CC BY 3.0 Germany</a>. Optimised and cropped for this layout.</p>
 <p>The social-sharing card is AI-generated typographic artwork made for this site.</p></article>
@@ -705,7 +701,7 @@ pub fn build(
 
     write(
         &dir.join("style.css"),
-        &format!("{CSS}{}", groups::switch_css()),
+        &format!("{CSS}{}{}", groups::switch_css(), feeds::css()),
     )?;
     write(&dir.join("robots.txt"), &robots())?;
     write(&dir.join("sitemap.xml"), &sitemap(&every_upcoming, now))?;
@@ -753,6 +749,15 @@ pub fn build(
                 description: "AnkiQuest, the Petrov and Arkhipov Day ceremonies, the estimation game and the number games: things this site hosts, free for other groups to use.".into(),
                 canonical: format!("{SITE}{AT}/tools/"),
                 body: tools::page(),
+            },
+        ),
+        (
+            "calendar/subscribe/index.html",
+            Shell {
+                title: "Subscribe to the calendar · Rationality Munich".into(),
+                description: "Pick the Munich groups you want and subscribe to them in your own calendar app.".into(),
+                canonical: format!("{SITE}{AT}/calendar/subscribe/"),
+                body: feeds::page(),
             },
         ),
         (
