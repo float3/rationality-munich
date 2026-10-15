@@ -30,4 +30,14 @@ LOCATION:Bellevue di Monaco\, Müllerstraße 2\, München
 CATEGORIES:pauseai
 URL:https://www.pause-ai.de/lokalgruppen
 END:VEVENT
+BEGIN:VEVENT
+UID:pauseai-flyering-20261017@rationality-munich.com
+SUMMARY:PauseAI München flyering
+DESCRIPTION:Flyering in the city centre\, in German and English. Meet at 15:00 at Odeonsplatz\, then out in groups of about two and possibly on from there\; the exact spot is posted in the group's WhatsApp chat. Flyers are provided\, bring warm clothes. Drinks afterwards for whoever wants. Newcomers very welcome\, even for just an hour.
+DTSTART;TZID=Europe/Berlin:20261017T150000
+DTEND;TZID=Europe/Berlin:20261017T170000
+LOCATION:Odeonsplatz\, München
+CATEGORIES:pauseai
+URL:https://www.pause-ai.de/lokalgruppen
+END:VEVENT
 END:VCALENDAR
