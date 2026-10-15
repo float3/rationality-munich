@@ -13,7 +13,8 @@ Tuesday discussion on compute verification, which its organiser agreed to
 have listed (their Thursday course is left out at their request), and the
 club's first AI governance meeting on 12 October 2026. also PauseAI Munich's Stammtisch on 14 October 2026,
 announced in the group's WhatsApp chat, whose organiser agreed to have it
-listed.
+listed, and the same group's flyering on 17 October 2026, announced in the
+same chat.
 
 ## history.json: past events worth listing
 
