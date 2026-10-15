@@ -34,8 +34,12 @@ pub fn switches(counts: &[(&str, &str, usize)], all_on: bool) -> String {
         .iter()
         .map(|(key, name, n)| {
             format!(
-                r#"<label class="chip" for="g-{key}">{name} <span>{n}</span></label>"#,
+                r#"<label class="chip" for="g-{key}">{name}{n}</label>"#,
                 name = html_escape(name),
+                n = match n {
+                    0 => String::new(),
+                    n => format!(" <span>{n}</span>"),
+                },
             )
         })
         .collect();
