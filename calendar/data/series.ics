@@ -40,4 +40,165 @@ LOCATION:Odeonsplatz\, München
 CATEGORIES:pauseai
 URL:https://www.pause-ai.de/lokalgruppen
 END:VEVENT
+BEGIN:VEVENT
+UID:pauseai-stammtisch-20261026@rationality-munich.com
+SUMMARY:PauseAI München Stammtisch
+DESCRIPTION:Held online this time instead of at the Allianz Sportcasino. News and whatever topics you bring\, in German and English. Everyone welcome\; the link was posted in the group's WhatsApp chat.
+DTSTART;TZID=Europe/Berlin:20261026T190000
+DTEND;TZID=Europe/Berlin:20261026T200000
+LOCATION:Online
+CATEGORIES:pauseai
+URL:https://www.pause-ai.de/lokalgruppen
+END:VEVENT
+BEGIN:VEVENT
+UID:pauseai-stammtisch-first-wednesdays@rationality-munich.com
+SUMMARY:PauseAI München Mittwochs-Stammtisch
+DESCRIPTION:Every first Wednesday of the month: we talk about AI\, its risks\, what we can do about it and whatever else comes up\, in German and English. Everyone welcome\, whatever you know or think about it\; newcomers especially. The table is reserved under "PauseAI".
+DTSTART;TZID=Europe/Berlin:20261104T191500
+DTEND;TZID=Europe/Berlin:20261104T220000
+RRULE:FREQ=MONTHLY;BYDAY=1WE
+LOCATION:Bellevue di Monaco\, Müllerstraße 2\, München
+CATEGORIES:pauseai
+URL:https://luma.com/8c4n9rvj
+END:VEVENT
+BEGIN:VEVENT
+UID:pauseai-stammtisch-third-mondays@rationality-munich.com
+SUMMARY:PauseAI München Stammtisch
+DESCRIPTION:Every third Monday of the month: we talk about AI\, its risks and what we can do about it\, in German and English. Everyone welcome\, newcomers especially.
+DTSTART;TZID=Europe/Berlin:20261116T190000
+RRULE:FREQ=MONTHLY;BYDAY=3MO
+LOCATION:Allianz Sportcasino\, Osterwaldstraße 144\, München
+CATEGORIES:pauseai
+URL:https://www.pause-ai.de/lokalgruppen
+END:VEVENT
+BEGIN:VEVENT
+UID:philosophia-20261020@rationality-munich.com
+SUMMARY:Semester Kick-Off: The Fundamental Question of Metaphysics by Martin Heidegger
+DESCRIPTION:Philosophia Munich's weekly reading group\, this term on metaphysics. Reading: Introduction to Metaphysics\, Ch. 1\, pp. 1–19. Sign-up was required for the kick-off.
+DTSTART;TZID=Europe/Berlin:20261020T190000
+DTEND;TZID=Europe/Berlin:20261020T203000
+LOCATION:StudiTUM\, Gabelsbergerstraße 43\, München
+CATEGORIES:philosophia
+URL:https://www.philosophiamunich.org/schedule
+END:VEVENT
+BEGIN:VEVENT
+UID:philosophia-20261027@rationality-munich.com
+SUMMARY:Is Change Possible? by Aristotle
+DESCRIPTION:Philosophia Munich's weekly reading group\, this term on metaphysics. Reading: a curated selection from the Metaphysics (21 pages).
+DTSTART;TZID=Europe/Berlin:20261027T190000
+DTEND;TZID=Europe/Berlin:20261027T203000
+LOCATION:TUM main campus
+CATEGORIES:philosophia
+URL:https://www.philosophiamunich.org/schedule
+END:VEVENT
+BEGIN:VEVENT
+UID:philosophia-20261103@rationality-munich.com
+SUMMARY:Model of Causality in Chinese Philosophy — A Comparative Study by Chung-Ying Cheng
+DESCRIPTION:Philosophia Munich's weekly reading group\, this term on metaphysics. Reading: the full paper.
+DTSTART;TZID=Europe/Berlin:20261103T190000
+DTEND;TZID=Europe/Berlin:20261103T203000
+LOCATION:TUM main campus
+CATEGORIES:philosophia
+URL:https://www.philosophiamunich.org/schedule
+END:VEVENT
+BEGIN:VEVENT
+UID:philosophia-20261110@rationality-munich.com
+SUMMARY:Heraclitus by Georg Wilhelm Friedrich Hegel
+DESCRIPTION:Philosophia Munich's weekly reading group\, this term on metaphysics. Reading: Lectures on the History of Philosophy\, Section I\, Ch. 1 D\, pp. 278–297.
+DTSTART;TZID=Europe/Berlin:20261110T190000
+DTEND;TZID=Europe/Berlin:20261110T203000
+LOCATION:TUM main campus
+CATEGORIES:philosophia
+URL:https://www.philosophiamunich.org/schedule
+END:VEVENT
+BEGIN:VEVENT
+UID:philosophia-20261117@rationality-munich.com
+SUMMARY:Metaphysics as Science and How Are Synthetic A Priori Judgements Possible? by Immanuel Kant
+DESCRIPTION:Philosophia Munich's weekly reading group\, this term on metaphysics. Reading: the Introduction to the Critique of Pure Reason\, pp. 17–27.
+DTSTART;TZID=Europe/Berlin:20261117T190000
+DTEND;TZID=Europe/Berlin:20261117T203000
+LOCATION:TUM main campus
+CATEGORIES:philosophia
+URL:https://www.philosophiamunich.org/schedule
+END:VEVENT
+BEGIN:VEVENT
+UID:philosophia-20261124@rationality-munich.com
+SUMMARY:Definitions and First Scholium by Isaac Newton\, and The Transcendental Aesthetic on Space and Time by Immanuel Kant
+DESCRIPTION:Philosophia Munich's weekly reading group\, this term on metaphysics. Reading: Principia Mathematica pp. 73–82\, and the Critique of Pure Reason pp. 28–41.
+DTSTART;TZID=Europe/Berlin:20261124T190000
+DTEND;TZID=Europe/Berlin:20261124T203000
+LOCATION:TUM main campus
+CATEGORIES:philosophia
+URL:https://www.philosophiamunich.org/schedule
+END:VEVENT
+BEGIN:VEVENT
+UID:philosophia-20261201@rationality-munich.com
+SUMMARY:How Does Physics Bear upon Metaphysics and Why Did Plato Hold that Philosophy Cannot be Written Down? by Howard Stein
+DESCRIPTION:Philosophia Munich's weekly reading group\, this term on metaphysics. Reading: the full paper.
+DTSTART;TZID=Europe/Berlin:20261201T190000
+DTEND;TZID=Europe/Berlin:20261201T203000
+LOCATION:TUM main campus
+CATEGORIES:philosophia
+URL:https://www.philosophiamunich.org/schedule
+END:VEVENT
+BEGIN:VEVENT
+UID:philosophia-20261208@rationality-munich.com
+SUMMARY:Theories of the Bifurcation of Nature by Alfred North Whitehead
+DESCRIPTION:Philosophia Munich's weekly reading group\, this term on metaphysics. Reading: The Concept of Nature\, Ch. 2\, pp. 26–48.
+DTSTART;TZID=Europe/Berlin:20261208T190000
+DTEND;TZID=Europe/Berlin:20261208T203000
+LOCATION:TUM main campus
+CATEGORIES:philosophia
+URL:https://www.philosophiamunich.org/schedule
+END:VEVENT
+BEGIN:VEVENT
+UID:philosophia-20261215@rationality-munich.com
+SUMMARY:Rewriting The Science of Logic by Gillian Rose
+DESCRIPTION:Philosophia Munich's weekly reading group\, this term on metaphysics. Reading: Hegel Contra Sociology\, Ch. 6\, pp. 197–214.
+DTSTART;TZID=Europe/Berlin:20261215T190000
+DTEND;TZID=Europe/Berlin:20261215T203000
+LOCATION:TUM main campus
+CATEGORIES:philosophia
+URL:https://www.philosophiamunich.org/schedule
+END:VEVENT
+BEGIN:VEVENT
+UID:philosophia-20270112@rationality-munich.com
+SUMMARY:Spinoza and Us by Gilles Deleuze
+DESCRIPTION:Philosophia Munich's weekly reading group\, this term on metaphysics. Reading: the full text.
+DTSTART;TZID=Europe/Berlin:20270112T190000
+DTEND;TZID=Europe/Berlin:20270112T203000
+LOCATION:TUM main campus
+CATEGORIES:philosophia
+URL:https://www.philosophiamunich.org/schedule
+END:VEVENT
+BEGIN:VEVENT
+UID:philosophia-20270119@rationality-munich.com
+SUMMARY:Empiricism\, Semantics\, and Ontology by Rudolf Carnap
+DESCRIPTION:Philosophia Munich's weekly reading group\, this term on metaphysics. Reading: the full text.
+DTSTART;TZID=Europe/Berlin:20270119T190000
+DTEND;TZID=Europe/Berlin:20270119T203000
+LOCATION:TUM main campus
+CATEGORIES:philosophia
+URL:https://www.philosophiamunich.org/schedule
+END:VEVENT
+BEGIN:VEVENT
+UID:philosophia-20270126@rationality-munich.com
+SUMMARY:Husserl's Phenomenology and the Philosophy of St. Thomas Aquinas: Attempt at a Comparison by Edith Stein
+DESCRIPTION:Philosophia Munich's weekly reading group\, this term on metaphysics. Reading: the full text.
+DTSTART;TZID=Europe/Berlin:20270126T190000
+DTEND;TZID=Europe/Berlin:20270126T203000
+LOCATION:TUM main campus
+CATEGORIES:philosophia
+URL:https://www.philosophiamunich.org/schedule
+END:VEVENT
+BEGIN:VEVENT
+UID:philosophia-20270202@rationality-munich.com
+SUMMARY:Guest speaker
+DESCRIPTION:Philosophia Munich's weekly reading group\, this term on metaphysics. Speaker to be announced.
+DTSTART;TZID=Europe/Berlin:20270202T190000
+DTEND;TZID=Europe/Berlin:20270202T203000
+LOCATION:TUM main campus
+CATEGORIES:philosophia
+URL:https://www.philosophiamunich.org/schedule
+END:VEVENT
 END:VCALENDAR

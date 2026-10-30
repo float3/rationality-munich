@@ -117,7 +117,8 @@ pub fn time(p: Option<&Prop>) -> Option<DateTime<Utc>> {
 
 /// Every start time a recurring event has, up to `horizon`.
 ///
-/// Only weekly rules are expanded, which is all the feeds we read use; any
+/// Weekly rules are expanded, and monthly rules on one weekday of the month
+/// (`BYDAY=1WE` for the first Wednesday, `-1FR` for the last Friday); any
 /// other rule yields just the first occurrence. Occurrences listed in EXDATE
 /// are dropped. Times step in local time, so 19:00 stays 19:00 across DST.
 pub fn occurrences(ev: &IcsEvent, horizon: DateTime<Utc>) -> Vec<DateTime<Utc>> {
@@ -135,9 +136,14 @@ pub fn occurrences(ev: &IcsEvent, horizon: DateTime<Utc>) -> Vec<DateTime<Utc>> 
         .split(';')
         .filter_map(|p| p.split_once('='))
         .collect();
-    if parts.get("FREQ") != Some(&"WEEKLY") {
-        return vec![first];
-    }
+    let monthly = match parts.get("FREQ").copied() {
+        Some("WEEKLY") => None,
+        Some("MONTHLY") => match parts.get("BYDAY").and_then(|d| nth_weekday(d)) {
+            Some(nth) => Some(nth),
+            None => return vec![first],
+        },
+        _ => return vec![first],
+    };
     let tz = if dtstart.value.ends_with('Z') {
         None
     } else {
@@ -163,14 +169,37 @@ pub fn occurrences(ev: &IcsEvent, horizon: DateTime<Utc>) -> Vec<DateTime<Utc>> 
     // UNTIL is UTC (or a date); compare it in UTC.
     let until = parts.get("UNTIL").and_then(|u| parse_time(u, None));
     let start_local = local(first);
-    let mut days: Vec<Weekday> = parts
-        .get("BYDAY")
-        .map(|d| d.split(',').filter_map(weekday).collect())
-        .unwrap_or_default();
-    if days.is_empty() {
-        days.push(start_local.weekday());
-    }
-    days.sort_by_key(|d| d.num_days_from_monday());
+    let dates: Box<dyn Iterator<Item = NaiveDate>> = match monthly {
+        None => {
+            let mut days: Vec<Weekday> = parts
+                .get("BYDAY")
+                .map(|d| d.split(',').filter_map(weekday).collect())
+                .unwrap_or_default();
+            if days.is_empty() {
+                days.push(start_local.weekday());
+            }
+            days.sort_by_key(|d| d.num_days_from_monday());
+            let monday = start_local.date()
+                - Duration::days(start_local.weekday().num_days_from_monday() as i64);
+            Box::new((0..).step_by(interval as usize).flat_map(move |week| {
+                days.clone().into_iter().map(move |day| {
+                    monday + Duration::days(week * 7 + day.num_days_from_monday() as i64)
+                })
+            }))
+        }
+        Some((n, day)) => {
+            let first_month = start_local.year() as i64 * 12 + start_local.month0() as i64;
+            Box::new((0..).step_by(interval as usize).filter_map(move |k: i64| {
+                let month = first_month + k;
+                nth_of_month(
+                    month.div_euclid(12) as i32,
+                    month.rem_euclid(12) as u32 + 1,
+                    n,
+                    day,
+                )
+            }))
+        }
+    };
 
     let excluded: Vec<DateTime<Utc>> = ev
         .get("EXDATE")
@@ -184,39 +213,62 @@ pub fn occurrences(ev: &IcsEvent, horizon: DateTime<Utc>) -> Vec<DateTime<Utc>> 
         })
         .collect();
 
-    let monday =
-        start_local.date() - Duration::days(start_local.weekday().num_days_from_monday() as i64);
     let mut out = Vec::new();
     let mut produced = 0;
-    'weeks: for week in (0..).step_by(interval as usize) {
-        for day in &days {
-            let date = monday + Duration::days(week * 7 + day.num_days_from_monday() as i64);
-            let Some(t) = to_utc(date.and_time(start_local.time())) else {
-                continue;
-            };
-            if t < first {
-                continue;
-            }
-            // DTSTART is always the first occurrence, even past UNTIL: Google
-            // leaves such rules behind when a series is split.
-            let past_end = until.is_some_and(|u| t > u) || t > horizon;
-            if t != first && (past_end || count.is_some_and(|c| produced >= c)) {
-                break 'weeks;
-            }
-            produced += 1;
-            if !excluded.contains(&t) {
-                out.push(t);
-            }
-            if out.len() >= 1000 {
-                break 'weeks;
-            }
+    for date in dates {
+        let Some(t) = to_utc(date.and_time(start_local.time())) else {
+            continue;
+        };
+        if t < first {
+            continue;
+        }
+        // DTSTART is always the first occurrence, even past UNTIL: Google
+        // leaves such rules behind when a series is split.
+        let past_end = until.is_some_and(|u| t > u) || t > horizon;
+        if t != first && (past_end || count.is_some_and(|c| produced >= c)) {
+            break;
+        }
+        produced += 1;
+        if !excluded.contains(&t) {
+            out.push(t);
+        }
+        if out.len() >= 1000 {
+            break;
         }
     }
     out
 }
 
+/// A monthly BYDAY naming one weekday with its ordinal: `3MO` is (3, Monday),
+/// `-1FR` (-1, Friday). Several days, or none with an ordinal, give `None`.
+fn nth_weekday(byday: &str) -> Option<(i8, Weekday)> {
+    let split = byday.len().checked_sub(2)?;
+    let n: i8 = byday.get(..split)?.trim_start_matches('+').parse().ok()?;
+    if n == 0 || !(-5..=5).contains(&n) {
+        return None;
+    }
+    Some((n, weekday(byday.get(split..)?)?))
+}
+
+/// The nth `day` of a month, counting from its end when `n` is negative;
+/// `None` when the month has no such day (a fifth Monday, say).
+fn nth_of_month(year: i32, month: u32, n: i8, day: Weekday) -> Option<NaiveDate> {
+    if n > 0 {
+        return NaiveDate::from_weekday_of_month_opt(year, month, day, n as u8);
+    }
+    let next = if month == 12 {
+        NaiveDate::from_ymd_opt(year + 1, 1, 1)?
+    } else {
+        NaiveDate::from_ymd_opt(year, month + 1, 1)?
+    };
+    let last = next.pred_opt()?;
+    let back = (last.weekday().num_days_from_monday() + 7 - day.num_days_from_monday()) % 7;
+    let date = last - Duration::days(back as i64 + 7 * (-n as i64 - 1));
+    (date.month() == month).then_some(date)
+}
+
 fn weekday(code: &str) -> Option<Weekday> {
-    // BYDAY may carry an ordinal (`-1SU`); weekly rules do not use one.
+    // BYDAY may carry an ordinal (`-1SU`); `nth_weekday` reads it.
     Some(
         match code.trim_start_matches(|c: char| c == '-' || c == '+' || c.is_ascii_digit()) {
             "MO" => Weekday::Mon,
@@ -384,6 +436,43 @@ mod tests {
         let e = one("DTSTART;TZID=Europe/Berlin:20240430T190000\r\n\
              RRULE:FREQ=WEEKLY;WKST=MO;UNTIL=20240130T225959Z;BYDAY=TU");
         assert_eq!(occurrences(&e, Utc::now()), [berlin(2024, 4, 30, 19, 0)]);
+    }
+
+    #[test]
+    fn monthly_rules_on_the_nth_weekday() {
+        // First Wednesday, across the clock change and the new year.
+        let e = one("DTSTART;TZID=Europe/Berlin:20261104T191500\r\n\
+             RRULE:FREQ=MONTHLY;BYDAY=1WE;COUNT=3");
+        assert_eq!(
+            occurrences(&e, Utc::now() + Duration::weeks(520)),
+            [
+                berlin(2026, 11, 4, 19, 15),
+                berlin(2026, 12, 2, 19, 15),
+                berlin(2027, 1, 6, 19, 15),
+            ]
+        );
+        // Third Monday, until the end of the year.
+        let e = one("DTSTART;TZID=Europe/Berlin:20261116T190000\r\n\
+             RRULE:FREQ=MONTHLY;BYDAY=3MO;UNTIL=20261231T225959Z");
+        assert_eq!(
+            occurrences(&e, Utc::now() + Duration::weeks(520)),
+            [berlin(2026, 11, 16, 19, 0), berlin(2026, 12, 21, 19, 0)]
+        );
+        // Last Friday, skipping an excluded one.
+        let e = one("DTSTART;TZID=Europe/Berlin:20260925T180000\r\n\
+             RRULE:FREQ=MONTHLY;BYDAY=-1FR;COUNT=3\r\n\
+             EXDATE;TZID=Europe/Berlin:20261030T180000");
+        assert_eq!(
+            occurrences(&e, Utc::now() + Duration::weeks(520)),
+            [berlin(2026, 9, 25, 18, 0), berlin(2026, 11, 27, 18, 0)]
+        );
+    }
+
+    #[test]
+    fn monthly_rules_only_list_up_to_the_horizon() {
+        let e = one("DTSTART;TZID=Europe/Berlin:20261104T191500\r\nRRULE:FREQ=MONTHLY;BYDAY=1WE");
+        let horizon = berlin(2027, 1, 1, 0, 0);
+        assert_eq!(occurrences(&e, horizon).len(), 2);
     }
 
     #[test]

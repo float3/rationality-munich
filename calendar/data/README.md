@@ -5,16 +5,23 @@ all six files are compiled into the calendar binary.
 ## series.ics: weekly series from the group chats
 
 regular meetings a group announces only in its chat, as iCal events with a
-weekly RRULE; a cancelled meeting is an EXDATE, an ended series an UNTIL.
-`CATEGORIES` is the group key and `URL` the link shown. Open-ended series
-are listed four weeks ahead. an event without an RRULE is a single meeting
+weekly RRULE, or a monthly one on a weekday of the month (`BYDAY=1WE`, the
+first Wednesday); a cancelled meeting is an EXDATE, an ended series an UNTIL.
+`CATEGORIES` is the group key and `URL` the link shown. everything here is
+listed four weeks ahead. an event without an RRULE is a single meeting
 announced the same way. so far: the AI Safety Munich Student Club's
 Tuesday discussion on compute verification, which its organiser agreed to
 have listed (their Thursday course is left out at their request), and the
 club's first AI governance meeting on 12 October 2026. also PauseAI Munich's Stammtisch on 14 October 2026,
 announced in the group's WhatsApp chat, whose organiser agreed to have it
 listed, and the same group's flyering on 17 October 2026, announced in the
-same chat.
+same chat. since 26 October 2026 (held online that time) PauseAI Munich's two
+monthly Stammtische, as their Luma page describes them: the first Wednesday
+at Bellevue di Monaco and the third Monday at the Allianz Sportcasino. and
+Philosophia's winter term 2026/27, one event per session from the programme
+linked on their schedule page, since their Google Calendar stops in July 2026.
+the venue after the kick-off is not in the programme; "TUM main campus" is
+what their calendar said all summer.
 
 ## history.json: past events worth listing
 
