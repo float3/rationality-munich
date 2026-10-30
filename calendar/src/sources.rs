@@ -648,7 +648,8 @@ pub fn history() -> Vec<Event> {
 
 // Weekly series announced only in a group chat, kept by hand as iCal so a
 // cancelled meeting is one EXDATE. Open-ended, so only the next few weeks are
-// listed. See data/README.md.
+// listed, and so are single meetings (a term's programme, say). See
+// data/README.md.
 
 const SERIES_WEEKS: i64 = 4;
 
@@ -662,6 +663,11 @@ pub fn series(now: DateTime<Utc>) -> Vec<Event> {
         let group = ics::value(e, "CATEGORIES");
         let location = ics::value(e, "LOCATION");
         for t in ics::occurrences(e, horizon) {
+            // A series' first meeting and a single one come back whatever the
+            // horizon; they wait their turn like the rest.
+            if t > horizon {
+                continue;
+            }
             out.push(Event::new(Raw {
                 title: &ics::value(e, "SUMMARY"),
                 start: t,
@@ -873,6 +879,28 @@ mod tests {
                 .filter(|e| e.title.contains("Compute"))
                 .all(|e| tuesday(&e))
         );
+    }
+
+    #[test]
+    fn monthly_series_and_single_meetings_wait_for_the_horizon() {
+        let now = "2026-10-30T12:00:00Z".parse().unwrap();
+        let s = series(now);
+        let on = |group: &str, date: &str| {
+            s.iter().any(|e| {
+                e.groups.iter().any(|g| g == group)
+                    && e.start
+                        .with_timezone(&chrono_tz::Europe::Berlin)
+                        .format("%Y-%m-%d")
+                        .to_string()
+                        == date
+            })
+        };
+        // First Wednesday and third Monday Stammtische, and Philosophia's term.
+        assert!(on("pauseai", "2026-11-04"));
+        assert!(on("pauseai", "2026-11-16"));
+        assert!(on("philosophia", "2026-11-03"));
+        assert!(!on("pauseai", "2026-12-02"));
+        assert!(!on("philosophia", "2027-01-12"));
     }
 
     #[test]
