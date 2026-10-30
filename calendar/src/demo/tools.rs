@@ -79,6 +79,16 @@ const TOOLS: &[Tool] = &[
             ("Source", "https://github.com/float3/numbers"),
         ],
     },
+    Tool {
+        kind: "GROUP GAME",
+        name: "Speed updating",
+        what: "Everyone says where they stand on statements about ethics, minds, AI, animals and more, on a bingo card or as many as they like. Each round pairs everybody with whoever disagrees with them most, on the statement they are furthest apart on, for a few timed minutes, and then asks how much it changed their mind. Whoever moves the people they talk to most wins.",
+        how: "",
+        links: &[
+            ("Open", "https://updating.rationality-munich.com/"),
+            ("Source", "https://github.com/float3/updating"),
+        ],
+    },
 ];
 
 pub fn page() -> String {
@@ -119,7 +129,7 @@ pub fn page() -> String {
 <div class="page-heading"><p class="eyebrow">TOOLS</p><h1>Things this site hosts</h1><p>Software this site runs for the community. All of it is open source: use ours, or run your own.</p></div>
 <div class="group-list">{rows}</div>
 <p class="section-note">Questions and bug reports: <a class="underlined" href="mailto:rationality@hilll.dev">rationality@hilll.dev</a>. The ceremonies need two groups and some setup beforehand.</p>
-<aside class="coverage-note"><h3>Running one yourself</h3><p>All of these can be self-hosted, and none of them needs anything from this server. AnkiQuest is a single binary with a config file. The ceremonies are one program that serves both days, and the two group games are one binary each.</p><div class="actions"><a class="text-link" href="{AT}/">Back to events</a></div></aside>
+<aside class="coverage-note"><h3>Running one yourself</h3><p>All of these can be self-hosted, and none of them needs anything from this server. AnkiQuest is a single binary with a config file. The ceremonies are one program that serves both days, and the three group games are one binary each.</p><div class="actions"><a class="text-link" href="{AT}/">Back to events</a></div></aside>
 </main>"##
     )
 }
