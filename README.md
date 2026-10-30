@@ -95,7 +95,7 @@ script, light and dark.
 | `/` | the hub: what is on, the six groups, the further groups |
 | `/calendar` | this month and next as week grids, then every announced event |
 | `/events/<id>` | one event, with the organiser's announcement and an .ics |
-| `/tools` | AnkiQuest, the Petrov and Arkhipov Day ceremonies, the estimation game, the number games, speed updating |
+| `/tools` | AnkiQuest, the Petrov Day ceremony, the estimation game, the number games, speed updating |
 | `/calendar/past` | every past event, newest first, with the headcount form |
 | `/calendar/stats` | how often the groups meet and how many come, charted server-side |
 | `/subscribe`, `/privacy`, `/impressum`, `/about` | the text pages |

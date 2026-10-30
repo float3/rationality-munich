@@ -1,7 +1,9 @@
 //! The tools page: what this site hosts for other groups to use.
 //!
-//! Each description is the project's own: www/tools.html for the two
-//! ceremonies, and each repository's README for the rest.
+//! Each description is the project's own: www/tools.html for the
+//! ceremony, and each repository's README for the rest. The same program
+//! also serves an Arkhipov Day game; that one is an easter egg and is not
+//! listed.
 //!
 //! The rows reuse the directory's `group-*` classes, which style a numbered
 //! row with a description and some links.
@@ -46,16 +48,6 @@ const TOOLS: &[Tool] = &[
         how: "",
         links: &[
             ("Open", "https://petrov.rationality-munich.com/"),
-            ("Source", "https://github.com/float3/petrov"),
-        ],
-    },
-    Tool {
-        kind: "CEREMONY",
-        name: "Arkhipov Day",
-        what: "The same game for Arkhipov Day, 27 October: the day in 1962 when Vasili Arkhipov refused to launch a submarine’s nuclear torpedo.",
-        how: "",
-        links: &[
-            ("Open", "https://arkhipov.rationality-munich.com/"),
             ("Source", "https://github.com/float3/petrov"),
         ],
     },
@@ -128,8 +120,8 @@ pub fn page() -> String {
         r##"<main id="main" class="wrap tools-page">
 <div class="page-heading"><p class="eyebrow">TOOLS</p><h1>Things this site hosts</h1><p>Software this site runs for the community. All of it is open source: use ours, or run your own.</p></div>
 <div class="group-list">{rows}</div>
-<p class="section-note">Questions and bug reports: <a class="underlined" href="mailto:rationality@hilll.dev">rationality@hilll.dev</a>. The ceremonies need two groups and some setup beforehand.</p>
-<aside class="coverage-note"><h3>Running one yourself</h3><p>All of these can be self-hosted, and none of them needs anything from this server. AnkiQuest is a single binary with a config file. The ceremonies are one program that serves both days, and the three group games are one binary each.</p><div class="actions"><a class="text-link" href="{AT}/">Back to events</a></div></aside>
+<p class="section-note">Questions and bug reports: <a class="underlined" href="mailto:rationality@hilll.dev">rationality@hilll.dev</a>. The ceremony needs two groups and some setup beforehand.</p>
+<aside class="coverage-note"><h3>Running one yourself</h3><p>All of these can be self-hosted, and none of them needs anything from this server. AnkiQuest is a single binary with a config file. The ceremony and the three group games are one binary each.</p><div class="actions"><a class="text-link" href="{AT}/">Back to events</a></div></aside>
 </main>"##
     )
 }
