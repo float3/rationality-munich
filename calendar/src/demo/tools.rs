@@ -48,7 +48,7 @@ const TOOLS: &[Tool] = &[
         how: "",
         links: &[
             ("Open", "https://petrov.rationality-munich.com/"),
-            ("Source", "https://github.com/float3/petrov"),
+            ("Source", "https://github.com/float3/rooms/tree/main/petrov"),
         ],
     },
     Tool {
@@ -58,7 +58,10 @@ const TOOLS: &[Tool] = &[
         how: "",
         links: &[
             ("Open", "https://estimate.rationality-munich.com/"),
-            ("Source", "https://github.com/float3/estimate"),
+            (
+                "Source",
+                "https://github.com/float3/rooms/tree/main/estimate",
+            ),
         ],
     },
     Tool {
@@ -68,7 +71,10 @@ const TOOLS: &[Tool] = &[
         how: "",
         links: &[
             ("Open", "https://numbers.rationality-munich.com/"),
-            ("Source", "https://github.com/float3/numbers"),
+            (
+                "Source",
+                "https://github.com/float3/rooms/tree/main/numbers",
+            ),
         ],
     },
     Tool {
@@ -78,7 +84,20 @@ const TOOLS: &[Tool] = &[
         how: "",
         links: &[
             ("Open", "https://updating.rationality-munich.com/"),
-            ("Source", "https://github.com/float3/updating"),
+            (
+                "Source",
+                "https://github.com/float3/rooms/tree/main/updating",
+            ),
+        ],
+    },
+    Tool {
+        kind: "FOOD ORDER",
+        name: "Group food order",
+        what: "One order for a room of people. The host says where the food is from and pastes a link to the menu; everyone adds what they want from their own phone. The host's screen gathers it all: each person's items, the same dishes counted together for reading out to the restaurant, the total, who has not ordered yet and who has paid.",
+        how: "",
+        links: &[
+            ("Open", "https://games.rationality-munich.com/order/"),
+            ("Source", "https://github.com/float3/rooms/tree/main/order"),
         ],
     },
 ];
@@ -121,7 +140,7 @@ pub fn page() -> String {
 <div class="page-heading"><p class="eyebrow">TOOLS</p><h1>Things this site hosts</h1><p>Software this site runs for the community. All of it is open source: use ours, or run your own.</p></div>
 <div class="group-list">{rows}</div>
 <p class="section-note">Questions and bug reports: <a class="underlined" href="mailto:rationality@hilll.dev">rationality@hilll.dev</a>. The ceremony needs two groups and some setup beforehand.</p>
-<aside class="coverage-note"><h3>Running one yourself</h3><p>All of these can be self-hosted, and none of them needs anything from this server. AnkiQuest is a single binary with a config file. The ceremony and the three group games are one binary each.</p><div class="actions"><a class="text-link" href="{AT}/">Back to events</a></div></aside>
+<aside class="coverage-note"><h3>Running one yourself</h3><p>All of these can be self-hosted, and none of them needs anything from this server. AnkiQuest is a single binary with a config file. The ceremony, the group games and the food order are one binary each, or all of them together in one.</p><div class="actions"><a class="text-link" href="{AT}/">Back to events</a></div></aside>
 </main>"##
     )
 }
