@@ -370,7 +370,7 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
 {spotlight}
 {groups}
 {more}
-<section class="section wrap" id="tools"><div class="section-heading"><div><p class="eyebrow">TOOLS</p><h2>Things this site hosts</h2></div><a class="text-link" href="{AT}/tools/">All five {ARROW}</a></div><p class="section-note">AnkiQuest, the Petrov Day ceremony, the estimation game, the number games and speed updating. All five are open source and free to use.</p></section>
+<section class="section wrap" id="tools"><div class="section-heading"><div><p class="eyebrow">TOOLS</p><h2>Things this site hosts</h2></div><a class="text-link" href="{AT}/tools/">All six {ARROW}</a></div><p class="section-note">AnkiQuest, the Petrov Day ceremony, the estimation game, the number games, speed updating and a group food order. All six are open source and free to use.</p></section>
 <section class="wrap newsletter-section"><div class="newsletter-icon" aria-hidden="true">✉</div><div><p class="eyebrow">MAILING LIST</p><h2>Event invites by email</h2><p>Pick the topics you want to hear about. No open or click tracking, and you can unsubscribe or delete your data from any email.</p><a class="button primary" href="{AT}/subscribe/">Get event invitations {ARROW}</a><a class="text-link" href="https://lists.rationality-munich.com/archive">See the archive →</a></div><div class="newsletter-note"><p>EA, RATIONALITY,<br>OR EVERYTHING.</p><span>Pick what you want invitations about. Unsubscribe at any time.</span></div></section>
 </main>"##,
         count = count,
