@@ -96,7 +96,7 @@ const TOOLS: &[Tool] = &[
         what: "One order for a room of people. The host says where the food is from and pastes a link to the menu; everyone adds what they want from their own phone. The host's screen gathers it all: each person's items, the same dishes counted together for reading out to the restaurant, the total, who has not ordered yet and who has paid.",
         how: "",
         links: &[
-            ("Open", "https://games.rationality-munich.com/order/"),
+            ("Open", "https://games.rationality-munich.com/order"),
             ("Source", "https://github.com/float3/rooms/tree/main/order"),
         ],
     },
