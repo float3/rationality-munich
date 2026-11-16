@@ -9,6 +9,8 @@
 //!
 //! - `index.html`: the hub — what is on, the groups, the further groups
 //! - `calendar/index.html`: this month and next as week grids, then the list
+//! - `calendar/<yyyy-mm>/index.html`: any one month, from the first event
+//!   we know of to a year ahead, linked by arrows and a date field
 //! - `events/<id>/index.html`: one page per upcoming event
 //! - `tools/`: what this site hosts for other groups to use
 //! - `subscribe/`, `privacy/`, `impressum/`, `about/`: the text pages
@@ -112,6 +114,22 @@ fn source(e: &Event) -> Option<&(String, String)> {
     e.links.first()
 }
 
+/// Whether it is over. Past events have no page of their own; they live on
+/// the past page instead.
+fn over(e: &Event, now: DateTime<Utc>) -> bool {
+    e.end_or_default() < now
+}
+
+/// Where an event links: its own page while it is still to come, its row
+/// on the past page once it is over.
+fn href(e: &Event, now: DateTime<Utc>) -> String {
+    if over(e, now) {
+        format!("{AT}/calendar/past/#{}", e.id)
+    } else {
+        format!("{AT}/events/{}/", e.id)
+    }
+}
+
 // ------------------------------------------------------------- month grid
 
 /// The first of the month after this one.
@@ -136,9 +154,119 @@ fn weeks_of(year: i32, month: u32) -> Vec<Vec<NaiveDate>> {
         .collect()
 }
 
+/// The month `by` months away from this one, either way.
+fn step(year: i32, month: u32, by: i32) -> (i32, u32) {
+    let index = year * 12 + month as i32 - 1 + by;
+    (index.div_euclid(12), index.rem_euclid(12) as u32 + 1)
+}
+
+/// "2026-11": a month's page is at /calendar/2026-11/.
+fn month_key((year, month): (i32, u32)) -> String {
+    format!("{year:04}-{month:02}")
+}
+
+fn month_name((year, month): (i32, u32)) -> String {
+    NaiveDate::from_ymd_opt(year, month, 1)
+        .expect("a first of the month is real")
+        .format("%B %Y")
+        .to_string()
+}
+
+/// The months that have a page: from the first event we know of to a year
+/// after this one, or to the last event announced if that is later.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Months {
+    first: (i32, u32),
+    last: (i32, u32),
+}
+
+impl Months {
+    fn of(events: &[Event], today: NaiveDate) -> Months {
+        let this = (today.year(), today.month());
+        let month_of = |e: &Event| (day(e).year(), day(e).month());
+        Months {
+            first: events.iter().map(month_of).min().unwrap_or(this).min(this),
+            last: events
+                .iter()
+                .map(month_of)
+                .max()
+                .unwrap_or(this)
+                .max(step(this.0, this.1, 12)),
+        }
+    }
+
+    fn contains(&self, m: (i32, u32)) -> bool {
+        self.first <= m && m <= self.last
+    }
+
+    fn all(&self) -> impl Iterator<Item = (i32, u32)> + '_ {
+        let mut m = self.first;
+        std::iter::from_fn(move || {
+            let here = m;
+            m = step(m.0, m.1, 1);
+            self.contains(here).then_some(here)
+        })
+    }
+}
+
+/// Arrows to the months either side of what the page shows, and a date
+/// field to jump to any month. The field submits to /calendar/go, which
+/// nginx answers with a redirect to that month's page, so this needs no
+/// script either.
+fn month_nav(
+    shown: ((i32, u32), (i32, u32)),
+    months: &Months,
+    today: NaiveDate,
+    back_to_now: bool,
+) -> String {
+    let before = step(shown.0.0, shown.0.1, -1);
+    let after = step(shown.1.0, shown.1.1, 1);
+    let arrow = |m: (i32, u32), rel: &str, text: String| {
+        if months.contains(m) {
+            format!(
+                r#"<a class="month-step" rel="{rel}" href="{AT}/calendar/{key}/">{text}</a>"#,
+                key = month_key(m),
+            )
+        } else {
+            format!(r#"<span class="month-step" aria-disabled="true">{text}</span>"#)
+        }
+    };
+    let prev = arrow(
+        before,
+        "prev",
+        format!(
+            r#"<span aria-hidden="true">←</span> {}"#,
+            month_name(before)
+        ),
+    );
+    let next = arrow(
+        after,
+        "next",
+        format!(r#"{} <span aria-hidden="true">→</span>"#, month_name(after)),
+    );
+    let now_link = if back_to_now {
+        format!(r#"<a class="month-step" href="{AT}/calendar/">This month</a>"#)
+    } else {
+        String::new()
+    };
+    let last_day = next_month(months.last.0, months.last.1) - Days::new(1);
+    // The field opens on the month shown, or on today when that is it.
+    let value = if (today.year(), today.month()) == shown.0 {
+        today
+    } else {
+        NaiveDate::from_ymd_opt(shown.0.0, shown.0.1, 1).expect("a first of the month is real")
+    };
+    format!(
+        r#"<nav class="month-nav" aria-label="Other months"><div class="month-steps">{prev}{now_link}{next}</div><form class="month-jump" method="get" action="{AT}/calendar/go"><label for="month-jump">Go to</label><input id="month-jump" type="date" name="d" value="{value}" min="{first}-01" max="{last_day}" required><button type="submit">Show month</button></form></nav>"#,
+        first = month_key(months.first),
+    )
+}
+
 /// One month as a seven-column week grid. A table rather than a CSS grid, so
-/// the weekday headers are announced as column headers.
-fn month_grid(year: i32, month: u32, events: &[&Event], today: NaiveDate) -> String {
+/// the weekday headers are announced as column headers. Every event of the
+/// month is in it, the ones already over too.
+fn month_grid(year: i32, month: u32, events: &[&Event], now: DateTime<Utc>) -> String {
+    let today = now.with_timezone(&Berlin).date_naive();
     let label = NaiveDate::from_ymd_opt(year, month, 1)
         .expect("a first of the month is real")
         .format("%B %Y")
@@ -176,9 +304,10 @@ fn month_grid(year: i32, month: u32, events: &[&Event], today: NaiveDate) -> Str
                 .iter()
                 .map(|e| {
                     format!(
-                        r#"<a class="day-event {classes}" href="{AT}/events/{id}/"><b>{time}</b>{title}</a>"#,
+                        r#"<a class="day-event {classes}{gone}" href="{href}"><b>{time}</b>{title}</a>"#,
                         classes = group_classes(e),
-                        id = e.id,
+                        gone = if over(e, now) { " over" } else { "" },
+                        href = href(e, now),
                         time = html_escape(&clock(e)),
                         title = html_escape(&e.title),
                     )
@@ -226,7 +355,7 @@ fn plural(n: usize) -> &'static str {
 
 // ------------------------------------------------------------- event rows
 
-fn event_row(e: &Event) -> String {
+fn event_row(e: &Event, now: DateTime<Utc>) -> String {
     let start = e.start.with_timezone(&Berlin);
     let text = if e.excerpt.is_empty() {
         String::new()
@@ -234,7 +363,13 @@ fn event_row(e: &Event) -> String {
         format!("<p>{}</p>", html_escape(&e.excerpt))
     };
     format!(
-        r#"<article id="{id}" class="calendar-row {classes}"><time datetime="{iso}" class="calendar-date"><span>{wd}</span><strong>{d}</strong><span>{mon}</span></time><div class="calendar-row-content"><div class="calendar-row-labels"><span class="tag">{category}</span><span class="event-group">{groups}</span></div><h3><a href="{AT}/events/{id}/">{title}</a></h3><div class="event-meta"><span>{time}</span><span>{place}</span>{coming}</div>{text}</div><a class="text-link calendar-row-action" href="{AT}/events/{id}/">Event details {ARROW}</a></article>"#,
+        r#"<article id="{id}" class="calendar-row {classes}"><time datetime="{iso}" class="calendar-date"><span>{wd}</span><strong>{d}</strong><span>{mon}</span></time><div class="calendar-row-content"><div class="calendar-row-labels"><span class="tag">{category}</span><span class="event-group">{groups}</span></div><h3><a href="{href}">{title}</a></h3><div class="event-meta"><span>{time}</span><span>{place}</span>{coming}</div>{text}</div><a class="text-link calendar-row-action" href="{href}">{action} {ARROW}</a></article>"#,
+        href = href(e, now),
+        action = if over(e, now) {
+            "Past event"
+        } else {
+            "Event details"
+        },
         classes = group_classes(e),
         iso = start.format("%Y-%m-%d"),
         wd = start.format("%a").to_string().to_uppercase(),
@@ -287,7 +422,20 @@ fn shell(s: Shell, now: DateTime<Utc>, stale: &[String]) -> String {
         )
 }
 
-fn home(events: &[&Event], today: NaiveDate) -> String {
+/// The events in the given months, the ones already over too, so a grid
+/// does not lose the first half of the month as it goes by.
+fn in_months<'a>(events: &[&'a Event], months: &[(i32, u32)]) -> Vec<&'a Event> {
+    events
+        .iter()
+        .filter(|e| months.contains(&(day(e).year(), day(e).month())))
+        .copied()
+        .collect()
+}
+
+/// `events` is what is still to come, `grid` every event this month and
+/// next.
+fn home(events: &[&Event], grid: &[&Event], now: DateTime<Utc>) -> String {
+    let today = now.with_timezone(&Berlin).date_naive();
     // Empty when there is nothing on, rather than "0 events coming up".
     let count = match events.len() {
         0 => String::new(),
@@ -321,7 +469,7 @@ fn home(events: &[&Event], today: NaiveDate) -> String {
                 label = NaiveDate::from_ymd_opt(year, month, 1)
                     .expect("a first of the month is real")
                     .format("%B <span>%Y</span>"),
-                grid = month_grid(year, month, events, today),
+                grid = month_grid(year, month, grid, now),
             )
         })
         .collect();
@@ -395,20 +543,46 @@ fn counts<'a>(events: &[&Event]) -> Vec<(&'a str, &'a str, usize)> {
         .collect()
 }
 
-fn calendar(events: &[&Event], today: NaiveDate) -> String {
-    let grids: String = current_and_next(today)
+/// The switches for a page that counts `counted` but also shows `shown`: a
+/// group whose only events this month are over still needs its switch, or
+/// the stylesheet hides them with nothing to bring them back.
+fn switch_counts<'a>(counted: &[&Event], shown: &[&Event]) -> Vec<(&'a str, &'a str, usize)> {
+    crate::event::GROUPS
         .iter()
-        .map(|&(year, month)| {
-            format!(
-                r#"<section class="calendar-month"><div class="month-heading"><h2>{label}</h2></div>{grid}</section>"#,
-                label = NaiveDate::from_ymd_opt(year, month, 1)
-                    .expect("a first of the month is real")
-                    .format("%B <span>%Y</span>"),
-                grid = month_grid(year, month, events, today),
+        .filter(|(key, _)| counted.iter().chain(shown).any(|e| e.in_any(&[key])))
+        .map(|(key, name)| {
+            (
+                *key,
+                *name,
+                counted.iter().filter(|e| e.in_any(&[key])).count(),
             )
         })
+        .collect()
+}
+
+/// One month's grid under its heading, as the calendar pages show it.
+fn calendar_month(year: i32, month: u32, events: &[&Event], now: DateTime<Utc>) -> String {
+    format!(
+        r#"<section class="calendar-month"><div class="month-heading"><h2>{label}</h2></div>{grid}</section>"#,
+        label = NaiveDate::from_ymd_opt(year, month, 1)
+            .expect("a first of the month is real")
+            .format("%B <span>%Y</span>"),
+        grid = month_grid(year, month, events, now),
+    )
+}
+
+/// /calendar: this month and next as grids, every event in them, then the
+/// list of everything still to come. `events` is what is still to come,
+/// `grid` every event this month and next.
+fn calendar(events: &[&Event], grid: &[&Event], now: DateTime<Utc>, months: &Months) -> String {
+    let today = now.with_timezone(&Berlin).date_naive();
+    let [this, after] = current_and_next(today);
+    let grids: String = [this, after]
+        .iter()
+        .map(|&(year, month)| calendar_month(year, month, grid, now))
         .collect();
-    let rows: String = events.iter().map(|e| event_row(e)).collect();
+    let nav = month_nav((this, after), months, today, false);
+    let rows: String = events.iter().map(|e| event_row(e, now)).collect();
     let list = if events.is_empty() {
         // format!, not to_string: these two links carry `{AT}`, and a raw
         // string would print the placeholder.
@@ -424,10 +598,45 @@ fn calendar(events: &[&Event], today: NaiveDate) -> String {
         r##"<main id="main" class="wrap calendar-page">
 <div class="page-heading"><p class="eyebrow">CALENDAR</p><div class="title-actions"><h1>Upcoming events</h1><a class="button primary" href="/calendar/subscribe/">Subscribe {ARROW}</a></div><p>Discussions, dinners, games and talks in Munich.</p></div>
 <div class="calendar-context"><span><span class="status-dot"></span> {n} upcoming event{s}</span><span>All times Munich local time</span></div>
+{nav}
 <div class="filtered">{switches}<div class="listing"><p class="none-on">No groups switched on.</p>{grids}
 {list}</div></div>
-<aside class="coverage-note"><h3>A note on coverage</h3><p>These are the events the groups have announced on LessWrong, the EA Forum, Meetup, Luma and their own pages. Check the original listing for registration, language and cost. Events later than next month are in the list above but not in the grids.</p><div class="actions"><a class="text-link" href="/calendar/past/">Past events</a><a class="text-link" href="/calendar/stats/">Statistics</a><a class="text-link" href="mailto:rationality@hilll.dev?subject=Event%20suggestion%20for%20Rationality%20Munich">Suggest an event</a></div></aside>
+<aside class="coverage-note"><h3>A note on coverage</h3><p>These are the events the groups have announced on LessWrong, the EA Forum, Meetup, Luma and their own pages. Check the original listing for registration, language and cost. The arrows and the date field above the grids show any other month.</p><div class="actions"><a class="text-link" href="/calendar/past/">Past events</a><a class="text-link" href="/calendar/stats/">Statistics</a><a class="text-link" href="mailto:rationality@hilll.dev?subject=Event%20suggestion%20for%20Rationality%20Munich">Suggest an event</a></div></aside>
 </main>"##,
+        n = events.len(),
+        s = plural(events.len()),
+        switches = groups::switches(&switch_counts(events, grid), false),
+    )
+}
+
+/// /calendar/<yyyy-mm>/: one month, whatever is in it, past or to come.
+/// `events` is every event of that month.
+fn month_page(
+    (year, month): (i32, u32),
+    events: &[&Event],
+    now: DateTime<Utc>,
+    months: &Months,
+) -> String {
+    let today = now.with_timezone(&Berlin).date_naive();
+    let name = month_name((year, month));
+    let nav = month_nav(((year, month), (year, month)), months, today, true);
+    let rows: String = events.iter().map(|e| event_row(e, now)).collect();
+    let list = if events.is_empty() {
+        format!(r#"<p class="section-note">Nothing is listed for {name}.</p>"#)
+    } else {
+        format!(
+            r#"<section class="calendar-month event-list"><div class="month-heading"><h2>Every event in {name}</h2></div>{rows}</section>"#
+        )
+    };
+    format!(
+        r##"<main id="main" class="wrap calendar-page">
+<div class="page-heading"><p class="eyebrow">CALENDAR</p><div class="title-actions"><h1>{name}</h1><a class="button primary" href="/calendar/subscribe/">Subscribe {ARROW}</a></div><p>Every event the groups announced for {name}, the ones already over too.</p></div>
+<div class="calendar-context"><span>{n} event{s}</span><span>All times Munich local time</span></div>
+{nav}
+<div class="filtered">{switches}<div class="listing"><p class="none-on">No groups switched on.</p>{grid}
+{list}</div></div>
+</main>"##,
+        grid = calendar_month(year, month, events, now),
         n = events.len(),
         s = plural(events.len()),
         switches = groups::switches(&counts(events), false),
@@ -698,6 +907,16 @@ pub fn build(
     let every_upcoming: Vec<&Event> = upcoming.iter().chain(others.iter()).copied().collect();
     // Oldest first, as they arrive; the past page turns them round.
     let past: Vec<&Event> = events.iter().filter(|e| e.end_or_default() < now).collect();
+    // The grids show the whole of this month and next, past days included.
+    let all: Vec<&Event> = events.iter().collect();
+    let window = current_and_next(today);
+    let grid = in_months(&all, &window);
+    let home_grid: Vec<&Event> = grid
+        .iter()
+        .filter(|e| e.in_any(DEFAULT_GROUPS))
+        .copied()
+        .collect();
+    let months = Months::of(events, today);
 
     write(
         &dir.join("style.css"),
@@ -730,7 +949,7 @@ pub fn build(
                 title: "Rationality Munich — events, groups and meetups".into(),
                 description: "Munich's rationality, effective altruism, philosophy and AI safety groups, and everything they have coming up.".into(),
                 canonical: format!("{SITE}{AT}/"),
-                body: home(&upcoming, today),
+                body: home(&upcoming, &home_grid, now),
             },
         ),
         (
@@ -739,7 +958,7 @@ pub fn build(
                 title: "Upcoming events · Rationality Munich".into(),
                 description: "Every event the Munich rationality, EA and AI safety groups have announced, this month and next as a calendar.".into(),
                 canonical: format!("{SITE}{AT}/calendar/"),
-                body: calendar(&every_upcoming, today),
+                body: calendar(&every_upcoming, &grid, now, &months),
             },
         ),
         (
@@ -818,6 +1037,25 @@ pub fn build(
         write(&dir.join(path), &shell(shell_args, now, stale))?;
     }
 
+    for m in months.all() {
+        let name = month_name(m);
+        write(
+            &dir.join(format!("calendar/{}/index.html", month_key(m))),
+            &shell(
+                Shell {
+                    title: format!("{name} · Rationality Munich"),
+                    description: format!(
+                        "Every event the Munich rationality, EA and AI safety groups announced for {name}."
+                    ),
+                    canonical: format!("{SITE}{AT}/calendar/{}/", month_key(m)),
+                    body: month_page(m, &in_months(&all, &[m]), now, &months),
+                },
+                now,
+                stale,
+            ),
+        )?;
+    }
+
     for e in &every_upcoming {
         write(
             &dir.join(format!("events/{}/index.html", e.id)),
@@ -845,6 +1083,7 @@ pub fn build(
 mod tests {
     use super::*;
     use crate::event::{assign_ids, sanitize, tests::ev};
+    use chrono::TimeZone;
 
     fn sample() -> Vec<Event> {
         let mut events = sanitize(vec![ev("Community Dinner", 0, "LessWrong")]);
@@ -889,7 +1128,11 @@ mod tests {
         let events = sample();
         let upcoming: Vec<&Event> = events.iter().collect();
         let today = NaiveDate::from_ymd_opt(2026, 9, 10).unwrap();
-        let grid = month_grid(2026, 9, &upcoming, today);
+        let now = Berlin
+            .from_local_datetime(&today.and_hms_opt(12, 0, 0).unwrap())
+            .unwrap()
+            .with_timezone(&Utc);
+        let grid = month_grid(2026, 9, &upcoming, now);
         assert!(grid.contains(&format!(
             r#"href="{AT}/events/2026-09-26-community-dinner/""#
         )));
@@ -910,8 +1153,8 @@ mod tests {
         let now = events[0].start;
         let today = now.with_timezone(&Berlin).date_naive();
         for html in [
-            home(&upcoming, today),
-            calendar(&upcoming, today),
+            home(&upcoming, &upcoming, now),
+            calendar(&upcoming, &upcoming, now, &Months::of(&events, today)),
             event_page(upcoming[0], now),
         ] {
             assert!(!html.contains("<script>alert"), "{html}");
@@ -929,8 +1172,8 @@ mod tests {
         let today = now.with_timezone(&Berlin).date_naive();
         let pages = [
             PAGE.replace("{{at}}", AT),
-            home(&upcoming, today),
-            calendar(&upcoming, today),
+            home(&upcoming, &upcoming, now),
+            calendar(&upcoming, &upcoming, now, &Months::of(&events, today)),
             event_page(upcoming[0], now),
             subscribe(),
             privacy(),
@@ -966,8 +1209,9 @@ mod tests {
     fn the_calendar_keeps_the_anchors_the_feeds_link_to() {
         let events = sample();
         let upcoming: Vec<&Event> = events.iter().collect();
-        let today = upcoming[0].start.with_timezone(&Berlin).date_naive();
-        let html = calendar(&upcoming, today);
+        let now = upcoming[0].start;
+        let today = now.with_timezone(&Berlin).date_naive();
+        let html = calendar(&upcoming, &upcoming, now, &Months::of(&events, today));
         for e in &upcoming {
             assert!(
                 html.contains(&format!(r#"<article id="{}""#, e.id)),
@@ -988,11 +1232,12 @@ mod tests {
         reading.id = "2026-10-20-left-hand-of-darkness".into();
         reading.title = "The Left Hand of Darkness".into();
         reading.groups = vec!["philosophia".into()];
-        let today = events[0].start.with_timezone(&Berlin).date_naive();
+        let now = events[0].start;
+        let today = now.with_timezone(&Berlin).date_naive();
         events.push(reading);
         let upcoming: Vec<&Event> = events.iter().collect();
 
-        let html = calendar(&upcoming, today);
+        let html = calendar(&upcoming, &upcoming, now, &Months::of(&events, today));
         assert!(
             html.contains("The Left Hand of Darkness"),
             "the event is missing"
@@ -1019,8 +1264,9 @@ mod tests {
     fn every_group_with_a_switch_has_rules_to_go_with_it() {
         let events = sample();
         let upcoming: Vec<&Event> = events.iter().collect();
-        let today = upcoming[0].start.with_timezone(&Berlin).date_naive();
-        let html = calendar(&upcoming, today);
+        let now = upcoming[0].start;
+        let today = now.with_timezone(&Berlin).date_naive();
+        let html = calendar(&upcoming, &upcoming, now, &Months::of(&events, today));
         let css = groups::switch_css();
         for (key, _) in crate::event::GROUPS {
             if html.contains(&format!(r#"id="g-{key}""#)) {
@@ -1055,9 +1301,13 @@ mod tests {
     #[test]
     fn an_empty_calendar_still_renders_both_pages() {
         let today = NaiveDate::from_ymd_opt(2026, 10, 10).unwrap();
-        let home = home(&[], today);
+        let now = Berlin
+            .from_local_datetime(&today.and_hms_opt(12, 0, 0).unwrap())
+            .unwrap()
+            .with_timezone(&Utc);
+        let home = home(&[], &[], now);
         assert!(home.contains("Nothing is announced"));
-        assert!(calendar(&[], today).contains("Nothing listed."));
+        assert!(calendar(&[], &[], now, &Months::of(&[], today)).contains("Nothing listed."));
     }
 
     /// A page built with `to_string` instead of `format!` prints its
@@ -1070,10 +1320,16 @@ mod tests {
         let now = events[0].start;
         let today = now.with_timezone(&Berlin).date_naive();
         let pages = [
-            ("home", home(&upcoming, today)),
-            ("calendar", calendar(&upcoming, today)),
-            ("empty home", home(&[], today)),
-            ("empty calendar", calendar(&[], today)),
+            ("home", home(&upcoming, &upcoming, now)),
+            (
+                "calendar",
+                calendar(&upcoming, &upcoming, now, &Months::of(&events, today)),
+            ),
+            ("empty home", home(&[], &[], now)),
+            (
+                "empty calendar",
+                calendar(&[], &[], now, &Months::of(&[], today)),
+            ),
             ("event", event_page(upcoming[0], now)),
             ("subscribe", subscribe()),
             ("privacy", privacy()),
@@ -1092,5 +1348,83 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// The grid is the whole month: an event earlier this month stays in
+    /// it once it is over, and links to its row on the past page, since
+    /// past events have no page of their own.
+    #[test]
+    fn an_event_earlier_this_month_stays_in_the_grid() {
+        let events = sample();
+        let dinner = &events[0];
+        let now = dinner.end_or_default() + Duration::days(1);
+        let shown: Vec<&Event> = events.iter().collect();
+        let (year, month) = (day(dinner).year(), day(dinner).month());
+        let grid = month_grid(year, month, &shown, now);
+        assert!(
+            grid.contains(&format!(
+                r#"class="day-event g-ea over" href="{AT}/calendar/past/#{}""#,
+                dinner.id
+            )),
+            "{grid}"
+        );
+        let html = calendar(&[], &shown, now, &Months::of(&events, day(dinner)));
+        assert!(html.contains("Community Dinner"), "{html}");
+        // Its group keeps a switch, or the stylesheet would hide it.
+        assert!(html.contains(r#"id="g-ea""#));
+    }
+
+    #[test]
+    fn months_step_over_the_year_end() {
+        assert_eq!(step(2026, 12, 1), (2027, 1));
+        assert_eq!(step(2026, 1, -1), (2025, 12));
+        assert_eq!(step(2026, 11, -23), (2024, 12));
+        assert_eq!(month_key((2026, 3)), "2026-03");
+    }
+
+    #[test]
+    fn there_is_a_page_from_the_first_event_to_a_year_ahead() {
+        let events = sample();
+        let today = NaiveDate::from_ymd_opt(2026, 11, 16).unwrap();
+        let months = Months::of(&events, today);
+        assert_eq!(months.first, (2026, 9));
+        assert_eq!(months.last, (2027, 11));
+        assert_eq!(months.all().count(), 15);
+        // The first month has no arrow back, and the field stays in range.
+        let nav = month_nav(((2026, 9), (2026, 9)), &months, today, true);
+        assert!(nav.contains(r#"<span class="month-step" aria-disabled="true"><span aria-hidden="true">←</span> August 2026</span>"#), "{nav}");
+        assert!(nav.contains(&format!(r#"rel="next" href="{AT}/calendar/2026-10/""#)));
+        assert!(
+            nav.contains(r#"min="2026-09-01" max="2027-11-30""#),
+            "{nav}"
+        );
+        assert!(nav.contains(r#"action="/calendar/go""#));
+        // /calendar shows this month and next, so its arrows skip both.
+        let window = month_nav(((2026, 11), (2026, 12)), &months, today, false);
+        assert!(window.contains(&format!(r#"rel="prev" href="{AT}/calendar/2026-10/""#)));
+        assert!(window.contains(&format!(r#"rel="next" href="{AT}/calendar/2027-01/""#)));
+        assert!(window.contains(r#"value="2026-11-16""#));
+    }
+
+    #[test]
+    fn a_month_page_lists_that_month_past_and_upcoming() {
+        let events = sample();
+        let dinner = &events[0];
+        let shown: Vec<&Event> = events.iter().collect();
+        let today = day(dinner);
+        let months = Months::of(&events, today);
+        let m = (today.year(), today.month());
+        let after = month_page(
+            m,
+            &shown,
+            dinner.end_or_default() + Duration::days(1),
+            &months,
+        );
+        assert!(after.contains(&format!(r#"<article id="{}""#, dinner.id)));
+        assert!(after.contains("Past event"));
+        let before = month_page(m, &shown, dinner.start - Duration::days(1), &months);
+        assert!(before.contains(&format!(r#"href="{AT}/events/{}/""#, dinner.id)));
+        assert!(month_page(m, &[], dinner.start, &months).contains("Nothing is listed for"));
+        assert!(!after.contains("<script"), "the page runs no script");
     }
 }
