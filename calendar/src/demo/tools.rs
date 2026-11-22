@@ -79,6 +79,19 @@ const TOOLS: &[Tool] = &[
     },
     Tool {
         kind: "GROUP GAME",
+        name: "Red or blue",
+        what: "Everyone presses a red or a blue button on their own phone. If more than half the room presses blue, everybody lives; if not, only the ones who pressed red do. The host can set a different share, and nobody sees who pressed what, the host included, until the round is revealed.",
+        how: "",
+        links: &[
+            ("Open", "https://games.rationality-munich.com/buttons"),
+            (
+                "Source",
+                "https://github.com/float3/rooms/tree/main/buttons",
+            ),
+        ],
+    },
+    Tool {
+        kind: "GROUP GAME",
         name: "Speed updating",
         what: "Everyone says where they stand on statements about ethics, minds, AI, animals and more, on a bingo card or as many as they like. Each round pairs everybody with whoever disagrees with them most, on the statement they are furthest apart on, for a few timed minutes, and then asks how much it changed their mind. Whoever moves the people they talk to most wins.",
         how: "",
